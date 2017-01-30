@@ -25,18 +25,19 @@ struct TouchInfoSerialized {
     float dis[3];
 };
 
-
+/*
 static void test_str_size() {
     printf( "Size of TouchInfoSerialized:%lu\n", sizeof(TouchInfoSerialized) );
     printf( "Size of Touch structa:%lu\n", sizeof(Touch) );
 }
+*/
 
 
 Loader::Loader(const char* filename):
     cur_buffer_base(0),
     cur_it_index(0)
 {
-    test_str_size();
+    //test_str_size();
     touchFile.open(filename, ifstream::binary);
     touchFile.seekg (0, ifstream::end);
     long int _length = touchFile.tellg();
