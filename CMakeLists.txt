@@ -20,3 +20,8 @@ if (OPENMP_FOUND)
         COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
         LINK_FLAGS ${OpenMP_CXX_FLAGS} )
 endif()
+
+ADD_CUSTOM_TARGET( touch2parquet_endian ALL
+                   COMMAND ln -sf touch2parquet touch2parquet_endian
+                   DEPENDS touch2parquet
+                   COMMENT "Generating touch2parquet_endian")

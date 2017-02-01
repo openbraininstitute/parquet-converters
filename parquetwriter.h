@@ -1,9 +1,12 @@
 #ifndef PARQUETWRITER_H
 #define PARQUETWRITER_H
 
+#define COMBINE_SECTION_SEGMENT_FIELDS 0
+
 #include <parquet/api/writer.h>
 #include <arrow/io/file.h>
 #include "loader.h"
+
 
 using parquet::schema::GroupNode;
 using FileClass = ::arrow::io::FileOutputStream;
@@ -36,7 +39,11 @@ private:
 
     int* pre_neuron_id;
     int* post_neuron_id;
+#if COMBINE_SECTION_SEGMENT_FIELDS
     int* pre_post_sect_segm;
+#else
+    int *pre_section, *pre_segment, *post_section, *post_segment;
+#endif
     float* pre_offset;
     float* post_offset;
     float* distance_soma;

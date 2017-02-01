@@ -12,9 +12,20 @@ static std::shared_ptr<GroupNode> setupSchema() {
       "post_neuron_id", Repetition::REQUIRED, Type::INT32, LogicalType::INT_32));
 
   // POSITION OF THE SYNAPSE //
+  #if COMBINE_SECTION_SEGMENT_FIELDS
   //Lets attempt to store all 4 fields in 32bits
   fields.push_back(schema:: PrimitiveNode::Make(
        "pre_post_sect_segm", Repetition::REQUIRED, Type::INT32, LogicalType::INT_32 ) );
+  #else
+  fields.push_back(schema:: PrimitiveNode::Make(
+       "pre_section", Repetition::REQUIRED, Type::INT32, LogicalType::INT_16 ) );
+  fields.push_back(schema:: PrimitiveNode::Make(
+       "pre_segment", Repetition::REQUIRED, Type::INT32, LogicalType::INT_16 ) );
+  fields.push_back(schema:: PrimitiveNode::Make(
+       "post_section", Repetition::REQUIRED, Type::INT32, LogicalType::INT_16 ) );
+  fields.push_back(schema:: PrimitiveNode::Make(
+       "post_segment", Repetition::REQUIRED, Type::INT32, LogicalType::INT_16 ) );
+  #endif
 
   fields.push_back(schema::PrimitiveNode::Make(
       "pre_offset", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
@@ -39,7 +50,14 @@ ParquetWriter::ParquetWriter(const char* filename):
   STRUCT_LEN( sizeof(Touch) ),
   pre_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
   post_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
+#if COMBINE_SECTION_SEGMENT_FIELDS
   pre_post_sect_segm( new int[NUM_ROWS_PER_ROW_GROUP] ),
+#else
+  pre_section( new int[NUM_ROWS_PER_ROW_GROUP] ),
+  pre_segment( new int[NUM_ROWS_PER_ROW_GROUP] ),
+  post_section( new int[NUM_ROWS_PER_ROW_GROUP] ),
+  post_segment( new int[NUM_ROWS_PER_ROW_GROUP] ),
+#endif
   pre_offset( new float[NUM_ROWS_PER_ROW_GROUP] ),
   post_offset( new float[NUM_ROWS_PER_ROW_GROUP] ),
   distance_soma( new float[NUM_ROWS_PER_ROW_GROUP] ),
@@ -62,14 +80,20 @@ ParquetWriter::ParquetWriter(const char* filename):
 ParquetWriter::~ParquetWriter() {
     file_writer->Close();
     out_file->Close();
-
     delete pre_neuron_id;
     delete post_neuron_id;
-    delete pre_post_sect_segm;
     delete pre_offset;
     delete post_offset;
     delete distance_soma;
     delete branch_order;
+#if COMBINE_SECTION_SEGMENT_FIELDS
+    delete pre_post_sect_segm;
+#else
+    delete pre_section;
+    delete pre_segment;
+    delete post_section;
+    //delete post_segment;
+#endif
 }
 
 
@@ -114,14 +138,25 @@ void ParquetWriter::write(Touch* data, int length) {
     for( int i=0; i< length; i++  ) {
         pre_neuron_id[i] = data[i].getPreNeuronID();
         post_neuron_id[i] = data[i].getPostNeuronID();
-        pre_post_sect_segm[i] =  (data[i].pre_synapse_ids[SECTION_ID] & 0x11) +
-                                ((data[i].pre_synapse_ids[SEGMENT_ID] & 0x11) << 8) +
-                                ((data[i].pre_synapse_ids[SECTION_ID] & 0x11) << 16) +
-                                ((data[i].pre_synapse_ids[SECTION_ID] & 0x11) << 24);
         pre_offset[i] = data[i].pre_offset;
         post_offset[i] = data[i].post_offset;
         distance_soma[i] = data[i].distance_soma;
         branch_order[i] = data[i].branch;
+    #if COMBINE_SECTION_SEGMENT_FIELDS
+        pre_post_sect_segm[i] =  ( & 0x11) +
+                                ((data[i].pre_synapse_ids[SEGMENT_ID] & 0x11) << 8) +
+                                ((data[i].pre_synapse_ids[SECTION_ID] & 0x11) << 16) +
+                                ((data[i].pre_synapse_ids[SECTION_ID] & 0x11) << 24);
+    #else
+        pre_section[i] = data[i].pre_synapse_ids[SECTION_ID];
+        pre_segment[i] = data[i].pre_synapse_ids[SEGMENT_ID];
+        post_section[i] = data[i].post_synapse_ids[SECTION_ID];
+        post_segment[i] = data[i].post_synapse_ids[SEGMENT_ID];
+        if( pre_section[i]>0x7fff ) printf("Problematic pre_section %d\n", pre_section[i]);
+        if( pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", pre_segment[i]);
+        if( post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
+        if( post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
+    #endif
 
     }
 
@@ -133,9 +168,20 @@ void ParquetWriter::write(Touch* data, int length) {
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, post_neuron_id);
 
+#if COMBINE_SECTION_SEGMENT_FIELDS
     //pre_post_sect_segm
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, pre_post_sect_segm);
+#else
+    int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+    int32_writer->WriteBatch(length, nullptr, nullptr, pre_section);
+    int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+    int32_writer->WriteBatch(length, nullptr, nullptr, pre_segment);
+    int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+    int32_writer->WriteBatch(length, nullptr, nullptr, post_section);
+    int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+    int32_writer->WriteBatch(length, nullptr, nullptr, post_segment);
+#endif
 
     //pre_offset
     float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());

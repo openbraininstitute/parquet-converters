@@ -1,8 +1,13 @@
 #include "loader.h"
 #include "parquetwriter.h"
 #include <time.h>
+#include <byteswap.h>
+
 
 using namespace std;
+
+#define swap_int(x) x=bswap_32(x)
+#define swap_float(x) x=bswap_32(x)
 
 //More global definitions (lost around the code)
 struct NeuronInfoSerialized {
@@ -33,7 +38,7 @@ static void test_str_size() {
 */
 
 
-Loader::Loader(const char* filename):
+Loader::Loader(const char* filename, bool different_endian):
     cur_buffer_base(0),
     cur_it_index(0)
 {
@@ -43,6 +48,7 @@ Loader::Loader(const char* filename):
     long int _length = touchFile.tellg();
     n_blocks = _length / BLOCK_SIZE;
     touchFile.seekg (0, ifstream::beg);
+    endian_swap = different_endian;
 
     _fillBuffer();
 }
@@ -87,6 +93,28 @@ Touch & Loader::getItem(int index) {
 }
 
 
+void Loader::_load_into( Touch* buf, int length ) {
+    touchFile.read((char*)buf, length*BLOCK_SIZE );
+
+    if( endian_swap ){
+        Touch * curTouch = buf;
+        for(int i=0; i< length; i++) {
+            swap_int( curTouch->pre_synapse_ids[0] );
+            swap_int( curTouch->pre_synapse_ids[1] );
+            swap_int( curTouch->pre_synapse_ids[2] );
+            swap_int( curTouch->post_synapse_ids[0] );
+            swap_int( curTouch->post_synapse_ids[1] );
+            swap_int( curTouch->post_synapse_ids[2] );
+            swap_int( curTouch->branch );
+            swap_float( curTouch->distance_soma );
+            swap_float( curTouch->pre_offset );
+            swap_float( curTouch->post_offset );
+            curTouch++;
+        }
+    }
+}
+
+
 void Loader::_fillBuffer() {
     if(!touchFile.is_open()) {
         printf("File not open");
@@ -98,11 +126,17 @@ void Loader::_fillBuffer() {
     int load_n = n_blocks-cur_buffer_base;
     if( load_n > TOUCH_BUFFER_LEN ) load_n=TOUCH_BUFFER_LEN;
 
-    touchFile.read((char*)&touches_buf, load_n*BLOCK_SIZE );
+    _load_into( touches_buf, load_n );
+
 }
 
 void Loader::setExporter(ParquetWriter &writer) {
     mwriter = &writer;
+}
+
+
+void Loader::setProgressHandler(function<void(float)> func){
+    progress_handler = func;
 }
 
 int Loader::exportN(int n) {
@@ -113,18 +147,19 @@ int Loader::exportN(int n) {
     touchFile.seekg (0, ifstream::beg);
 
     for(int i=0; i<n_buffers; i++) {
-        touchFile.read((char*)&touches_buf, TOUCH_BUFFER_LEN*BLOCK_SIZE );
+        _load_into(touches_buf, TOUCH_BUFFER_LEN );
         mwriter->write( touches_buf, TOUCH_BUFFER_LEN );
         progress +=progress_inc;
         if( time(0) > time_sec ){
+            if( progress_handler ) {
+                progress_handler(progress);
+            }
             time_sec=time(0);
-            printf("%2.1f%%\n", progress*100);
-            fflush(stdout);
         }
     }
 
     int remaining = n % TOUCH_BUFFER_LEN;
-    touchFile.read((char*)&touches_buf, remaining*BLOCK_SIZE );
+    _load_into(touches_buf, remaining );
     mwriter->write( touches_buf, remaining );
 
     return n;

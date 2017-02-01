@@ -3,6 +3,9 @@
 
 #include <fstream>
 #include <istream>
+#include <functional>
+#include <vector>
+#include <numeric>
 
 //Block is 40bytes, Buffer len should also be multiple of 40
 #define BUFFER_LEN 10*1024
@@ -31,13 +34,14 @@ struct Touch {
 
 class Loader {
 public:
-    Loader( const char *filename );
+    Loader( const char *filename, bool different_endian=false );
     ~Loader( );
     Touch & getNext();
     Touch & getItem( int index );
     void setExporter( ParquetWriter &writer);
     int exportN( int n );
     int exportAll( );
+    void setProgressHandler(std::function<void(float)> func);
 
     static const int TOUCH_BUFFER_LEN = BUFFER_LEN;
     static const int BLOCK_SIZE = sizeof(Touch);
@@ -50,9 +54,48 @@ private:
     Touch touches_buf[TOUCH_BUFFER_LEN];
     std::ifstream touchFile;
     long int n_blocks;
+    bool endian_swap=false;
+    std::function<void(float)> progress_handler;
 
     void _fillBuffer();
+    void _load_into( Touch* buf, int length );
 
 };
+
+
+class ProgressHandler {
+private:
+    //Multitask version
+    int n_tasks;
+    std::vector<float> progressV;
+    float global_progress = .0;
+
+public:
+    ProgressHandler(int n):
+        n_tasks(n)   {
+    }
+
+    void showProgress(float progress){
+        printf("%2.1f%%\n", progress*100);
+        fflush(stdout);
+    }
+
+    void updateProgress(float progress, int task_i){
+        progressV[task_i]=progress;
+        float average = accumulate( progressV.begin(), progressV.end(), 0.0)/(float)n_tasks;
+        if( average + 0.1 > global_progress ){
+            global_progress = average;
+            showProgress(global_progress);
+        }
+    }
+
+    std::function<void(float)> addSubTask(){
+        int size=progressV.size();
+        progressV.push_back(.0);
+        return [this, size](float progress){ this->updateProgress(progress, size); };
+    }
+
+};
+
 
 #endif // LOADER_H
