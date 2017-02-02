@@ -69,6 +69,7 @@ private:
     int n_tasks;
     std::vector<float> progressV;
     float global_progress = .0;
+    float last_large_progress = .0;
 
 public:
     ProgressHandler(int n):
@@ -76,16 +77,27 @@ public:
     }
 
     void showProgress(float progress){
-        printf("%2.1f%%\n", progress*100);
-        fflush(stdout);
+        fprintf(stderr, "%2.1f%%\n", global_progress*100);
+    }
+
+    void showSmallProgress() {
+        fprintf(stderr, ".");
+    }
+
+    void updateGlobalProgress( float progress ) {
+        showSmallProgress();
+        if( global_progress > last_large_progress + 0.02 ) {
+            last_large_progress = global_progress;
+            showProgress(global_progress);
+        }
     }
 
     void updateProgress(float progress, int task_i){
         progressV[task_i]=progress;
         float average = accumulate( progressV.begin(), progressV.end(), 0.0)/(float)n_tasks;
-        if( average + 0.1 > global_progress ){
+        if( average > global_progress + 0.001 ){
             global_progress = average;
-            showProgress(global_progress);
+            updateGlobalProgress(global_progress);
         }
     }
 
@@ -96,6 +108,7 @@ public:
     }
 
 };
+
 
 
 #endif // LOADER_H

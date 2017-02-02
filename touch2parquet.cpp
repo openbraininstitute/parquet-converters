@@ -6,6 +6,7 @@
 #include "parquetwriter.h"
 
 
+
 int main( int argc, char* argv[] ) {
 
     if( argc < 2) {
@@ -25,7 +26,7 @@ int main( int argc, char* argv[] ) {
 
     #pragma omp parallel for
     for( int i=1; i<argc; i++) {
-        printf("[Info] Loading %s\n", argv[i]);
+        printf("\n[Info] Loading %s\n", argv[i]);
         Loader tl(argv[i], swap_endians);
         string parquetFilename( argv[i] );
         parquetFilename += ".parquet";
