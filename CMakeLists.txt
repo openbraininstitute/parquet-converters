@@ -18,6 +18,13 @@ find_package(Boost COMPONENTS regex)
 
 include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
+find_library(PARQUET_LIB parquet)
+find_library(ARROW_LIB arrow)
+find_library(ARROW_IO_LIB arrow_io)
+
+
+link_libraries(${PARQUET_LIB} ${ARROW_LIB} ${ARROW_IO_LIB})
+
 add_library(TouchParquet STATIC loader.cpp parquetwriter.cpp)
 target_link_libraries(TouchParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${Boost_LIBRARIES} ${BROTLI_LIBS} z)
 
@@ -26,6 +33,7 @@ target_link_libraries(test_convert TouchParquet)
 
 add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet TouchParquet)
+
 if (OPENMP_FOUND)
     set_target_properties( touch2parquet PROPERTIES
         COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
