@@ -1,13 +1,17 @@
 #include "loader.h"
 #include "parquetwriter.h"
 #include <time.h>
-#include <byteswap.h>
 
+
+inline void bswap_32(unsigned char * b) {
+  std::swap(b[0], b[3]);
+  std::swap(b[1], b[2]);
+}
 
 using namespace std;
 
-#define swap_int(x) x=bswap_32(x)
-#define swap_float(x) x=bswap_32(x)
+#define swap_int(x) bswap_32((unsigned char*)&x)
+#define swap_float(x) bswap_32((unsigned char*)&x)
 
 //More global definitions (lost around the code)
 struct NeuronInfoSerialized {

@@ -46,7 +46,7 @@ static std::shared_ptr<GroupNode> setupSchema() {
 }
 
 
-ParquetWriter::ParquetWriter(const char* filename):
+ParquetWriter::ParquetWriter(const string filename):
   STRUCT_LEN( sizeof(Touch) ),
   pre_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
   post_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
@@ -64,7 +64,7 @@ ParquetWriter::ParquetWriter(const char* filename):
   branch_order( new int[NUM_ROWS_PER_ROW_GROUP] )
 {
     // Create a ParquetFileWriter instance
-    PARQUET_THROW_NOT_OK(FileClass::Open(filename, &out_file));
+    PARQUET_THROW_NOT_OK(FileClass::Open(filename.c_str(), &out_file));
     touchSchema = setupSchema();
 
     WriterProperties::Builder prop_builder;

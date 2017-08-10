@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(neuron_parquet)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 ADD_DEFINITIONS( -std=c++11 )
 ADD_DEFINITIONS( -Wall -Wextra -Wno-unused-parameter )
 
@@ -11,19 +11,11 @@ find_path(PARQUET_INCLUDE_DIR "parquet")
 find_library(ARROW_LIB NAMES libarrow.a arrow)
 find_path(ARROW_INCLUDE_DIR "arrow")
 find_library(BROTLI_LIBS NAMES libbrotli.a)
-message(${BROTLI_LIBS})
-
 find_library(THRIFT_LIB NAMES thriftd)
 find_package(Boost COMPONENTS regex)
 
+
 include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
-
-find_library(PARQUET_LIB parquet)
-find_library(ARROW_LIB arrow)
-find_library(ARROW_IO_LIB arrow_io)
-
-
-link_libraries(${PARQUET_LIB} ${ARROW_LIB} ${ARROW_IO_LIB})
 
 add_library(TouchParquet STATIC loader.cpp parquetwriter.cpp)
 target_link_libraries(TouchParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${Boost_LIBRARIES} ${BROTLI_LIBS} z)
@@ -39,6 +31,11 @@ if (OPENMP_FOUND)
         COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
         LINK_FLAGS ${OpenMP_CXX_FLAGS} )
 endif()
+
+ADD_CUSTOM_TARGET( test_convert_endian ALL
+                   COMMAND ln -sf test_convert test_convert_endian
+                   DEPENDS test_convert
+                   COMMENT "Generating test_convert_endian")
 
 ADD_CUSTOM_TARGET( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian

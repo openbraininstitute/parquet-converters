@@ -29,11 +29,19 @@ int main( int argc, char* argv[] ) {
         printf("\n[Info] Loading %s\n", argv[i]);
         Loader tl(argv[i], swap_endians);
         string parquetFilename( argv[i] );
+        std::size_t slashPos = parquetFilename.find_last_of("/\\");
+        parquetFilename = parquetFilename.substr(slashPos+1);
         parquetFilename += ".parquet";
-        ParquetWriter tw(parquetFilename.c_str());
-        tl.setExporter( tw );
-        tl.setProgressHandler( progress.addSubTask() );
-        tl.exportAll();
+
+        try {
+            ParquetWriter tw(parquetFilename);
+            tl.setExporter( tw );
+            tl.setProgressHandler( progress.addSubTask() );
+            tl.exportAll();
+        }
+        catch (const std::exception& e){
+            printf("[ERROR] Could not create output file.\n -> %s", e.what());
+        }
     }
 
     printf("Done exporting\n");

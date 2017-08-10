@@ -15,7 +15,7 @@ using namespace std;
 class ParquetWriter
 {
 public:
-    ParquetWriter(const char*);
+    ParquetWriter(const string);
     ~ParquetWriter();
     void write(Touch* data, int length);
 private:
