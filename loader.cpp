@@ -34,12 +34,6 @@ struct TouchInfoSerialized {
     float dis[3];
 };
 
-/*
-static void test_str_size() {
-    printf( "Size of TouchInfoSerialized:%lu\n", sizeof(TouchInfoSerialized) );
-    printf( "Size of Touch structa:%lu\n", sizeof(Touch) );
-}
-*/
 
 
 Loader::Loader(const char* filename, bool different_endian):
