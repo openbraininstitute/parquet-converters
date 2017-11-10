@@ -5,24 +5,23 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 ADD_DEFINITIONS( -std=c++11 )
 ADD_DEFINITIONS( -Wall -Wextra -Wno-unused-parameter )
 
+# Dependencies
 find_package(OpenMP)
-find_library(PARQUET_LIB NAMES libparquet.a parquet)
-find_path(PARQUET_INCLUDE_DIR "parquet")
-find_library(ARROW_LIB NAMES libarrow.a arrow)
-find_path(ARROW_INCLUDE_DIR "arrow")
-find_library(BROTLI_LIBS NAMES libbrotli.a)
-find_library(THRIFT_LIB NAMES thriftd)
 find_package(Boost COMPONENTS regex)
+find_path(PARQUET_INCLUDE_DIR "parquet")
+find_path(ARROW_INCLUDE_DIR "arrow")
+# Libraries. Give preference to static for the critical ones
+find_library(PARQUET_LIB NAMES libparquet.a parquet)
+find_library(ARROW_LIB NAMES libarrow.a arrow)
+find_library(THRIFT_LIB NAMES thrift thriftd)
+find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
+find_library(Z_LIB NAMES libz.a z)
 
+# Lib
+add_subdirectory(lib)
+include_directories("lib")
 
-include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
-
-add_library(TouchParquet STATIC loader.cpp parquetwriter.cpp)
-target_link_libraries(TouchParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${Boost_LIBRARIES} ${BROTLI_LIBS} z)
-
-add_executable(test_convert test_convert.cpp )
-target_link_libraries(test_convert TouchParquet)
-
+# MAIN EXECUTABLE
 add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet TouchParquet)
 
@@ -32,15 +31,13 @@ if (OPENMP_FOUND)
         LINK_FLAGS ${OpenMP_CXX_FLAGS} )
 endif()
 
-ADD_CUSTOM_TARGET( test_convert_endian ALL
-                   COMMAND ln -sf test_convert test_convert_endian
-                   DEPENDS test_convert
-                   COMMENT "Generating test_convert_endian")
-
 ADD_CUSTOM_TARGET( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian
                    DEPENDS touch2parquet
                    COMMENT "Generating touch2parquet_endian")
+
+# TESTS
+add_subdirectory(tests)
 
 
 # INSTALL
