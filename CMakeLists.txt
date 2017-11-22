@@ -19,7 +19,7 @@ find_library(Z_LIB NAMES libz.a z)
 
 # Lib
 add_subdirectory(lib)
-include_directories("lib")
+include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
 # MAIN EXECUTABLE
 add_executable(touch2parquet touch2parquet.cpp)
