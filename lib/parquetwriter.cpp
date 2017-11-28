@@ -68,11 +68,9 @@ ParquetWriter::ParquetWriter(const string filename):
     touchSchema = setupSchema();
 
     WriterProperties::Builder prop_builder;
-    prop_builder.compression(Compression::GZIP);
     prop_builder.disable_dictionary();
+    prop_builder.compression(Compression::SNAPPY);
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
-    //file_writer = parquet::ParquetFileWriter::Open(out_file, touchSchema);
-
     rg_size = 0;
     rg_offset = 0;
 }
