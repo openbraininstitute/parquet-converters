@@ -17,6 +17,9 @@ find_library(THRIFT_LIB NAMES thrift thriftd)
 find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
 find_library(Z_LIB NAMES libz.a z)
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
 # Lib
 add_subdirectory(lib)
 include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})

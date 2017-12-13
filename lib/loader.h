@@ -6,9 +6,12 @@
 #include <functional>
 #include <vector>
 #include <numeric>
+#include <mutex>
+#include <string.h>
+
 
 //Block is 40bytes, Buffer len should also be multiple of 40
-#define BUFFER_LEN 10*1024
+#define BUFFER_LEN 64*1024
 
 //forward def
 class ParquetWriter;
@@ -63,41 +66,48 @@ private:
 };
 
 
-class ProgressHandler {
-private:
-    //Multitask version
-    int n_tasks;
-    std::vector<float> progressV;
-    float global_progress = .0;
-    float last_large_progress = .0;
+#define PB_STR "================================================================================"
 
+class ProgressHandler {
 public:
+
     ProgressHandler(int n):
         n_tasks(n)   {
     }
 
-    void showProgress(float progress){
-        fprintf(stderr, "%2.1f%%\n", global_progress*100);
-    }
-
-    void showSmallProgress() {
-        fprintf(stderr, ".");
-    }
-
-    void updateGlobalProgress( float progress ) {
-        showSmallProgress();
-        if( global_progress > last_large_progress + 0.02 ) {
-            last_large_progress = global_progress;
-            showProgress(global_progress);
-        }
+    inline void showProgress(float progress, int tasks_done){
+        static const int PB_LEN = strlen(PB_STR);
+        int bar_len = (int) (progress * PB_LEN);
+        int rpad = PB_LEN - bar_len;
+        fprintf(stderr, "\r[%5.1f%%|%.*s>%*s] (%d + %d / %d)",
+                progress*100, bar_len, PB_STR, rpad, "", tasks_done, tasks_active, n_tasks);
     }
 
     void updateProgress(float progress, int task_i){
+        bool shall_update_progress = false;
+
+        if (progress > 0.9999) {
+            tasks_done ++;
+            tasks_active --;
+        }
+        else {
+            if (progressV[task_i] == .0) {
+                tasks_active ++;
+            }
+        }
+
         progressV[task_i]=progress;
-        float average = accumulate( progressV.begin(), progressV.end(), 0.0)/(float)n_tasks;
-        if( average > global_progress + 0.001 ){
+        float average = std::accumulate(progressV.begin(), progressV.end(), 0.0) / n_tasks;
+
+        _progress_mtx.lock();
+        if( average > global_progress + 0.0005 ){
             global_progress = average;
-            updateGlobalProgress(global_progress);
+            shall_update_progress = true;
+        }
+        _progress_mtx.unlock();
+
+        if(shall_update_progress) {
+            showProgress(global_progress, tasks_done);
         }
     }
 
@@ -106,6 +116,18 @@ public:
         progressV.push_back(.0);
         return [this, size](float progress){ this->updateProgress(progress, size); };
     }
+
+private:
+    //Multitask version
+    int n_tasks;
+    int tasks_active = 0;
+    int tasks_done = 0;
+
+    std::vector<float> progressV;
+    float global_progress = .0;
+    float last_large_progress = .0;
+
+    std::mutex _progress_mtx;
 
 };
 

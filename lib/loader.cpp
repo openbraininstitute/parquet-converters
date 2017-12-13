@@ -148,7 +148,7 @@ int Loader::exportN(int n) {
         _load_into(touches_buf, TOUCH_BUFFER_LEN );
         mwriter->write( touches_buf, TOUCH_BUFFER_LEN );
         progress +=progress_inc;
-        if( time(0) > time_sec ){
+        if( progress_inc > 0.1 || time(0) > time_sec ){
             if( progress_handler ) {
                 progress_handler(progress);
             }
@@ -159,6 +159,10 @@ int Loader::exportN(int n) {
     int remaining = n % TOUCH_BUFFER_LEN;
     _load_into(touches_buf, remaining );
     mwriter->write( touches_buf, remaining );
+
+    if( progress_handler ) {
+        progress_handler(1.0);
+    }
 
     return n;
 }
