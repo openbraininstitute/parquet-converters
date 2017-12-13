@@ -21,7 +21,7 @@ int main( int argc, char* argv[] ) {
 
     #pragma omp parallel for
     for( int i=1; i<argc; i++) {
-        printf("\r[Info] Converting %s\n", argv[i]);
+        printf("\r[Info] Converting %-86s\n", argv[i]);
         Loader tl(argv[i], mode == ENDIAN_SWAP);
         string parquetFilename( argv[i] );
         std::size_t slashPos = parquetFilename.find_last_of("/\\");

@@ -11,7 +11,7 @@
 
 
 //Block is 40bytes, Buffer len should also be multiple of 40
-#define BUFFER_LEN 64*1024
+#define BUFFER_LEN 40*1024
 
 //forward def
 class ParquetWriter;
@@ -86,12 +86,12 @@ public:
     void updateProgress(float progress, int task_i){
         bool shall_update_progress = false;
 
-        if (progress > 0.9999) {
+        if (progress > 0.99999) {
             tasks_done ++;
             tasks_active --;
         }
         else {
-            if (progressV[task_i] == .0) {
+            if (progressV[task_i] < 0.00001) {
                 tasks_active ++;
             }
         }
