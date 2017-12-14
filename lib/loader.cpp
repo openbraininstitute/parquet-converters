@@ -3,15 +3,17 @@
 #include <time.h>
 
 
-inline void bswap_32(unsigned char * b) {
-  std::swap(b[0], b[3]);
-  std::swap(b[1], b[2]);
+inline void bswap_32(uint32_t* b) {
+  /// Some GCCs fail to detect the byte swap
+  //std::swap(b[0], b[3]);
+  //std::swap(b[1], b[2]);
+  *b=__builtin_bswap32(*b);
 }
 
 using namespace std;
 
-#define swap_int(x) bswap_32((unsigned char*)&x)
-#define swap_float(x) bswap_32((unsigned char*)&x)
+#define swap_int(x) bswap_32((uint32_t*)&x)
+#define swap_float(x) bswap_32((uint32_t*)&x)
 
 //More global definitions (lost around the code)
 struct NeuronInfoSerialized {

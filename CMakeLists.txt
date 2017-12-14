@@ -6,7 +6,7 @@ add_definitions(-Wall -Wextra -Wno-unused-parameter)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-option(PARQUET_STATICALLY_LINKED "Whether parquet was statically linked and we dont have to find its dependencies" ON)
+option(PARQUET_STATICALLY_LINKED "Whether parquet was statically linked and we dont have to find its dependencies" OFF)
 
 
 # Dependencies
