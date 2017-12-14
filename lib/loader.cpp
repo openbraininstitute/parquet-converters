@@ -3,7 +3,7 @@
 #include <time.h>
 
 
-inline void bswap_32(uint32_t* b) {
+static inline void bswap_32(uint32_t* b) {
   /// Some GCCs fail to detect the byte swap
   //std::swap(b[0], b[3]);
   //std::swap(b[1], b[2]);
@@ -97,19 +97,22 @@ void Loader::_load_into( Touch* buf, int length ) {
     touchFile.read((char*)buf, length*BLOCK_SIZE );
 
     if( endian_swap ){
-        Touch * curTouch = buf;
-        for(int i=0; i< length; i++) {
-            swap_int( curTouch->pre_synapse_ids[0] );
-            swap_int( curTouch->pre_synapse_ids[1] );
-            swap_int( curTouch->pre_synapse_ids[2] );
-            swap_int( curTouch->post_synapse_ids[0] );
-            swap_int( curTouch->post_synapse_ids[1] );
-            swap_int( curTouch->post_synapse_ids[2] );
-            swap_int( curTouch->branch );
-            swap_float( curTouch->distance_soma );
-            swap_float( curTouch->pre_offset );
-            swap_float( curTouch->post_offset );
-            curTouch++;
+        Touch* curTouch = buf;
+        for(int i=0; i<length; i++) {
+//            swap_int( curTouch->pre_synapse_ids[0] );
+//            swap_int( curTouch->pre_synapse_ids[1] );
+//            swap_int( curTouch->pre_synapse_ids[2] );
+//            swap_int( curTouch->post_synapse_ids[0] );
+//            swap_int( curTouch->post_synapse_ids[1] );
+//            swap_int( curTouch->post_synapse_ids[2] );
+//            swap_int( curTouch->branch );
+//            swap_float( curTouch->distance_soma );
+//            swap_float( curTouch->pre_offset );
+//            swap_float( curTouch->post_offset );
+            uint32_t* touch_data = (uint32_t*) (curTouch+i);
+            for(int j=0; j<10; j++) {
+                bswap_32(touch_data+j);
+            }
         }
     }
 }
