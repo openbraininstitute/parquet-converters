@@ -1,9 +1,18 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(neuron_parquet)
+
+include(CheckCXXCompilerFlag)
+
+CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
 add_definitions(-std=c++11)
 add_definitions(-Wall -Wextra -Wno-unused-parameter)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+if (COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
+    add_definitions(-march=native)
+endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 option(PARQUET_STATICALLY_LINKED "Whether parquet was statically linked and we dont have to find its dependencies" OFF)
@@ -19,7 +28,7 @@ find_library(PARQUET_LIB NAMES libparquet.a parquet)
 if(NOT PARQUET_STATICALLY_LINKED)
     find_path(ARROW_INCLUDE_DIR "arrow")
     find_library(ARROW_LIB NAMES libarrow.a arrow)
-    find_library(THRIFT_LIB NAMES thrift thriftd)
+    find_library(THRIFT_LIB NAMES libthrift.a thrift thriftd)
     find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
     find_library(Z_LIB NAMES libz.a z)
 endif()
