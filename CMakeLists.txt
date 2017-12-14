@@ -1,23 +1,28 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(neuron_parquet)
+add_definitions(-std=c++11)
+add_definitions(-Wall -Wextra -Wno-unused-parameter)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
-ADD_DEFINITIONS( -std=c++11 )
-ADD_DEFINITIONS( -Wall -Wextra -Wno-unused-parameter )
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+option(PARQUET_STATICALLY_LINKED "Whether parquet was statically linked and we dont have to find its dependencies" ON)
+
 
 # Dependencies
 find_package(OpenMP)
 find_package(Boost COMPONENTS regex)
 find_path(PARQUET_INCLUDE_DIR "parquet")
-find_path(ARROW_INCLUDE_DIR "arrow")
-# Libraries. Give preference to static for the critical ones
 find_library(PARQUET_LIB NAMES libparquet.a parquet)
-find_library(ARROW_LIB NAMES libarrow.a arrow)
-find_library(THRIFT_LIB NAMES thrift thriftd)
-find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
-find_library(Z_LIB NAMES libz.a z)
 
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# Transitive dependencies. Give preference to static for the critical ones
+if(NOT PARQUET_STATICALLY_LINKED)
+    find_path(ARROW_INCLUDE_DIR "arrow")
+    find_library(ARROW_LIB NAMES libarrow.a arrow)
+    find_library(THRIFT_LIB NAMES thrift thriftd)
+    find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
+    find_library(Z_LIB NAMES libz.a z)
+endif()
 
 
 # Lib
@@ -34,7 +39,7 @@ if (OPENMP_FOUND)
         LINK_FLAGS ${OpenMP_CXX_FLAGS} )
 endif()
 
-ADD_CUSTOM_TARGET( touch2parquet_endian ALL
+add_custom_target( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian
                    DEPENDS touch2parquet
                    COMMENT "Generating touch2parquet_endian")
