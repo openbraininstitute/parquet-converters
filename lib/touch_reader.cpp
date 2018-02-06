@@ -1,19 +1,21 @@
-#include "loader.h"
-#include "parquetwriter.h"
 #include <time.h>
+#include "touch_reader.h"
+#include "touch_writer_parquet.h"
 
+
+static const unsigned TOUCH_BUFFER_LEN = 4096;
 
 static inline void bswap_32(uint32_t* b) {
   /// Some GCCs fail to detect the byte swap
-  //std::swap(b[0], b[3]);
-  //std::swap(b[1], b[2]);
   *b=__builtin_bswap32(*b);
 }
 
 using namespace std;
 
+
 #define swap_int(x) bswap_32((uint32_t*)&x)
 #define swap_float(x) bswap_32((uint32_t*)&x)
+
 
 //More global definitions (lost around the code)
 struct NeuronInfoSerialized {
@@ -38,7 +40,7 @@ struct TouchInfoSerialized {
 
 
 
-Loader::Loader(const char* filename, bool different_endian):
+TouchReader::TouchReader(const char* filename, bool different_endian):
     cur_buffer_base(0),
     cur_it_index(0)
 {
@@ -53,11 +55,11 @@ Loader::Loader(const char* filename, bool different_endian):
     _fillBuffer();
 }
 
-Loader::~Loader() {
+TouchReader::~TouchReader() {
     touchFile.close();
 }
 
-Touch & Loader::getNext() {
+Touch & TouchReader::getNext() {
     if( cur_it_index+1 >= n_blocks ) {
         throw NULL;
     }
@@ -76,7 +78,7 @@ Touch & Loader::getNext() {
 }
 
 
-Touch & Loader::getItem(int index) {
+Touch & TouchReader::getItem(int index) {
     if( index >= n_blocks ) {
         throw NULL;
     }
@@ -93,32 +95,26 @@ Touch & Loader::getItem(int index) {
 }
 
 
-void Loader::_load_into( Touch* buf, int length ) {
+void TouchReader::_load_into( Touch* buf, int length ) {
     touchFile.read((char*)buf, length*BLOCK_SIZE );
 
     if( endian_swap ){
         Touch* curTouch = buf;
         for(int i=0; i<length; i++) {
-//            swap_int( curTouch->pre_synapse_ids[0] );
-//            swap_int( curTouch->pre_synapse_ids[1] );
-//            swap_int( curTouch->pre_synapse_ids[2] );
-//            swap_int( curTouch->post_synapse_ids[0] );
-//            swap_int( curTouch->post_synapse_ids[1] );
-//            swap_int( curTouch->post_synapse_ids[2] );
-//            swap_int( curTouch->branch );
-//            swap_float( curTouch->distance_soma );
-//            swap_float( curTouch->pre_offset );
-//            swap_float( curTouch->post_offset );
-            uint32_t* touch_data = (uint32_t*) (curTouch+i);
+            // Given all the fields are contiguous and are 32bits long
+            // we loop over them as if it was an array
+            uint32_t* touch_data = (uint32_t*) (curTouch);
             for(int j=0; j<10; j++) {
                 bswap_32(touch_data+j);
             }
+            // next
+            curTouch++;
         }
     }
 }
 
 
-void Loader::_fillBuffer() {
+void TouchReader::_fillBuffer() {
     if(!touchFile.is_open()) {
         printf("File not open");
         return ;
@@ -131,50 +127,6 @@ void Loader::_fillBuffer() {
 
     _load_into( touches_buf, load_n );
 
-}
-
-void Loader::setExporter(ParquetWriter &writer) {
-    mwriter = &writer;
-}
-
-
-void Loader::setProgressHandler(function<void(float)> func){
-    progress_handler = func;
-}
-
-int Loader::exportN(int n) {
-    int n_buffers= n / TOUCH_BUFFER_LEN;
-    float progress = .0;
-    float progress_inc = 1.0 / (float)n_buffers;
-    time_t time_sec = time(0);
-    touchFile.seekg (0, ifstream::beg);
-
-    for(int i=0; i<n_buffers; i++) {
-        _load_into(touches_buf, TOUCH_BUFFER_LEN );
-        mwriter->write( touches_buf, TOUCH_BUFFER_LEN );
-        progress +=progress_inc;
-        if( progress_inc > 0.1 || time(0) > time_sec ){
-            if( progress_handler ) {
-                progress_handler(progress);
-            }
-            time_sec=time(0);
-        }
-    }
-
-    int remaining = n % TOUCH_BUFFER_LEN;
-    _load_into(touches_buf, remaining );
-    mwriter->write( touches_buf, remaining );
-
-    if( progress_handler ) {
-        progress_handler(1.0);
-    }
-
-    return n;
-}
-
-int Loader::exportAll() {
-    exportN(n_blocks);
-    return n_blocks;
 }
 
 
