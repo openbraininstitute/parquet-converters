@@ -42,19 +42,8 @@ static std::shared_ptr<GroupNode> setupSchema() {
 
 
 TouchWriterParquet::TouchWriterParquet(const string filename):
-  STRUCT_LEN( sizeof(Touch) ),
-  pre_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  post_neuron_id( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  pre_section( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  pre_segment( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  post_section( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  post_segment( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  pre_offset( new float[NUM_ROWS_PER_ROW_GROUP] ),
-  post_offset( new float[NUM_ROWS_PER_ROW_GROUP] ),
-  distance_soma( new float[NUM_ROWS_PER_ROW_GROUP] ),
-  branch_order( new int[NUM_ROWS_PER_ROW_GROUP] ),
-  rg_size(0),
-  rg_offset(0)
+  rg_freeSlots(0),
+  buffer_freeSlots(0)
 {
     // Create a ParquetFileWriter instance
     PARQUET_THROW_NOT_OK(FileClass::Open(filename.c_str(), &out_file));
@@ -64,6 +53,21 @@ TouchWriterParquet::TouchWriterParquet(const string filename):
     prop_builder.disable_dictionary();
     prop_builder.compression(Compression::SNAPPY);
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
+
+    // contiguous
+    _mem_block = new char[RECORD_SIZE*BUFFER_LEN];
+    unsigned long _int_block_len = sizeof(int) * BUFFER_LEN;
+
+    pre_neuron_id   = (int*) _mem_block;
+    post_neuron_id  = (int*) (_mem_block + _int_block_len);
+    pre_section     = (int*) (_mem_block + 2*_int_block_len);
+    pre_segment     = (int*) (_mem_block + 3*_int_block_len);
+    post_section    = (int*) (_mem_block + 4*_int_block_len);
+    post_segment    = (int*) (_mem_block + 5*_int_block_len);
+    pre_offset    = (float*) (_mem_block + 6*_int_block_len);
+    post_offset   = (float*) (_mem_block + 7*_int_block_len);
+    distance_soma = (float*) (_mem_block + 8*_int_block_len);
+    branch_order    = (int*) (_mem_block + 9*_int_block_len);
 }
 
 
@@ -84,40 +88,51 @@ TouchWriterParquet::~TouchWriterParquet() {
 
 void TouchWriterParquet::_newRowGroup() {
     rg_writer = file_writer->AppendRowGroup();
-    rg_size = ROWS_PER_ROW_GROUP;
-    rg_offset = 0;
+    rg_freeSlots = ROWS_PER_ROW_GROUP;
 }
 
 
-void TouchWriterParquet::write(Touch* data, unsigned length) {
-    unsigned freeSlots = rg_size - rg_offset;
+void TouchWriterParquet::write(Touch* data, uint length) {
 
     while( length > 0 ) {
-        //Allocate new Row group if no space avail
-        if( freeSlots == 0 ) {
+        //Allocate new Row group if limit reached
+        if( rg_freeSlots == 0 ) {
             _newRowGroup();
         }
 
-        unsigned n_write = length;
-        if( freeSlots < n_write ) {
-            n_write = freeSlots;
+        uint n_write = length;
+        if( rg_freeSlots < n_write ) {
+            n_write = rg_freeSlots;
         }
 
         //Write to the current row buffer
-        write( data, n_write );
-        data      += n_write;
-        length    -= n_write;
-        freeSlots -= n_write;
+        _writeChunkedCurRowGroup( data, n_write );
+        data   += n_write;
+        length -= n_write;
     }
+}
+
+
+// We need to chunk to avoid large buffers not fitting in cache
+void TouchWriterParquet::_writeChunkedCurRowGroup(Touch* data, uint length) {
+    uint n_chunks = length / BUFFER_LEN;
+    uint remaining = length % BUFFER_LEN;
+
+    for( uint i=0; i<n_chunks; i++) {
+        _writeInCurRowGroup(data, BUFFER_LEN);
+        data += BUFFER_LEN;
+    }
+    _writeInCurRowGroup(data, remaining);
 }
 
 
 ///
 /// Low-level function to write directly a Touch set to the currently open row group
 ///
-inline void TouchWriterParquet::_writeInCurRowGroup(Touch* data, int length) {
+void TouchWriterParquet::_writeInCurRowGroup(Touch* data, uint length) {
 
-    for( int i=0; i< length; i++  ) {
+
+    for( uint i=0; i< length; i++  ) {
         pre_neuron_id[i] = data[i].getPreNeuronID();
         post_neuron_id[i] = data[i].getPostNeuronID();
         pre_offset[i] = data[i].pre_offset;
@@ -128,7 +143,10 @@ inline void TouchWriterParquet::_writeInCurRowGroup(Touch* data, int length) {
         pre_segment[i] = data[i].pre_synapse_ids[SEGMENT_ID];
         post_section[i] = data[i].post_synapse_ids[SECTION_ID];
         post_segment[i] = data[i].post_synapse_ids[SEGMENT_ID];
-        if( pre_section[i]>0x7fff ) printf("Problematic pre_section %d\n", pre_section[i]);
+        if( pre_section[i]>0x7fff ) {
+            printf("Problematic pre_section %d\n", pre_section[i]);
+            throw "Invalid pre_section. Please check endianess";
+        }
         if( pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", pre_segment[i]);
         if( post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
         if( post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
@@ -164,5 +182,5 @@ inline void TouchWriterParquet::_writeInCurRowGroup(Touch* data, int length) {
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, branch_order);
 
-    rg_offset += length;
+    rg_freeSlots -= length;
 }

@@ -3,11 +3,11 @@
 static const char* const PB_STR = "================================================================================";
 
 
-ProgressHandler::ProgressHandler()
+ProgressMonitor::ProgressMonitor()
     : n_tasks(1)
     {}
 
-inline void ProgressHandler::showProgress(float progress, int tasks_done) {
+inline void ProgressMonitor::showProgress(float progress, int tasks_done) {
     static const int PB_LEN = strlen(PB_STR);
     int bar_len = (int) (progress * PB_LEN);
     int rpad = PB_LEN - bar_len;
@@ -15,7 +15,7 @@ inline void ProgressHandler::showProgress(float progress, int tasks_done) {
             progress*100, bar_len, PB_STR, rpad, "", tasks_done, tasks_active, n_tasks);
 }
 
-void ProgressHandler::updateProgress(float progress, int task_i) {
+void ProgressMonitor::updateProgress(float progress, int task_i) {
     bool shall_update_progress = false;
 
     if (progress > 0.99999) {
@@ -43,7 +43,7 @@ void ProgressHandler::updateProgress(float progress, int task_i) {
     }
 }
 
-std::function<void(float)> ProgressHandler::addSubTask(){
+std::function<void(float)> ProgressMonitor::getNewHandler(){
     progressV.push_back(.0);
     n_tasks=progressV.size();
     return [this, size](float progress){ this->updateProgress(progress, n_tasks-1); };

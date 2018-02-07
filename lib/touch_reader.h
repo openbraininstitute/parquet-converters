@@ -14,33 +14,42 @@
 
 
 
-class TouchReader : Reader<Touch>{
+class TouchReader : public Reader<Touch>{
 public:
     TouchReader( const char *filename, bool different_endian=false );
     ~TouchReader( );
 
-    inline Touch & getNext();
+    Touch & begin();
+    Touch & end();
 
-    Touch & getItem( int index );
+    virtual inline Touch & getNext() override;
 
-    inline unsigned fillBuffer(Touch* buf, unsigned length);
+    virtual inline Touch & getItem( uint index ) override;
 
-    inline unsigned record_count();
+    virtual uint fillBuffer(Touch* buf, uint length) override;
 
-    inline void seek(int pos) {
-        touchFile.seekg (pos * RECORD_SIZE);
+    virtual uint record_count() override {
+        return _record_count;
     }
 
+    virtual inline void seek(uint pos) override;
+
+    static const uint BUFFER_LEN = 256;
 
 private:
-
-    std::ifstream touchFile;
-    long int n_blocks;
-
-    bool endian_swap=false;
-
     void _fillBuffer();
     void _load_into( Touch* buf, int length );
+
+    // File
+    std::ifstream _touchFile;
+    unsigned long _record_count;
+    bool _endian_swap=false;
+
+    // Internal Buffer: to be used for iteration
+    Touch _buffer[BUFFER_LEN];
+    unsigned long _offset;
+    uint _it_buf_index;  // Offset relative to buffer
+    uint _buffer_record_count;
 
 };
 

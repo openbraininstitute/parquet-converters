@@ -3,16 +3,16 @@
 
 
 /// A thread-safe ProgressBar
-class ProgressHandler {
+class ProgressMonitor {
 public:
-    ProgressHandler();
+    ProgressMonitor();
 
     inline void showProgress(float progress, int tasks_done);
 
     void updateProgress(float progress, int task_i);
 
     /// Returns a handler function for a new thread
-    std::function<void(float)> addSubTask();
+    std::function<void(float)> getNewHandler();
 
 private:
     //Number of tasks. By default is 1.

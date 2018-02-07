@@ -12,42 +12,42 @@ using FileClass = ::arrow::io::FileOutputStream;
 using namespace std;
 
 
-// RowGroup shall be defined as a multiple of the block read
-/// 512k rows makes 20 MB groups (40 bytes/row)
-/// That makes two 1MB pages per column
-/// Since we are reading blocks of 5MB there will be four writes before we change the row group
-static const int ROWS_PER_ROW_GROUP = 512*1024;
-
-
-class TouchWriterParquet : Writer<Touch>
+class TouchWriterParquet : public Writer<Touch>
 {
 public:
     TouchWriterParquet(const string);
     ~TouchWriterParquet();
 
-    // Inherited
-    // void write(Touch* data, int length);  // offset are directly added to data ptr
+    virtual void write(Touch* data, uint length) override;  // offset are directly added to data ptr
+
+
+    // RowGroup shall be defined as a multiple of the block read
+    /// 512k rows makes 20 MB groups (40 bytes/row)
+    /// That makes two 1MB pages per column
+    /// Since we are transposing blocks of 2.5MB (buffer_len) there will be 8 writes before we change the row group
+    static const uint BUFFER_LEN = 64 * 1024;
+    static const uint ROWS_PER_ROW_GROUP = 512*1024;
 
 private:
 
     void _newRowGroup();
-    void _writeInCurRowGroup(Touch* data, unsigned length);
+    inline void _writeChunkedCurRowGroup(Touch* data, uint length);
+    inline void _writeInCurRowGroup(Touch* data, uint length);
 
     shared_ptr<GroupNode> touchSchema;
     std::shared_ptr<FileClass> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
     parquet::RowGroupWriter* rg_writer;
 
-    int rg_size, rg_offset;
+    uint rg_freeSlots;
+    uint buffer_freeSlots;
 
-    //const
-    const int STRUCT_LEN;
-
-    // Column writers and
+    // Column writers
 
     parquet::Int32Writer* int32_writer;
     parquet::FloatWriter* float_writer;
 
+    char* _mem_block;
     int* pre_neuron_id;
     int* post_neuron_id;
     int *pre_section, *pre_segment, *post_section, *post_segment;

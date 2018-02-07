@@ -3,8 +3,6 @@
 #include "touch_writer_parquet.h"
 
 
-static const unsigned TOUCH_BUFFER_LEN = 4096;
-
 static inline void bswap_32(uint32_t* b) {
   /// Some GCCs fail to detect the byte swap
   *b=__builtin_bswap32(*b);
@@ -25,7 +23,7 @@ struct NeuronInfoSerialized {
         binaryOffset(0)     {}
 
     int neuronID;
-    unsigned int touchesCount;
+    uint touchesCount;
     long long binaryOffset;
 };
 
@@ -40,65 +38,110 @@ struct TouchInfoSerialized {
 
 
 
-TouchReader::TouchReader(const char* filename, bool different_endian):
-    cur_buffer_base(0),
-    cur_it_index(0)
+TouchReader::TouchReader(const char* filename, bool different_endian)
+:   _offset(0),
+    _it_buf_index(0),
+    _buffer_record_count(0)
 {
     //test_str_size();
-    touchFile.open(filename, ifstream::binary);
-    touchFile.seekg (0, ifstream::end);
-    long int _length = touchFile.tellg();
-    n_blocks = _length / BLOCK_SIZE;
-    touchFile.seekg (0, ifstream::beg);
-    endian_swap = different_endian;
+    _touchFile.open(filename, ifstream::binary);
+    _touchFile.seekg (0, ifstream::end);
+    long int length = _touchFile.tellg();
+    _record_count = length / RECORD_SIZE;
+    _touchFile.seekg (0);
+    _endian_swap = different_endian;
 
-    _fillBuffer();
 }
 
 TouchReader::~TouchReader() {
-    touchFile.close();
+    _touchFile.close();
 }
 
+
+Touch & TouchReader::begin() {
+    if( _offset > 0 ) {
+        _touchFile.seekg (0);
+        _fillBuffer();
+    }
+    return _buffer[0];
+}
+
+
+///
+/// \brief Implements a simple iteration protocol.
+///        It assumes the buffer is in the correct position
+///        If the user wants to change iteration he must call begin() or seek()
+///
 Touch & TouchReader::getNext() {
-    if( cur_it_index+1 >= n_blocks ) {
+    if( _it_buf_index >= _record_count ) {
+        // Throw NULL if we are at the end
         throw NULL;
     }
-    int relative_index = cur_it_index - cur_buffer_base;
 
-    if(relative_index +1 >= TOUCH_BUFFER_LEN) {
-        cur_buffer_base += TOUCH_BUFFER_LEN;
-        relative_index=0;
-
-        touchFile.seekg( cur_buffer_base*BLOCK_SIZE, ifstream::beg );
+    if(_it_buf_index + 1 >= _buffer_record_count) {
         _fillBuffer();
     }
-    cur_it_index++;
 
-    return touches_buf[relative_index];
+    return _buffer[_it_buf_index++];
+}
+
+///
+/// \brief Returns a Touch record from an arbitrary index
+///        It will reposition the internal iterator position, so getNext() will restart from the next item
+///        Alternativelly use seek() to only define iterator position
+///
+Touch & TouchReader::getItem(uint index) {
+    seek(index);
+    return getNext();
 }
 
 
-Touch & TouchReader::getItem(int index) {
-    if( index >= n_blocks ) {
+///
+/// \brief TouchReader::seek Changes the file and buffers handlers to a specified position
+///        NOTE: This functions doesnt imply any buffer filling.
+/// \param pos
+///
+void TouchReader::seek(uint pos)   {
+    if( pos >= _record_count ) {
         throw NULL;
     }
-    int relative_index = index % TOUCH_BUFFER_LEN;
-    int base = index-relative_index ;
 
-    if(base != cur_buffer_base) {
-        cur_buffer_base = base;
-        touchFile.seekg( cur_buffer_base*BLOCK_SIZE, ifstream::beg );
-        _fillBuffer();
+    uint offset = pos / BUFFER_LEN;
+
+    if( offset != _offset ) {
+        _offset = offset;
+        _touchFile.seekg( _offset*RECORD_SIZE );
+        _buffer_record_count = 0;
     }
-    return touches_buf[relative_index];
+}
 
+
+uint TouchReader::fillBuffer( Touch* buf, uint load_n ) {
+    if( load_n + _offset > _record_count ) {
+        load_n = _record_count - _offset;
+    }
+
+    _load_into( buf, load_n );
+    return load_n;
+}
+
+
+void TouchReader::_fillBuffer() {
+    uint load_n = BUFFER_LEN;
+    if( load_n + _offset > _record_count ) {
+        load_n = _record_count - _offset;
+    }
+
+    _load_into(_buffer, load_n);
+    _offset += load_n;
+    _buffer_record_count = load_n;
 }
 
 
 void TouchReader::_load_into( Touch* buf, int length ) {
-    touchFile.read((char*)buf, length*BLOCK_SIZE );
+    _touchFile.read( (char*)buf, length*RECORD_SIZE );
 
-    if( endian_swap ){
+    if( _endian_swap ){
         Touch* curTouch = buf;
         for(int i=0; i<length; i++) {
             // Given all the fields are contiguous and are 32bits long
@@ -112,23 +155,5 @@ void TouchReader::_load_into( Touch* buf, int length ) {
         }
     }
 }
-
-
-void TouchReader::_fillBuffer() {
-    if(!touchFile.is_open()) {
-        printf("File not open");
-        return ;
-    }
-
-    //Assume the file pointer is well positioned
-    //two options.. we can read BUF_LENGTH from file, or not enough file to read
-    int load_n = n_blocks-cur_buffer_base;
-    if( load_n > TOUCH_BUFFER_LEN ) load_n=TOUCH_BUFFER_LEN;
-
-    _load_into( touches_buf, load_n );
-
-}
-
-
 
 

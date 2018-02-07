@@ -6,27 +6,33 @@
 #include "progress.h"
 
 
-template<typename T, int BUFFER_LEN=4096>
+template<typename T>
 class Converter {
 
 public:
-    Converter( Reader<T> & reader, Writer<T> & writer )
-    : _reader(reader),
+    Converter( Reader<T> & reader, Writer<T> & writer, unsigned buffer_len=256*1024)
+    : BUFFER_LEN(buffer_len),
+      _reader(reader),
       _writer(writer)
     {
         n_blocks = _reader.record_count();
+        // For a 40B record the buffer is 10MB
+        _buffer = new T[BUFFER_LEN];
+    }
+    ~Converter() {
+        delete _buffer;
     }
 
     int exportN(int n) {
-        int n_buffers= n / BUFFER_LEN;
+        int n_buffers = n / BUFFER_LEN;
         float progress = .0;
         float progress_inc = 1.0 / (float)n_buffers;
         time_t time_sec = time(0);
         _reader.seek(0);
 
         for(int i=0; i<n_buffers; i++) {
-            _reader.fillBuffer( &buffer, BUFFER_LEN );
-            _writer.write( &buffer, BUFFER_LEN );
+            _reader.fillBuffer( _buffer, BUFFER_LEN );
+            _writer.write( _buffer, BUFFER_LEN );
 
             progress +=progress_inc;
             if( progress_inc > 0.1 || time(0) > time_sec ){
@@ -39,8 +45,8 @@ public:
 
         // Remaining records, smaller than a buffer
         int remaining = n % BUFFER_LEN;
-        _reader.fillBuffer( &buffer, remaining );
-        _writer.write( &buffer, remaining );
+        _reader.fillBuffer( _buffer, remaining );
+        _writer.write( _buffer, remaining );
 
         if( progress_handler ) {
             progress_handler(1.0);
@@ -59,9 +65,10 @@ public:
         progress_handler = func;
     }
 
+    const unsigned int BUFFER_LEN;
 
 private:
-    T buffer[BUFFER_LEN];
+    T* _buffer;
 
     Reader<T>& _reader;
     Writer<T>& _writer;
