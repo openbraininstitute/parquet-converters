@@ -7,12 +7,16 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
 add_definitions(-std=c++11)
 add_definitions(-Wall -Wextra -Wno-unused-parameter)
+
 if (COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
     add_definitions(-march=native)
 endif()
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 option(PARQUET_STATICALLY_LINKED "Whether parquet was statically linked and we dont have to find its dependencies" OFF)

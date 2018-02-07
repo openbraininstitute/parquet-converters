@@ -54,35 +54,24 @@ TouchWriterParquet::TouchWriterParquet(const string filename):
     prop_builder.compression(Compression::SNAPPY);
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
 
-    // contiguous
-    _mem_block = new char[RECORD_SIZE*BUFFER_LEN];
-    unsigned long _int_block_len = sizeof(int) * BUFFER_LEN;
-
-    pre_neuron_id   = (int*) _mem_block;
-    post_neuron_id  = (int*) (_mem_block + _int_block_len);
-    pre_section     = (int*) (_mem_block + 2*_int_block_len);
-    pre_segment     = (int*) (_mem_block + 3*_int_block_len);
-    post_section    = (int*) (_mem_block + 4*_int_block_len);
-    post_segment    = (int*) (_mem_block + 5*_int_block_len);
-    pre_offset    = (float*) (_mem_block + 6*_int_block_len);
-    post_offset   = (float*) (_mem_block + 7*_int_block_len);
-    distance_soma = (float*) (_mem_block + 8*_int_block_len);
-    branch_order    = (int*) (_mem_block + 9*_int_block_len);
+    // Allocate contiguou buffer and get direct pointers
+    _buffer.reset(new BUF_T());
+    pre_neuron_id = _buffer->pre_neuron_id;
+    post_neuron_id = _buffer->post_neuron_id;
+    pre_section = _buffer->pre_section;
+    pre_segment = _buffer->pre_segment;
+    post_section = _buffer->post_section;
+    post_segment = _buffer->post_segment;
+    pre_offset = _buffer->pre_offset;
+    post_offset = _buffer->post_offset;
+    distance_soma = _buffer->distance_soma;
+    branch_order = _buffer->branch_order;
 }
 
 
 TouchWriterParquet::~TouchWriterParquet() {
     file_writer->Close();
     out_file->Close();
-    delete pre_neuron_id;
-    delete post_neuron_id;
-    delete pre_offset;
-    delete post_offset;
-    delete distance_soma;
-    delete branch_order;
-    delete pre_section;
-    delete pre_segment;
-    delete post_section;
 }
 
 
@@ -147,9 +136,9 @@ void TouchWriterParquet::_writeInCurRowGroup(Touch* data, uint length) {
             printf("Problematic pre_section %d\n", pre_section[i]);
             throw "Invalid pre_section. Please check endianess";
         }
-        if( pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", pre_segment[i]);
-        if( post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
-        if( post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
+        if( _buffer->pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", pre_segment[i]);
+        if( _buffer->post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
+        if( _buffer->post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
     }
 
     //pre_neuron / post_neuron [ids, section, segment]

@@ -16,9 +16,10 @@ public:
       _writer(writer)
     {
         n_blocks = _reader.record_count();
-        // For a 40B record the buffer is 10MB
-        _buffer = new T[BUFFER_LEN];
+        // Default: 256K entries (~10MB)
+        _buffer = new T[ (n_blocks>BUFFER_LEN)? BUFFER_LEN : n_blocks ];
     }
+
     ~Converter() {
         delete _buffer;
     }

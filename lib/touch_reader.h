@@ -23,9 +23,9 @@ public:
     Touch & begin();
     Touch & end();
 
-    virtual inline Touch & getNext() override;
+    virtual Touch & getNext() override;
 
-    virtual inline Touch & getItem( uint index ) override;
+    virtual Touch & getItem( uint index ) override;
 
     virtual uint fillBuffer(Touch* buf, uint length) override;
 
