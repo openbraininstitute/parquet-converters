@@ -1,10 +1,13 @@
 #include "progress.h"
+#include <string.h>
+#include <numeric>
+
 
 static const char* const PB_STR = "================================================================================";
 
 
-ProgressMonitor::ProgressMonitor()
-    : n_tasks(1)
+ProgressMonitor::ProgressMonitor(int n_tasks)
+    : n_tasks(n_tasks)
     {}
 
 inline void ProgressMonitor::showProgress(float progress, int tasks_done) {
@@ -44,7 +47,7 @@ void ProgressMonitor::updateProgress(float progress, int task_i) {
 }
 
 std::function<void(float)> ProgressMonitor::getNewHandler(){
+    int idx = progressV.size();
     progressV.push_back(.0);
-    n_tasks=progressV.size();
-    return [this, size](float progress){ this->updateProgress(progress, n_tasks-1); };
+    return [this, idx](float progress){ this->updateProgress(progress, idx); };
 }

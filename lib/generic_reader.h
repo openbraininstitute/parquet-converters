@@ -8,7 +8,6 @@ class Reader {
 
 public:
     virtual T & getNext() = 0;
-
     virtual T & getItem( uint index ) = 0;
 
     // For most operations the small internal buffer is used
@@ -20,13 +19,11 @@ public:
 
     virtual void seek(uint pos) = 0;
 
-
-protected:
-    Reader() { }
-    virtual ~Reader();
-
     // bytes per record
     static constexpr uint RECORD_SIZE = sizeof(T);
+
+protected:
+    ~Reader() = default;
 
 };
 

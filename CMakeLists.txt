@@ -39,7 +39,7 @@ add_subdirectory(lib)
 include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
 # MAIN EXECUTABLE
-add_executable(touch2parquet touch2parquet.cpp)
+add_executable(touch2parquet touch2parquet.cpp $<TARGET_OBJECTS:ConversionProgress>)
 target_link_libraries(touch2parquet TouchParquet)
 
 if (OPENMP_FOUND)

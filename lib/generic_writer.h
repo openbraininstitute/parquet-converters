@@ -11,6 +11,10 @@ public:
 
     // bytes per record
     static constexpr uint RECORD_SIZE = sizeof(T);
+
+protected:
+    // prevent polymorphic desctruction
+    ~Writer() = default;
 };
 
 #endif // GENERIC_WRITER_H

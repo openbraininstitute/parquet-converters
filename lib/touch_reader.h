@@ -17,7 +17,8 @@
 class TouchReader : public Reader<Touch>{
 public:
     TouchReader( const char *filename, bool different_endian=false );
-    ~TouchReader( );
+    ~TouchReader();
+
 
     Touch & begin();
     Touch & end();

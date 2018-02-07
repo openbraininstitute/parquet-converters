@@ -2,10 +2,15 @@
 #define PROGRESS_HANDLER_H
 
 
+#include <vector>
+#include <mutex>
+#include <functional>
+
+
 /// A thread-safe ProgressBar
 class ProgressMonitor {
 public:
-    ProgressMonitor();
+    ProgressMonitor(int n_tasks=1);
 
     inline void showProgress(float progress, int tasks_done);
 

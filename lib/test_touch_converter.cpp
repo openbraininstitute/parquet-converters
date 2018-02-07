@@ -6,7 +6,7 @@
 
 
 /// By using default buffers it is set
-///  - 256K entries for converter (10MB)
+///  - 256K entries for converter (loader) (10MB)
 ///  - 64K entries for writer (2.5MB - it's transposing, so should fit in cache)
 ///  - 512K entries per parquet row_group
 

@@ -3,8 +3,10 @@
 #include <functional>
 #include <vector>
 #include <numeric>
-#include "loader.h"
-#include "parquetwriter.h"
+#include "touch_reader.h"
+#include "touch_writer_parquet.h"
+#include "converter.h"
+#include "progress.h"
 
 
 enum RunMode { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
@@ -17,22 +19,22 @@ int main( int argc, char* argv[] ) {
         return mode;
     }
 
-    ProgressHandler progress(argc-1);
+    ProgressMonitor progress(argc-1);
 
     #pragma omp parallel for
     for( int i=1; i<argc; i++) {
         printf("\r[Info] Converting %-86s\n", argv[i]);
-        Loader tl(argv[i], mode == ENDIAN_SWAP);
+        TouchReader tr(argv[i], mode == ENDIAN_SWAP);
         string parquetFilename( argv[i] );
         std::size_t slashPos = parquetFilename.find_last_of("/\\");
         parquetFilename = parquetFilename.substr(slashPos+1);
         parquetFilename += ".parquet";
 
         try {
-            ParquetWriter tw(parquetFilename);
-            tl.setExporter( tw );
-            tl.setProgressHandler( progress.addSubTask() );
-            tl.exportAll();
+            TouchWriterParquet tw(parquetFilename);
+            Converter<Touch> converter(tr, tw);
+            converter.setProgressHandler(progress.getNewHandler());
+            converter.exportAll();
         }
         catch (const std::exception& e){
             printf("\n[ERROR] Could not create output file.\n -> %s", e.what());
