@@ -41,9 +41,7 @@ static std::shared_ptr<GroupNode> setupSchema() {
 }
 
 
-TouchWriterParquet::TouchWriterParquet(const string filename):
-  rg_freeSlots(0),
-  buffer_freeSlots(0)
+TouchWriterParquet::TouchWriterParquet(const string filename)
 {
     // Create a ParquetFileWriter instance
     PARQUET_THROW_NOT_OK(FileClass::Open(filename.c_str(), &out_file));
@@ -77,51 +75,47 @@ TouchWriterParquet::~TouchWriterParquet() {
 
 void TouchWriterParquet::_newRowGroup() {
     rg_writer = file_writer->AppendRowGroup();
-    rg_freeSlots = ROWS_PER_ROW_GROUP;
 }
 
 
+// Unbuffered - it will expect large chunks and flush on last
+// A buffered version is not implemented since it wont be required in a converter
 void TouchWriterParquet::write(Touch* data, uint length) {
 
+    //Split large Data in BUFFER_SIZE chunks
+
     while( length > 0 ) {
-        //Allocate new Row group if limit reached
-        if( rg_freeSlots == 0 ) {
-            _newRowGroup();
+
+        uint write_n = BUFFER_LEN;
+        if( length < write_n ) {
+            write_n = length;
         }
 
-        uint n_write = length;
-        if( rg_freeSlots < n_write ) {
-            n_write = rg_freeSlots;
-        }
-
-        //Write to the current row buffer
-        _writeChunkedCurRowGroup( data, n_write );
-        data   += n_write;
-        length -= n_write;
+        //Write sub dataset
+        _writeDataSet( data, write_n );
+        data   += write_n;
+        length -= write_n;
     }
 }
 
 
 // We need to chunk to avoid large buffers not fitting in cache
-void TouchWriterParquet::_writeChunkedCurRowGroup(Touch* data, uint length) {
-    uint n_chunks = length / BUFFER_LEN;
-    uint remaining = length % BUFFER_LEN;
+void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
+    uint n_chunks = length / TRANSPOSE_LEN;
+    uint remaining = length % TRANSPOSE_LEN;
 
     for( uint i=0; i<n_chunks; i++) {
-        _writeInCurRowGroup(data, BUFFER_LEN);
-        data += BUFFER_LEN;
+        _transpose_buffer_part(data, i*TRANSPOSE_LEN, TRANSPOSE_LEN);
     }
-    _writeInCurRowGroup(data, remaining);
+    _transpose_buffer_part(data, n_chunks*TRANSPOSE_LEN, remaining);
+
+    _writeBuffer(length);
 }
 
 
-///
-/// Low-level function to write directly a Touch set to the currently open row group
-///
-void TouchWriterParquet::_writeInCurRowGroup(Touch* data, uint length) {
-
-
-    for( uint i=0; i< length; i++  ) {
+void TouchWriterParquet::_transpose_buffer_part(Touch* data, uint offset, uint length) {
+    uint limit = offset + length;
+    for( uint i=offset; i<limit; i++ ) {
         pre_neuron_id[i] = data[i].getPreNeuronID();
         post_neuron_id[i] = data[i].getPostNeuronID();
         pre_offset[i] = data[i].pre_offset;
@@ -140,6 +134,14 @@ void TouchWriterParquet::_writeInCurRowGroup(Touch* data, uint length) {
         if( _buffer->post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
         if( _buffer->post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
     }
+}
+
+
+///
+/// Low-level function to write directly a Touch set to the currently open row group
+///
+void TouchWriterParquet::_writeBuffer(uint length) {
+    _newRowGroup();
 
     //pre_neuron / post_neuron [ids, section, segment]
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
@@ -171,5 +173,4 @@ void TouchWriterParquet::_writeInCurRowGroup(Touch* data, uint length) {
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, branch_order);
 
-    rg_freeSlots -= length;
 }

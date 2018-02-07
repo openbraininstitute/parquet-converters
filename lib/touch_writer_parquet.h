@@ -24,29 +24,31 @@ public:
     // RowGroup shall be defined as a multiple of the block read
     /// 512k rows makes 20 MB groups (40 bytes/row)
     /// That makes two 1MB pages per column
-    /// Since we are transposing blocks of 2.5MB (buffer_len) there will be 8 writes before we change the row group
-    static const uint BUFFER_LEN = 64 * 1024;
-    static const uint ROWS_PER_ROW_GROUP = 512*1024;
+    static const uint BUFFER_LEN = 512*1024;
+    /// We transposing blocks of 600kB
+    static const uint TRANSPOSE_LEN = 16 * 1024;
 
 private:
 
     void _newRowGroup();
-    inline void _writeChunkedCurRowGroup(Touch* data, uint length);
-    inline void _writeInCurRowGroup(Touch* data, uint length);
 
+    inline void _writeDataSet(Touch* data, uint length);
+
+    inline void _transpose_buffer_part(Touch* data, uint offset, uint length);
+
+    inline void _writeBuffer(uint length);
+
+    // Variables
     shared_ptr<GroupNode> touchSchema;
     std::shared_ptr<FileClass> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
     parquet::RowGroupWriter* rg_writer;
 
-    uint rg_freeSlots;
-    uint buffer_freeSlots;
-
     // Column writers
-
     parquet::Int32Writer* int32_writer;
     parquet::FloatWriter* float_writer;
 
+    // Buffer
     struct BUF_T{
         int pre_neuron_id[BUFFER_LEN];
         int post_neuron_id[BUFFER_LEN];
@@ -61,6 +63,7 @@ private:
     };
 
     std::unique_ptr<BUF_T> _buffer;
+
     // Shortcuts
     int *pre_neuron_id, *post_neuron_id, *pre_section, *pre_segment, *post_section, *post_segment, *branch_order;
     float *pre_offset, *post_offset, *distance_soma;
