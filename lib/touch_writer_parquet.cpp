@@ -162,32 +162,32 @@ void TouchWriterParquet::_writeBuffer(uint length) {
 
     //pre_neuron / post_neuron [ids, section, segment]
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, pre_neuron_id);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_neuron_id);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, post_neuron_id);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_neuron_id);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, pre_section);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_section);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, pre_segment);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_segment);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, post_section);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_section);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, post_segment);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_segment);
 
     //pre_offset
     float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
-    float_writer->WriteBatch(length, nullptr, nullptr, pre_offset);
+    float_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_offset);
 
     //post_offset
     float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
-    float_writer->WriteBatch(length, nullptr, nullptr, post_offset);
+    float_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_offset);
 
     //distance_soma
     float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
-    float_writer->WriteBatch(length, nullptr, nullptr, distance_soma);
+    float_writer->WriteBatch(length, nullptr, nullptr, _buffer->distance_soma);
 
     //branch_order
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-    int32_writer->WriteBatch(length, nullptr, nullptr, branch_order);
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_order);
 
 }
