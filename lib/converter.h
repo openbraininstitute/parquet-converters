@@ -33,7 +33,6 @@ public:
         int n_buffers = n / BUFFER_LEN;
         float progress = .0;
         float progress_inc = 1.0 / (float)n_buffers;
-        time_t time_sec = time(0);
         _reader.seek(0);
 
         for(int i=0; i<n_buffers; i++) {
@@ -41,11 +40,8 @@ public:
             _writer.write( _buffer, BUFFER_LEN );
 
             progress +=progress_inc;
-            if( progress_inc > 0.1 || time(0) > time_sec ){
-                if( progress_handler ) {
-                    progress_handler(progress);
-                }
-                time_sec=time(0);
+            if( progress_handler ) {
+                progress_handler(progress);
             }
         }
 
