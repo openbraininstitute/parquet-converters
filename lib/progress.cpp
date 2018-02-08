@@ -7,42 +7,51 @@ static const char* const PB_STR = "=============================================
 
 
 ProgressMonitor::ProgressMonitor(int n_tasks)
-    : n_tasks(n_tasks)
+    : n_tasks(n_tasks),
+      tasks_active(0),
+      tasks_done(0)
     {}
 
-inline void ProgressMonitor::showProgress(float progress, int tasks_done) {
+void ProgressMonitor::showProgress() {
     static const int PB_LEN = strlen(PB_STR);
-    int bar_len = (int) (progress * PB_LEN);
+    int bar_len = (int) (global_progress * PB_LEN);
     int rpad = PB_LEN - bar_len;
     fprintf(stderr, "\r[%5.1f%%|%.*s>%*s] (%d + %d / %d)",
-            progress*100, bar_len, PB_STR, rpad, "", tasks_done, tasks_active, n_tasks);
+            global_progress*100, bar_len, PB_STR, rpad, "", tasks_done.load(), tasks_active.load(), n_tasks);
 }
 
 void ProgressMonitor::updateProgress(float progress, int task_i) {
-    bool shall_update_progress = false;
 
-    if (progress > 0.99999) {
-        tasks_done ++;
-        tasks_active --;
+    if( progress-progressV[task_i] < 0.001 ) {
+        return;
     }
-    else {
-        if (progressV[task_i] < 0.00001) {
-            tasks_active ++;
-        }
+    
+    if (progressV[task_i] < 0.00001) {
+        tasks_active ++;
     }
 
+    // If a thread made some visible progress he is elegible for recalculating the global average
+    // which might update the visual representation
+    // If another thread is already doing so we skip
+    
     progressV[task_i]=progress;
-    float average = std::accumulate(progressV.begin(), progressV.end(), 0.0) / n_tasks;
 
-    _progress_mtx.lock();
-    if( average > global_progress + 0.0005 ){
-        global_progress = average;
-        shall_update_progress = true;
+    if(_progress_mtx.try_lock()) {
+        float average = std::accumulate(progressV.begin(), progressV.end(), 0.0) / n_tasks;
+        if( average > global_progress + 0.0005 ){
+            global_progress = average;
+            showProgress();
+        }
+        _progress_mtx.unlock();
     }
-    _progress_mtx.unlock();
+}
 
-    if(shall_update_progress) {
-        showProgress(global_progress, tasks_done);
+void ProgressMonitor::task_done(int task_i) {
+    tasks_done ++;
+    tasks_active --;
+    if(_progress_mtx.try_lock()) {
+        showProgress();
+        _progress_mtx.unlock();
     }
 }
 

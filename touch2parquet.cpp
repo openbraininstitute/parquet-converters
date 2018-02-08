@@ -69,7 +69,7 @@ int main( int argc, char* argv[] ) {
         return static_cast<int>(args.mode);
     }
 
-    ProgressMonitor progress(argc-1);
+    ProgressMonitor progress(argc-args.n_opts);
 
     #pragma omp parallel for
     for( int i=args.n_opts; i<argc; i++) {
@@ -89,6 +89,7 @@ int main( int argc, char* argv[] ) {
             else {
                 converter.exportAll();
             }
+            progress.task_done(i-args.n_opts);
         }
         catch (const std::exception& e){
             printf("\n[ERROR] Could not create output file.\n -> %s", e.what());

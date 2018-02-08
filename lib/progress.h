@@ -1,20 +1,21 @@
 #ifndef PROGRESS_HANDLER_H
 #define PROGRESS_HANDLER_H
 
-
 #include <vector>
 #include <mutex>
 #include <functional>
-
+#include <atomic>
 
 /// A thread-safe ProgressBar
 class ProgressMonitor {
 public:
     ProgressMonitor(int n_tasks=1);
 
-    inline void showProgress(float progress, int tasks_done);
+    inline void showProgress();
 
-    void updateProgress(float progress, int task_i);
+    inline void updateProgress(float progress, int task_i);
+
+    void task_done(int task_i);
 
     /// Returns a handler function for a new thread
     std::function<void(float)> getNewHandler();
@@ -22,12 +23,11 @@ public:
 private:
     //Number of tasks. By default is 1.
     int n_tasks;
-    int tasks_active = 0;
-    int tasks_done = 0;
+    std::atomic_int tasks_active;
+    std::atomic_int tasks_done;
 
     std::vector<float> progressV;
     float global_progress = .0;
-    float last_large_progress = .0;
 
     std::mutex _progress_mtx;
 

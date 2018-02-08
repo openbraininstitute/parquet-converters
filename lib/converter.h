@@ -10,13 +10,13 @@ template<typename T>
 class Converter {
 
 public:
-    Converter( Reader<T> & reader, Writer<T> & writer, unsigned buffer_len=256*1024)
+    Converter( Reader<T> & reader, Writer<T> & writer, unsigned buffer_len=512*1024)
     : BUFFER_LEN(buffer_len),
       _reader(reader),
       _writer(writer)
     {
         n_blocks = _reader.record_count();
-        // Default: 256K entries (~10MB)
+        // Default: 512K entries (~20MB)
         _buffer = new T[ (n_blocks>BUFFER_LEN)? BUFFER_LEN : n_blocks ];
     }
 

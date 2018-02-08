@@ -21,12 +21,6 @@ public:
     virtual void write(Touch* data, uint length) override;  // offset are directly added to data ptr
 
 
-    // RowGroup shall be defined as a multiple of the block read
-    /// 512k rows makes 20 MB groups (40 bytes/row)
-    /// That makes two 1MB pages per column
-    static const uint BUFFER_LEN = 512*1024;
-    /// We transposing blocks of 600kB
-    static const uint TRANSPOSE_LEN = 16 * 1024;
 
 private:
 
@@ -49,6 +43,13 @@ private:
     parquet::FloatWriter* float_writer;
 
     // Buffers
+    // RowGroup shall be defined as a multiple of the block read
+    /// 512k rows makes 20 MB groups (40 bytes/row)
+    /// That makes two 1MB pages per column
+    static const uint BUFFER_LEN = 512*1024;
+    /// We transpose in small blocks for cache efficiency
+    static const uint TRANSPOSE_LEN = 1024;
+    
     template <int buf_len>
     struct BUF_T{
         int pre_neuron_id[buf_len];
