@@ -24,7 +24,7 @@ public:
         delete _buffer;
     }
 
-    int exportN(int n) {
+    int exportN(unsigned n) {
         if( n > n_blocks ) {
             n = n_blocks;
             printf("Warning: Requested export blocks more than available.\n");

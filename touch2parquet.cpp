@@ -23,7 +23,7 @@ static const char *usage =
 
 Args process_args(int argc, char* argv[]) {
     if( argc < 2) {
-        printf(usage);
+        printf("%s", usage);
         return Args(RunMode::QUIT_ERROR);
     }
 
@@ -34,7 +34,7 @@ Args process_args(int argc, char* argv[]) {
     for( ;cur_opt < argc && argv[cur_opt][0] == '-'; cur_opt++ ) {
         switch( argv[cur_opt][1] ) {
             case 'h':
-                printf(usage);
+                printf("%s", usage);
                 return Args(RunMode::QUIT_OK);
             case 'n':
                 args.convert_limit = atoi(argv[cur_opt]+2);
@@ -85,7 +85,7 @@ int main( int argc, char* argv[] ) {
             Converter<Touch> converter(tr, tw);
             converter.setProgressHandler(progress.getNewHandler());
             if( args.convert_limit > 0 )
-                converter.exportN(args.convert_limit);
+                converter.exportN((unsigned) args.convert_limit);
             else {
                 converter.exportAll();
             }
