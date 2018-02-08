@@ -25,6 +25,11 @@ public:
     }
 
     int exportN(int n) {
+        if( n > n_blocks ) {
+            n = n_blocks;
+            printf("Warning: Requested export blocks more than available.\n");
+        }
+
         int n_buffers = n / BUFFER_LEN;
         float progress = .0;
         float progress_inc = 1.0 / (float)n_buffers;

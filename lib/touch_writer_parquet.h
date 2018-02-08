@@ -48,21 +48,23 @@ private:
     parquet::Int32Writer* int32_writer;
     parquet::FloatWriter* float_writer;
 
-    // Buffer
+    // Buffers
+    template <int buf_len>
     struct BUF_T{
-        int pre_neuron_id[BUFFER_LEN];
-        int post_neuron_id[BUFFER_LEN];
-        int pre_section[BUFFER_LEN];
-        int pre_segment[BUFFER_LEN];
-        int post_section[BUFFER_LEN];
-        int post_segment[BUFFER_LEN];
-        float pre_offset[BUFFER_LEN];
-        float post_offset[BUFFER_LEN];
-        float distance_soma[BUFFER_LEN];
-        int branch_order[BUFFER_LEN];
+        int pre_neuron_id[buf_len];
+        int post_neuron_id[buf_len];
+        int pre_section[buf_len];
+        int pre_segment[buf_len];
+        int post_section[buf_len];
+        int post_segment[buf_len];
+        float pre_offset[buf_len];
+        float post_offset[buf_len];
+        float distance_soma[buf_len];
+        int branch_order[buf_len];
     };
 
-    std::unique_ptr<BUF_T> _buffer;
+    std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;
+    std::unique_ptr<BUF_T<TRANSPOSE_LEN>> _tbuffer;
 
     // Shortcuts
     int *pre_neuron_id, *post_neuron_id, *pre_section, *pre_segment, *post_section, *post_segment, *branch_order;

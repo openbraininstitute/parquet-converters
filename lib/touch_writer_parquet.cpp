@@ -53,17 +53,19 @@ TouchWriterParquet::TouchWriterParquet(const string filename)
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
 
     // Allocate contiguou buffer and get direct pointers
-    _buffer.reset(new BUF_T());
-    pre_neuron_id = _buffer->pre_neuron_id;
-    post_neuron_id = _buffer->post_neuron_id;
-    pre_section = _buffer->pre_section;
-    pre_segment = _buffer->pre_segment;
-    post_section = _buffer->post_section;
-    post_segment = _buffer->post_segment;
-    pre_offset = _buffer->pre_offset;
-    post_offset = _buffer->post_offset;
-    distance_soma = _buffer->distance_soma;
-    branch_order = _buffer->branch_order;
+    _buffer.reset(new BUF_T<BUFFER_LEN>());
+    _tbuffer.reset(new BUF_T<TRANSPOSE_LEN>());
+
+    pre_neuron_id  = _tbuffer->pre_neuron_id;
+    post_neuron_id = _tbuffer->post_neuron_id;
+    pre_section    = _tbuffer->pre_section;
+    pre_segment    = _tbuffer->pre_segment;
+    post_section   = _tbuffer->post_section;
+    post_segment   = _tbuffer->post_segment;
+    pre_offset     = _tbuffer->pre_offset;
+    post_offset    = _tbuffer->post_offset;
+    distance_soma  = _tbuffer->distance_soma;
+    branch_order   = _tbuffer->branch_order;
 }
 
 
@@ -114,8 +116,11 @@ void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
 
 
 void TouchWriterParquet::_transpose_buffer_part(Touch* data, uint offset, uint length) {
-    uint limit = offset + length;
-    for( uint i=offset; i<limit; i++ ) {
+    // Here we are transposing using the TBuffer
+    // Indexes at 0, so we also advance the local ptr to the offset
+    data += offset;
+
+    for( uint i=0; i<length; i++ ) {
         pre_neuron_id[i] = data[i].getPreNeuronID();
         post_neuron_id[i] = data[i].getPostNeuronID();
         pre_offset[i] = data[i].pre_offset;
@@ -134,6 +139,18 @@ void TouchWriterParquet::_transpose_buffer_part(Touch* data, uint offset, uint l
         if( _buffer->post_section[i]>0x7fff ) printf("Problematic post_section %d\n", post_section[i]);
         if( _buffer->post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", post_segment[i]);
     }
+
+    // Append to main buffer
+    std::copy( pre_neuron_id,  pre_neuron_id+length,  _buffer->pre_neuron_id+offset );
+    std::copy( post_neuron_id, post_neuron_id+length, _buffer->post_neuron_id+offset );
+    std::copy( pre_offset,     pre_offset+length,     _buffer->pre_offset+offset );
+    std::copy( post_offset,    post_offset+length,    _buffer->post_offset+offset );
+    std::copy( distance_soma,  distance_soma+length,  _buffer->distance_soma+offset );
+    std::copy( branch_order,   branch_order+length,   _buffer->branch_order+offset );
+    std::copy( pre_section,    pre_section+length,    _buffer->pre_section+offset );
+    std::copy( pre_segment,    pre_segment+length,    _buffer->pre_segment+offset );
+    std::copy( post_section,   post_section+length,   _buffer->post_section+offset );
+    std::copy( post_segment,   post_segment+length,   _buffer->post_segment+offset );
 }
 
 
