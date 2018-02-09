@@ -22,18 +22,16 @@ public:
 
     Touch & begin();
     Touch & end();
-
-    virtual Touch & getNext() override;
-
-    virtual Touch & getItem( uint index ) override;
-
-    virtual uint fillBuffer(Touch* buf, uint length) override;
+    Touch & getNext();
+    Touch & getItem( uint index );
 
     virtual uint record_count() override {
         return _record_count;
     }
 
     virtual inline void seek(uint pos) override;
+
+    virtual uint fillBuffer(Touch* buf, uint length) override;
 
     static const uint BUFFER_LEN = 256;
 

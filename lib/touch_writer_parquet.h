@@ -8,7 +8,7 @@
 
 
 using parquet::schema::GroupNode;
-using FileClass = ::arrow::io::FileOutputStream;
+using ParquetFileOutput = ::arrow::io::FileOutputStream;
 using namespace std;
 
 
@@ -34,7 +34,7 @@ private:
 
     // Variables
     shared_ptr<GroupNode> touchSchema;
-    std::shared_ptr<FileClass> out_file;
+    std::shared_ptr<ParquetFileOutput> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
 
     // Column writers
