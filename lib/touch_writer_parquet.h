@@ -36,7 +36,6 @@ private:
     shared_ptr<GroupNode> touchSchema;
     std::shared_ptr<FileClass> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
-    parquet::RowGroupWriter* rg_writer;
 
     // Column writers
     parquet::Int32Writer* int32_writer;
@@ -67,9 +66,6 @@ private:
     std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;
     std::unique_ptr<BUF_T<TRANSPOSE_LEN>> _tbuffer;
 
-    // Shortcuts
-    int *pre_neuron_id, *post_neuron_id, *pre_section, *pre_segment, *post_section, *post_segment, *branch_order;
-    float *pre_offset, *post_offset, *distance_soma;
 };
 
 #endif // PARQUETWRITER_H
