@@ -48,6 +48,8 @@ private:
     static const uint BUFFER_LEN = 512*1024;
     /// We transpose in small blocks for cache efficiency
     static const uint TRANSPOSE_LEN = 1024;
+
+    uint _buffer_offset;
     
     template <int buf_len>
     struct BUF_T{

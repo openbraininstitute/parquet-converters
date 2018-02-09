@@ -1,4 +1,5 @@
 #include "touch_writer_parquet.h"
+#include <assert.h>
 
 using namespace parquet;
 
@@ -42,6 +43,7 @@ static std::shared_ptr<GroupNode> setupSchema() {
 
 
 TouchWriterParquet::TouchWriterParquet(const string filename)
+ : _buffer_offset(0)
 {
     // Create a ParquetFileWriter instance
     PARQUET_THROW_NOT_OK(FileClass::Open(filename.c_str(), &out_file));
@@ -57,25 +59,25 @@ TouchWriterParquet::TouchWriterParquet(const string filename)
     // Allocate contiguou buffer and get direct pointers
     _buffer.reset(new BUF_T<BUFFER_LEN>());
     _tbuffer.reset(new BUF_T<TRANSPOSE_LEN>());
-
 }
 
 
 TouchWriterParquet::~TouchWriterParquet() {
+    if( _buffer_offset > 0 ) {
+        // Flush remaining data
+        _writeBuffer(_buffer_offset);
+    }
     file_writer->Close();
     out_file->Close();
 }
 
 
-// Unbuffered - it will expect large chunks and flush on last
-// A buffered version is not implemented since it wont be required in a converter
 void TouchWriterParquet::write(Touch* data, uint length) {
 
     //Split large Data in BUFFER_SIZE chunks
-
     while( length > 0 ) {
 
-        uint write_n = BUFFER_LEN;
+        uint write_n = BUFFER_LEN - _buffer_offset;
         if( length < write_n ) {
             write_n = length;
         }
@@ -98,7 +100,14 @@ void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
     }
     _transpose_buffer_part(data, n_chunks*TRANSPOSE_LEN, remaining);
 
-    _writeBuffer(length);
+    assert(_buffer_offset+length <= BUFFER_LEN);
+
+    if( _buffer_offset+length == BUFFER_LEN ) {
+        // We only write full buffers
+        // Remaining buffer data only on destruction
+        _writeBuffer(BUFFER_LEN);
+        _buffer_offset = 0;
+    }
 }
 
 
@@ -128,16 +137,17 @@ void TouchWriterParquet::_transpose_buffer_part(Touch* data, uint offset, uint l
     }
 
     // Append to main buffer
-    std::copy( _tbuffer->pre_neuron_id,  _tbuffer->pre_neuron_id+length,  _buffer->pre_neuron_id+offset );
-    std::copy( _tbuffer->post_neuron_id, _tbuffer->post_neuron_id+length, _buffer->post_neuron_id+offset );
-    std::copy( _tbuffer->pre_offset,     _tbuffer->pre_offset+length,     _buffer->pre_offset+offset );
-    std::copy( _tbuffer->post_offset,    _tbuffer->post_offset+length,    _buffer->post_offset+offset );
-    std::copy( _tbuffer->distance_soma,  _tbuffer->distance_soma+length,  _buffer->distance_soma+offset );
-    std::copy( _tbuffer->branch_order,   _tbuffer->branch_order+length,   _buffer->branch_order+offset );
-    std::copy( _tbuffer->pre_section,    _tbuffer->pre_section+length,    _buffer->pre_section+offset );
-    std::copy( _tbuffer->pre_segment,    _tbuffer->pre_segment+length,    _buffer->pre_segment+offset );
-    std::copy( _tbuffer->post_section,   _tbuffer->post_section+length,   _buffer->post_section+offset );
-    std::copy( _tbuffer->post_segment,   _tbuffer->post_segment+length,   _buffer->post_segment+offset );
+    uint buffer_offset = _buffer_offset + offset;
+    std::copy( _tbuffer->pre_neuron_id,  _tbuffer->pre_neuron_id+length,  _buffer->pre_neuron_id+buffer_offset );
+    std::copy( _tbuffer->post_neuron_id, _tbuffer->post_neuron_id+length, _buffer->post_neuron_id+buffer_offset );
+    std::copy( _tbuffer->pre_offset,     _tbuffer->pre_offset+length,     _buffer->pre_offset+buffer_offset );
+    std::copy( _tbuffer->post_offset,    _tbuffer->post_offset+length,    _buffer->post_offset+buffer_offset );
+    std::copy( _tbuffer->distance_soma,  _tbuffer->distance_soma+length,  _buffer->distance_soma+buffer_offset );
+    std::copy( _tbuffer->branch_order,   _tbuffer->branch_order+length,   _buffer->branch_order+buffer_offset );
+    std::copy( _tbuffer->pre_section,    _tbuffer->pre_section+length,    _buffer->pre_section+buffer_offset );
+    std::copy( _tbuffer->pre_segment,    _tbuffer->pre_segment+length,    _buffer->pre_segment+buffer_offset );
+    std::copy( _tbuffer->post_section,   _tbuffer->post_section+length,   _buffer->post_section+buffer_offset );
+    std::copy( _tbuffer->post_segment,   _tbuffer->post_segment+length,   _buffer->post_segment+buffer_offset );
 }
 
 
