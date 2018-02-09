@@ -108,6 +108,9 @@ void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
         _writeBuffer(BUFFER_LEN);
         _buffer_offset = 0;
     }
+    else {
+        _buffer_offset+=length;
+    }
 }
 
 
