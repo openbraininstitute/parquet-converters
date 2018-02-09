@@ -58,6 +58,7 @@ add_custom_target( touch2parquet_endian ALL
                    COMMENT "Generating touch2parquet_endian")
 
 # TESTS
+enable_testing()
 add_subdirectory(tests)
 
 

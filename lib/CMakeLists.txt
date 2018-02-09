@@ -12,6 +12,3 @@ else()
     target_link_libraries(TouchParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${SNAPPY_LIB} ${Boost_LIBRARIES} ${SNAPPY_LIB} ${Z_LIB})
 endif()
 
-
-add_executable( test_convert_touch test_touch_converter.cpp $<TARGET_OBJECTS:ConversionProgress>)
-target_link_libraries(test_convert_touch TouchParquet)
