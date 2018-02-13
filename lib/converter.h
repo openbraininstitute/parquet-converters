@@ -19,17 +19,17 @@ public:
 
     Converter(Reader<T> & reader, Writer<T> & writer, Format dataFormat=Format::RECORDS, uint buffer_len=128*1024)
     : _reader(reader),
-      _writer(writer)
+      _writer(writer),
+      // With blocks the buffer is virtual, therefore len 1
+      BUFFER_LEN((dataFormat == Format::RECORDS)? buffer_len : 1 )
     {
         n_blocks = _reader.block_count();
 
         if( dataFormat == Format::RECORDS ) {
-            BUFFER_LEN = buffer_len;
             // Default: 128K entries (~5MB)
             _buffer = new T[ (n_blocks>BUFFER_LEN)? BUFFER_LEN : n_blocks ];
         }
         else {
-            BUFFER_LEN = 1;
             // we better handle it directly as single object
             _buffer = new T();
         }
@@ -84,14 +84,14 @@ public:
         progress_handler = func;
     }
 
-    const unsigned int BUFFER_LEN;
 
 private:
     Format mode;
-    T* _buffer;
-
     Reader<T>& _reader;
     Writer<T>& _writer;
+    const unsigned int BUFFER_LEN;
+    T* _buffer;
+
     std::function<void(float)> progress_handler;
     unsigned n_blocks;
 };

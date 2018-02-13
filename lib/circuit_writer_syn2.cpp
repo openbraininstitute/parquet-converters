@@ -7,57 +7,63 @@ namespace circuit {
 using namespace arrow;
 
 
+
 CircuitWriterSYN2::CircuitWriterSYN2()
 { }
 
 
 
 void CircuitWriterSYN2::write(CircuitData* data, uint length){
-//
-
     std::shared_ptr<Table> row_group = std::move(data->row_group);
-    int n_cols = data->row_group->num_columns;
+    int n_cols = data->row_group->num_columns();
 
-    // First execution
-    if( data_columns_to_process.size() == 0 )  {
-        data_columns_to_process.resize(n_cols);
+    std::vector<int> cols_to_process(n_cols);
+    std::vector<int> remaining_cols(n_cols);
+    std::vector<int> & r_processing_cols = cols_to_process;
 
-        for(int i=0; n_cols; i++) {
-            std::shared_ptr<Column> col = row_group->column(i);
-            h5_file = init_h5file(filename, col);
-            // data_columns_to_process is always kept internally by reference
-            writer_threads.push_back( create_thread_process_data(h5_file, data_columns_to_process[i]) );
-        }
+    for(int i=0; n_cols; i++) {
+        cols_to_process.push_back(i);
     }
 
-    // Initially all threads are considered
-    std::vector<int> running_threads;
-    for (i=0; i<n_cols; i++) {
-        running_threads.push_back(i);
-    }
+    while( r_processing_cols.size() >0 ) {
+        remaining_cols.clear();
 
-    while( running_threads.size() > 0 ) {
-        std::vector<int> still_running_threads;
+        for( int col_i : cols_to_process) {
+            std::shared_ptr<Column> col = row_group->column(col_i);
+            const std::string& col_name = col->name();
+            auto item = col_name_to_idx.find(col_name);
+            int idx = -1;
 
-        for(int i : running_threads) {
-            // Check we can write data
-            if( data_columns_to_process[i] != nullptr ) {
-                still_running_threads.push_back(i);
+            // Create new column
+            if( item == col_name_to_idx.end()) {
+                idx = writer_threads.size();
+                h5 h5_file = init_h5file(std::string("syn2pop") + col_name, col);
+                // data_columns_to_process is always kept internally by reference
+                col_name_to_idx[col_name] = idx;
+                data_columns_to_process.resize(idx+1);
+                // copy ptr
+                data_columns_to_process[idx] = col;
+                // Create thread with ref to data_col
+                writer_threads.push_back( create_thread_process_data(h5_file, data_columns_to_process[idx]) );
             }
             else {
-                std::shared_ptr<Column> col = row_group->column(i);
-                data_columns_to_process[i] = col;
-                // Fetch thread and notify
-                writer_threads[i].notify();
+                // Thread exists, we must feed it if it's starving
+                if( data_columns_to_process[idx] == nullptr ) {
+                    data_columns_to_process[idx] = col;
+                }
+                else {
+                    //Thread not ready yet
+                    remaining_cols.push_back(col_i);
+                }
             }
         }
 
-        running_threads = std::move(still_running_threads);
-
-        if( running_threads.size()>0 ) {
+        if( remaining_cols.size()>0 ) {
             // Avoid sleep if no need
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+
+        r_processing_cols = remaining_cols;
     }
 
 }
@@ -65,41 +71,42 @@ void CircuitWriterSYN2::write(CircuitData* data, uint length){
 
 
 template <typename T>
-inline void dump_data(h5_file_handler, u_int8_t* buffer) {
+inline void dump_data(h5 h5_file_handler, u_int8_t* buffer) {
 
 }
 
 
-
-
-
-inline void write_data(h5_file_handler,
+inline void write_data(h5 h5_file,
                        const std::shared_ptr<const Column>& col_data) {
     // get data in buffer
-    for( std::shared_ptr<Array> & chunk : col_data->data->chunks() ) {
-        for( std::shared_ptr<Buffer> & buf : chunk->data()->buffers() ) {
-
+    for( const std::shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
+        for( const std::shared_ptr<Buffer> & buf : chunk->data()->buffers ) {
+            (void) buf;
         }
     }
 }
 
 
-void init_h5file(const std::string & filename, const std::shared_ptr<const Column>& column) {
-
+h5 init_h5file(const std::string & filename, std::shared_ptr<Column> column) {
+    return 0;
 }
 
 
-std::shared_ptr<std::thread> CircuitWriterSYN2::create_thread_process_data(h5 h5_file,
-                                                                           std::shared_ptr<const Column>& column) {
-    auto f = [&h5_file](){
-        // Need primitives for blocking/notify
+const std::shared_ptr<std::thread> CircuitWriterSYN2::create_thread_process_data(h5 h5_file,
+                                                                                 std::shared_ptr<Column>& r_column_ptr) {
+    auto f = [&h5_file, &r_column_ptr]{
 
-        write_data(h5_file, col_data);
-        // set buffer to null (available to receive more data)
-        col_data = nullptr;
+        while(true) {
+            // Need primitives for blocking/notify
+
+            write_data(h5_file, r_column_ptr);
+
+            // set buffer to null (available to receive more data)
+            r_column_ptr = nullptr;
+        }
     };
 
-    std::shared_ptr<std::thread> thread = new std::thread(f);
+    const std::shared_ptr<std::thread> thread(new std::thread(f));
     return thread;
 }
 

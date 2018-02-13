@@ -46,7 +46,7 @@ TouchWriterParquet::TouchWriterParquet(const string filename)
  : _buffer_offset(0)
 {
     // Create a ParquetFileWriter instance
-    PARQUET_THROW_NOT_OK(FileClass::Open(filename.c_str(), &out_file));
+    PARQUET_THROW_NOT_OK(ParquetFileOutput::Open(filename.c_str(), &out_file));
     touchSchema = setupSchema();
 
     WriterProperties::Builder prop_builder;

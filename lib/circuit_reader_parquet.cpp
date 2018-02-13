@@ -5,17 +5,17 @@ namespace neuron_parquet {
 namespace circuit {
 
 CircuitReaderParquet::CircuitReaderParquet(const string & filename)
-  : _reader(parquet::ParquetFileReader::OpenFile(filename, false)),
-    _parquet_metadata(_reader->metadata()),
-    _column_count(_parquet_metadata->num_columns()),
-    _rowgroup_count(_parquet_metadata->num_row_groups()),
-    data_reader(arrow::default_memory_pool(), _reader)
+  :
+    data_reader(arrow::default_memory_pool(), parquet::ParquetFileReader::OpenFile(filename, false))
 {
+    _parquet_metadata = _reader->metadata();
+    _column_count = _parquet_metadata->num_columns();
+    _rowgroup_count = _parquet_metadata->num_row_groups();
     seek(0);
 }
 
 CircuitReaderParquet::~CircuitReaderParquet(){
-    parquet_reader->close();
+
 }
 
 
@@ -34,7 +34,7 @@ uint CircuitReaderParquet::fillBuffer(CircuitData* buf, uint length) {
 //        }
 //    }
     data_reader.ReadRowGroup(_cur_row_group++, &(buf->row_group));
-    return (uint) buf->row_group->num_rows;
+    return (uint) buf->row_group->num_rows();
 }
 
 

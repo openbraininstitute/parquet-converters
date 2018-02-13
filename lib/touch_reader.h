@@ -25,7 +25,7 @@ public:
     Touch & getNext();
     Touch & getItem( uint index );
 
-    virtual uint record_count() override {
+    virtual uint block_count() override {
         return _record_count;
     }
 

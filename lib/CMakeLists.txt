@@ -1,9 +1,11 @@
 
 set(TOUCH_SRCS touch_reader.cpp touch_writer_parquet.cpp)
+set(CIRCUIT_SRCS circuit_reader_parquet.cpp circuit_writer_syn2.cpp)
 
 include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
+add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 add_library(ConversionProgress OBJECT progress.cpp)
 
 if(PARQUET_STATICALLY_LINKED)
