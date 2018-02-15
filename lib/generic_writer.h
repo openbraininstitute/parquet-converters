@@ -7,7 +7,7 @@ template <typename T>
 class Writer {
 
 public:
-    virtual void write(T* data, uint length) = 0;
+    virtual void write(const T* data, uint length) = 0;
 
     // bytes per record
     static constexpr uint RECORD_SIZE = sizeof(T);

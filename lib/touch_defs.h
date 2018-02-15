@@ -4,10 +4,10 @@
 enum TOUCH_LOCATION { NEURON_ID, SECTION_ID, SEGMENT_ID };
 
 struct Touch {
-    inline int getPreNeuronID(){
+    inline int getPreNeuronID() const {
         return pre_synapse_ids[NEURON_ID];
     }
-    inline int getPostNeuronID(){
+    inline int getPostNeuronID() const {
         return post_synapse_ids[NEURON_ID];
     }
 

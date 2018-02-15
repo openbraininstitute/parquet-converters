@@ -72,7 +72,7 @@ TouchWriterParquet::~TouchWriterParquet() {
 }
 
 
-void TouchWriterParquet::write(Touch* data, uint length) {
+void TouchWriterParquet::write(const Touch* data, uint length) {
 
     //Split large Data in BUFFER_SIZE chunks
     while( length > 0 ) {
@@ -91,7 +91,7 @@ void TouchWriterParquet::write(Touch* data, uint length) {
 
 
 // We need to chunk to avoid large buffers not fitting in cache
-void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
+void TouchWriterParquet::_writeDataSet(const Touch* data, uint length) {
     uint n_chunks = length / TRANSPOSE_LEN;
     uint remaining = length % TRANSPOSE_LEN;
 
@@ -114,7 +114,7 @@ void TouchWriterParquet::_writeDataSet(Touch* data, uint length) {
 }
 
 
-void TouchWriterParquet::_transpose_buffer_part(Touch* data, uint offset, uint length) {
+void TouchWriterParquet::_transpose_buffer_part(const Touch* data, uint offset, uint length) {
     // Here we are transposing using the TBuffer
     // Indexes at 0, so we also advance the local ptr to the offset
     data += offset;

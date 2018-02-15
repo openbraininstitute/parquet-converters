@@ -1,5 +1,6 @@
 #include "circuit_writer_syn2.h"
 #include <functional>
+#include <thread>
 
 namespace neuron_parquet {
 namespace circuit {
@@ -8,62 +9,71 @@ using namespace arrow;
 
 
 
-CircuitWriterSYN2::CircuitWriterSYN2()
+CircuitWriterSYN2::CircuitWriterSYN2(const std::string & destination_dir)
+    : destination_dir_(destination_dir)
 { }
 
 
-
-void CircuitWriterSYN2::write(CircuitData* data, uint length){
-    std::shared_ptr<Table> row_group = std::move(data->row_group);
-    int n_cols = data->row_group->num_columns();
+///
+/// \brief CircuitWriterSYN2::write Handles incoming data and
+///        distrubutes columns by respective file writer queues
+/// \param data
+/// \param length
+///
+void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
+    std::shared_ptr<Table> row_group(data->row_group);
+    int n_cols = row_group->num_columns();
 
     std::vector<int> cols_to_process(n_cols);
-    std::vector<int> remaining_cols(n_cols);
-    std::vector<int> & r_processing_cols = cols_to_process;
+    std::vector<int> remaining_cols;
 
     for(int i=0; n_cols; i++) {
         cols_to_process.push_back(i);
     }
 
-    while( r_processing_cols.size() >0 ) {
-        remaining_cols.clear();
 
+    // The rationale is to loop through all the columns at a time, creating new
+    //   threads if necessary. If some threads are not ready then immediately skip.
+    // At the end, if there are columns that could not be dispatched sleep 10 ms and
+    //   repeat the cycle
+
+    while( cols_to_process.size() >0 ) {
         for( int col_i : cols_to_process) {
-            std::shared_ptr<Column> col = row_group->column(col_i);
-            const std::string& col_name = col->name();
-            auto item = col_name_to_idx.find(col_name);
+            auto col = row_group->column(col_i);
+            const auto & col_name = col->name();
             int idx = -1;
+            if( col_name_to_idx_.count(col_name) > 0) {
+                idx = col_name_to_idx_[col_name];
+            }
 
             // Create new column
-            if( item == col_name_to_idx.end()) {
-                idx = writer_threads.size();
-                h5 h5_file = init_h5file(std::string("syn2pop") + col_name, col);
-                // data_columns_to_process is always kept internally by reference
-                col_name_to_idx[col_name] = idx;
-                data_columns_to_process.resize(idx+1);
-                // copy ptr
-                data_columns_to_process[idx] = col;
-                // Create thread with ref to data_col
-                writer_threads.push_back( create_thread_process_data(h5_file, data_columns_to_process[idx]) );
+            if( idx == -1) {
+                printf("Creating new column and thread for %s\n", col_name.c_str());
+                idx = column_writer_queues_.size();
+                col_name_to_idx_[col_name] = idx;
+
+                column_writer_queues_.push_back(ZeroMemQ_Column());
+
+                h5 h5_file = init_h5file(std::string("syn2prop") + col_name, col);
+                create_thread_process_data(h5_file, column_writer_queues_.back());
             }
-            else {
-                // Thread exists, we must feed it if it's starving
-                if( data_columns_to_process[idx] == nullptr ) {
-                    data_columns_to_process[idx] = col;
-                }
-                else {
-                    //Thread not ready yet
-                    remaining_cols.push_back(col_i);
-                }
+
+            ZeroMemQ_Column & q = column_writer_queues_[idx];
+
+            if(! q.try_push(col)) {
+                //Thread not ready yet
+                remaining_cols.push_back(col_i);
             }
         }
 
         if( remaining_cols.size()>0 ) {
             // Avoid sleep if no need
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        r_processing_cols = remaining_cols;
+        // Move also empties original
+        cols_to_process = std::move(remaining_cols);
+
     }
 
 }
@@ -92,23 +102,22 @@ h5 init_h5file(const std::string & filename, std::shared_ptr<Column> column) {
 }
 
 
-const std::shared_ptr<std::thread> CircuitWriterSYN2::create_thread_process_data(h5 h5_file,
-                                                                                 std::shared_ptr<Column>& r_column_ptr) {
-    auto f = [&h5_file, &r_column_ptr]{
+void CircuitWriterSYN2::create_thread_process_data(h5 h5_file,
+                                                   ZeroMemQ_Column & queue) {
+    auto f = [&h5_file, &queue]{
+        std::shared_ptr<Column> column_ptr = queue.blocking_pop();
 
-        while(true) {
-            // Need primitives for blocking/notify
-
-            write_data(h5_file, r_column_ptr);
-
-            // set buffer to null (available to receive more data)
-            r_column_ptr = nullptr;
+        while(column_ptr != nullptr) {
+            write_data(h5_file, column_ptr);
+            column_ptr = queue.blocking_pop();
         }
     };
 
-    const std::shared_ptr<std::thread> thread(new std::thread(f));
-    return thread;
+    std::thread t(f);
+    t.detach();
 }
+
+
 
 
 
