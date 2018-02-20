@@ -52,7 +52,7 @@ private:
 
 // Thread functions
 
-void write_data(h5_ids h5_ds, uint64_t offset, const std::shared_ptr<const arrow::Column>& col_data);
+inline void write_data(h5_ids h5_ds, uint64_t& offset, const std::shared_ptr<const arrow::Column>& col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 

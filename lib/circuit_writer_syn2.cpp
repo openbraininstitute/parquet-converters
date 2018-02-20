@@ -150,7 +150,7 @@ inline hid_t parquet_types_to_h5(Type::type t) {
     }
 }
 
-inline uint parquet_types_size(Type::type t) {
+inline int parquet_types_size(Type::type t) {
     switch( t ) {
         case Type::INT8:
         case Type::UINT8:
@@ -174,21 +174,20 @@ inline uint parquet_types_size(Type::type t) {
 }
 
 
-inline void write_data(const h5_ids h5_output, uint64_t& offset,
-                           const shared_ptr<const Column>& col_data) {
+void write_data(const h5_ids h5_output, uint64_t& offset,
+                const shared_ptr<const Column>& col_data) {
 
     static thread_local Type::type t_id(col_data->type()->id());
     static thread_local hid_t t = parquet_types_to_h5(t_id);
-    static thread_local uint elem_size = parquet_types_size(t_id);
+    static thread_local int elem_size = parquet_types_size(t_id);
     static const hsize_t one = 1;
-    const hsize_t size = col_data->length();
 
     // get data in buffers
     for( const shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
 
         for( const shared_ptr<Buffer> & buf : chunk->data()->buffers ) {
             const hsize_t offset_ = offset;
-            uint64_t buf_len = chunk->length() / elem_size;
+            const hsize_t buf_len = chunk->length() / elem_size;
             hid_t mem_space = H5Screate_simple(1, &buf_len, nullptr);
             hid_t file_space = H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &offset_, &one, &buf_len, NULL);
             H5Dwrite(h5_output.ds, t, mem_space, file_space, H5P_DEFAULT, buf->data());

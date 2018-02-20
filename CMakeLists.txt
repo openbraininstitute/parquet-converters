@@ -27,6 +27,8 @@ find_package(OpenMP)
 find_package(Boost COMPONENTS regex)
 find_path(PARQUET_INCLUDE_DIR "parquet")
 find_library(PARQUET_LIB NAMES libparquet.a parquet)
+find_library(HDF5_LIB NAMES hdf5 hdf5.a)
+
 
 # Transitive dependencies. Give preference to static for the critical ones
 if(NOT PARQUET_STATICALLY_LINKED)

@@ -21,22 +21,27 @@ public:
     virtual uint fillBuffer(CircuitData* buf, uint length) override;
 
     virtual uint block_count() override {
-        return _rowgroup_count;
+        return rowgroup_count_;
     }
 
     virtual inline void seek(uint pos) override;
+
+    size_t record_count() const {
+        return record_count_;
+    }
 
 private:
 
 
     // Variables
-    shared_ptr<parquet::FileMetaData> _parquet_metadata;
-    unique_ptr<parquet::ParquetFileReader> _reader;
-    parquet::arrow::FileReader data_reader;
+    unique_ptr<parquet::ParquetFileReader> reader_;
+    shared_ptr<parquet::FileMetaData> parquet_metadata_;
+    parquet::arrow::FileReader data_reader_;
 
-    uint _column_count;
-    uint _rowgroup_count;
-    uint _cur_row_group;
+    const int column_count_;
+    const int rowgroup_count_;
+    const size_t record_count_;
+    uint cur_row_group_;
 
 };
 

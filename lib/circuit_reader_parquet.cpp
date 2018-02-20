@@ -6,12 +6,15 @@ namespace circuit {
 
 CircuitReaderParquet::CircuitReaderParquet(const string & filename)
   :
-    data_reader(arrow::default_memory_pool(), parquet::ParquetFileReader::OpenFile(filename, false))
+    reader_(parquet::ParquetFileReader::OpenFile(filename, false)),
+    parquet_metadata_(reader_->metadata()),
+    data_reader_(arrow::default_memory_pool(), std::move(reader_)),
+
+    column_count_(parquet_metadata_->num_columns()),
+    rowgroup_count_(parquet_metadata_->num_row_groups()),
+    record_count_(parquet_metadata_->num_rows()),
+    cur_row_group_(0)
 {
-    _parquet_metadata = _reader->metadata();
-    _column_count = _parquet_metadata->num_columns();
-    _rowgroup_count = _parquet_metadata->num_row_groups();
-    seek(0);
 }
 
 CircuitReaderParquet::~CircuitReaderParquet(){
@@ -33,13 +36,13 @@ uint CircuitReaderParquet::fillBuffer(CircuitData* buf, uint length) {
 //            total_rows_read += single_read_rows;
 //        }
 //    }
-    data_reader.ReadRowGroup(_cur_row_group++, &(buf->row_group));
+    data_reader_.ReadRowGroup(cur_row_group_++, &(buf->row_group));
     return (uint) buf->row_group->num_rows();
 }
 
 
 void CircuitReaderParquet::seek(uint pos) {
-    _cur_row_group = pos;
+    cur_row_group_ = pos;
 }
 
 
