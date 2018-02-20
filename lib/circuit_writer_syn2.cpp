@@ -91,7 +91,7 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 
         if( remaining_cols.size()>0 ) {
             // Avoid sleep if no need
-            this_thread::sleep_for(chrono::milliseconds(1000));
+            this_thread::sleep_for(chrono::milliseconds(10));
         }
 
         // Move also empties original
@@ -147,10 +147,10 @@ void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
             }
             write_data(h5_output, cur_offset, column_ptr);
         }
-        // close
-        cerr << "Closing file. Null received from queue " << q.id() << endl;
-        //H5Dclose(h5_output.ds);
-        //H5Fclose(h5_output.file);
+
+        cerr << "Closing file from writer " << writer_id << endl;
+        H5Dclose(h5_output.ds);
+        H5Fclose(h5_output.file);
     };
 
     thread t(f);
@@ -184,55 +184,32 @@ inline hid_t parquet_types_to_h5(Type::type t) {
     }
 }
 
-inline int parquet_types_size(Type::type t) {
-    switch( t ) {
-        case Type::INT8:
-        case Type::UINT8:
-            return 1;
-
-        case Type::INT16:
-        case Type::UINT16:
-            return 2;
-
-        case Type::INT32:
-        case Type::UINT32:
-        case Type::FLOAT:
-            return 4;
-
-        case Type::DOUBLE:
-            return 8;
-
-        default:
-            return -1;
-    }
-}
-
 
 void write_data(const h5_ids h5_output, uint64_t& offset,
                 const shared_ptr<const Column>& col_data) {
 
-//    static thread_local Type::type t_id(col_data->type()->id());
-//    static thread_local hid_t t = parquet_types_to_h5(t_id);
-//    static thread_local int elem_size = parquet_types_size(t_id);
-//    static const hsize_t one = 1;
+    static thread_local Type::type t_id(col_data->type()->id());
+    static thread_local hid_t t = parquet_types_to_h5(t_id);
+
+    cerr << "Writing data... " <<  col_data->length() << " records." << endl;
 
     // get data in buffers
     for( const shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
         for( const shared_ptr<Buffer> & buf : chunk->data()->buffers ) {
             if( !buf ) {
+                // Some buffers might be empty
                 continue;
             }
-            else {
-                cerr << "Writing data" << endl;
-            }
-//            const hsize_t offset_ = offset;
-//            const hsize_t buf_len = chunk->length() / elem_size;
-//            hid_t mem_space = H5Screate_simple(1, &buf_len, nullptr);
-//            hid_t file_space = H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &offset_, &one, &buf_len, NULL);
-//            H5Dwrite(h5_output.ds, t, mem_space, file_space, H5P_DEFAULT, buf->data());
-//            H5Sclose(file_space);
-//            H5Sclose(mem_space);
-//            offset += buf_len;
+            // convert and set const
+            const hsize_t offset_ = offset;
+            const hsize_t buf_len = chunk->length();
+
+            hid_t mem_space = H5Screate_simple(1, &buf_len, nullptr);
+            H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &offset_, NULL, &buf_len, NULL);
+
+            H5Dwrite(h5_output.ds, t, mem_space, h5_output.dspace, H5P_DEFAULT, buf->data());
+            H5Sclose(mem_space);
+            offset += buf_len;
         }
     }
 }

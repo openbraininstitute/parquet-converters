@@ -48,7 +48,7 @@ public:
     void blocking_push(const std::shared_ptr<T> &col) {
         while(! try_push(col)) {
             std::this_thread::sleep_for(
-                std::chrono::milliseconds(1));
+                std::chrono::milliseconds(10));
         }
     }
 
@@ -67,7 +67,7 @@ public:
         while(!try_pop(col)) {
             std::cerr << "thread " << this_id << " waiting for data..." << std::endl;
             std::this_thread::sleep_for(
-                std::chrono::milliseconds(2000));
+                std::chrono::milliseconds(10));
         }
         std::cerr << "thread " << this_id << " POP!" << this_id << std::endl;
         return col;
