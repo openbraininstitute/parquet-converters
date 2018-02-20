@@ -36,10 +36,6 @@ public:
     }
 
 
-    ~Converter() {
-        delete _buffer;
-    }
-
     int exportN(unsigned n) {
 
         if( n > n_blocks ) {
@@ -49,7 +45,11 @@ public:
 
         int n_buffers = n / BUFFER_LEN;
         float progress = .0;
-        float progress_inc = 1.0 / (float)n_buffers;
+        float progress_inc;
+        if( n_buffers > 0 ) {
+            progress_inc = 1.0 / (float)n_buffers;
+        }
+
         _reader.seek(0);
 
         for(int i=0; i<n_buffers; i++) {

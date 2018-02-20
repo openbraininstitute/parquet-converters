@@ -33,6 +33,12 @@ public:
 
     virtual void write(const CircuitData* data, uint length) override;
 
+    void close_files();
+
+    ~CircuitWriterSYN2() {
+        close_files();
+    }
+
 private:
     // The writer can write to several files using different threads
     // and therefore release the main thread to go and fetch more data
@@ -40,10 +46,12 @@ private:
     h5_ids init_h5file(const std::string & filename, std::shared_ptr<arrow::Column> column);
     void create_thread_process_data(h5_ids h5_output, ZeroMemQ_Column & queue);
 
-    std::vector<ZeroMemQ_Column> column_writer_queues_;
+    std::vector<std::unique_ptr<ZeroMemQ_Column>> column_writer_queues_;
     std::unordered_map<std::string, int> col_name_to_idx_;
 
-    const std::string & destination_dir_;
+    std::vector<std::thread> threads_;
+
+    const std::string destination_dir_;
     const uint64_t total_records_;
 
 
@@ -52,7 +60,7 @@ private:
 
 // Thread functions
 
-inline void write_data(h5_ids h5_ds, uint64_t& offset, const std::shared_ptr<const arrow::Column>& col_data);
+inline void write_data(h5_ids h5_ds, uint64_t& r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 

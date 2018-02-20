@@ -7,7 +7,7 @@ namespace neuron_parquet {
 namespace circuit {
 
 
-static const char* FIELDS_REQUIRED[] = {"pre_gid", "post_gid"};
+//static const char* FIELDS_REQUIRED[] = {"pre_gid", "post_gid"};
 
 // Circuits will allow for a variable number of fields.
 // Therefore the record cant have the fields statically
