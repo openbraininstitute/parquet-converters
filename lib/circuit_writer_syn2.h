@@ -65,12 +65,13 @@ private:
     std::vector<std::thread> threads_;
     std::vector<h5_ids> files_;
 
+
     const std::string destination_dir_;
     const uint64_t total_records_;
     //These entries are mostly useful in parallel writing
     uint64_t output_part_length_;
-    uint64_t output_file_offset_ = 0;
-    int output_part_id_ = 0;
+    uint64_t output_file_offset_;
+    int output_part_id_;
 
     bool use_mpio_ = false;
     struct {
@@ -83,7 +84,7 @@ private:
 
 // Thread functions
 
-inline void write_data(h5_ids h5_ds, uint64_t& r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
+inline void write_data(h5_ids h5_ds, uint64_t r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 

@@ -38,47 +38,26 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
     shared_ptr<Table> row_group(data->row_group);
     int n_cols = row_group->num_columns();
 
-    vector<int> cols_to_process(n_cols);
-    vector<int> remaining_cols;
-
     for(int i=0; i<n_cols; i++) {
-        cols_to_process[i]=i;
+        shared_ptr<Column> col(row_group->column(i));
+        const string& col_name = col->name();
+
+        int idx = -1;
+        if( col_name_to_idx_.count(col_name) == 0) {
+            idx = files_.size();
+            init_h5file(col_name + ".h5", col);
+            col_name_to_idx_[col_name] = idx;
+        }
+        else {
+            idx = col_name_to_idx_[col_name];
+        }
+        h5_ids output(files_[idx]);
+
+        size_t cur_offset = output_file_offset_;
+        write_data(output, cur_offset, col);
     }
 
-    // The rationale is to loop through all the columns at a time, creating new
-    //   threads if necessary. If some threads are not ready then immediately skip.
-    // At the end, if there are columns that could not be dispatched sleep 10 ms and
-    //   repeat the cycle
-
-    while( cols_to_process.size() >0 ) {
-        for( int col_i : cols_to_process) {
-        //    int col_i = 0;
-            auto col = row_group->column(col_i);
-            const auto & col_name = col->name();
-            Type::type t_id(col->type()->id());
-            hid_t t = parquet_types_to_h5(t_id);
-
-            if(t == -1) {
-                cerr << "Type not supported. Skipping column " << col_name << endl;
-                continue;
-            }
-
-            ZeroMemQ_Column & q = get_create_handler_for_column(col);
-
-            if( ! q.try_push(col)) {
-                remaining_cols.push_back(col_i);
-            }
-        }
-
-        if( remaining_cols.size() > 0 ) {
-            // Avoid sleep if no need
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-
-        // Move also empties original
-        cols_to_process = move(remaining_cols);
-
-    }
+    output_file_offset_ += row_group->num_rows();
 
 }
 
@@ -189,22 +168,10 @@ void CircuitWriterSYN2::use_mpio(MPI_Comm comm, MPI_Info info) {
 /// \brief CircuitWriterSYN2::close_files
 ///
 void CircuitWriterSYN2::close_files() {
-    shared_ptr<Column> _null;
-    for(auto & q : column_writer_queues_) {
-        q->blocking_push(_null);
-    }
 
-    // Wait for threads to finish
-    for (thread& t : threads_) {
-        if(t.joinable()) {
-            t.join();
-        }
-    }
     for (h5_ids& outstream : files_) {
         H5Dclose(outstream.ds);
-
         H5Sclose(outstream.dspace);
-
         if(outstream.plist != H5P_DEFAULT) {
             H5Pclose(outstream.plist);
         }
@@ -284,11 +251,11 @@ inline hid_t parquet_types_to_h5(Type::type t) {
 
 // ================================================================================================
 
-void write_data(const h5_ids h5_output, uint64_t& offset,
+void write_data(const h5_ids h5_output, uint64_t offset,
                 const shared_ptr<const Column>& col_data) {
 
-    static thread_local Type::type t_id(col_data->type()->id());
-    static thread_local hid_t t = parquet_types_to_h5(t_id);
+    Type::type t_id(col_data->type()->id());
+    hid_t t = parquet_types_to_h5(t_id);
 
     #ifdef NEURON_LOGGING
     cerr << "Writing data... " <<  col_data->length() << " records." << endl;

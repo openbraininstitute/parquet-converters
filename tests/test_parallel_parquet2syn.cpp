@@ -26,8 +26,27 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     uint64_t global_record_sum;
     MPI_Reduce(&record_count, &global_record_sum, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
 
+
+    uint64_t *offsets;
+    if (mpi_rank == 0) {
+        offsets = new uint64_t[mpi_size+1];
+        offsets[0] = 0;
+    }
+    MPI_Gather(&record_count, 1, MPI_UINT64_T, offsets+1, 1, MPI_UINT64_T, 0, comm);
+    if (mpi_rank == 0) {
+        for(int i=1; i<mpi_size; i++) {
+            offsets[i] += offsets[i-1];
+        }
+    }
+
+    uint64_t offset;
+    MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, comm);
+
+    std::cout << "Process " << mpi_rank << " is gonna write on offset " << offset << std::endl;
+
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), global_record_sum);
     writer.use_mpio();
+    writer.set_output_block_position(mpi_rank, offset, record_count);
 
     Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS);
 
@@ -41,7 +60,7 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
         float global_progress;
         MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
         if(mpi_rank == 0) {
-            p->updateProgress(global_progress, 0);
+            p->updateProgress(global_progress/mpi_size, 0);
         }
 
     };
@@ -49,7 +68,9 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     converter.exportAll();
 
-    std::cout << "\nComplete." << std::endl;
+    if(mpi_rank == 0) {
+        std::cout << "\nComplete." << std::endl;
+    }
 }
 
 
