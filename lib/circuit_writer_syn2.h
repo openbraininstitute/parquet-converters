@@ -19,7 +19,7 @@ namespace circuit {
 typedef ZeroMemQ<arrow::Column> ZeroMemQ_Column;
 
 struct h5_ids {
-    hid_t file, ds, dspace;
+    hid_t file, ds, dspace, plist;
 };
 
 
@@ -42,8 +42,6 @@ public:
 
     void use_mpio(MPI_Comm comm=MPI_COMM_WORLD, MPI_Info info=MPI_INFO_NULL);
 
-    void close_files();
-
     ~CircuitWriterSYN2() {
         close_files();
     }
@@ -58,6 +56,9 @@ private:
 
     ZeroMemQ_Column & get_create_handler_for_column(const std::shared_ptr<arrow::Column> col);
 
+    void close_files();
+
+
     std::vector<std::unique_ptr<ZeroMemQ_Column>> column_writer_queues_;
     std::unordered_map<std::string, int> col_name_to_idx_;
 
@@ -67,9 +68,9 @@ private:
     const std::string destination_dir_;
     const uint64_t total_records_;
     //These entries are mostly useful in parallel writing
-    uint64_t output_part_count_;
+    uint64_t output_part_length_;
     uint64_t output_file_offset_ = 0;
-    int part_id_ = 0;
+    int output_part_id_ = 0;
 
     bool use_mpio_ = false;
     struct {
@@ -82,7 +83,7 @@ private:
 
 // Thread functions
 
-inline void write_data(h5_ids h5_ds, uint64_t& r_offset, const std::shared_ptr<const arrow::Column>& r_col_data, hid_t plist_id);
+inline void write_data(h5_ids h5_ds, uint64_t& r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 

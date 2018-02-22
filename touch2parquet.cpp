@@ -6,6 +6,9 @@
 #include "converter.h"
 #include "progress.h"
 
+using namespace neuron_parquet;
+
+
 enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
 struct Args {
     Args (RunMode mode)

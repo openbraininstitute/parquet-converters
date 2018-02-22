@@ -9,7 +9,7 @@
 #include <mpi.h>
 #include <mpio.h>
 
-
+using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
 
 int mpi_size, mpi_rank;
@@ -29,7 +29,7 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), global_record_sum);
     writer.use_mpio();
 
-    Converter<CircuitData> converter( reader, writer );
+    Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS);
 
     if(mpi_rank==0) {
         ProgressMonitor p;
@@ -37,7 +37,8 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     }
 
     converter.exportAll();
-    writer.close_files();
+
+    std::cout << "\nComplete." << std::endl;
 }
 
 int main(int argc, char* argv[]) {

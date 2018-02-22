@@ -4,6 +4,7 @@
 #include "converter.h"
 #include "progress.h"
 
+using namespace neuron_parquet;
 
 /// By using default buffers it is set
 ///  - 512K entries for converter (loader) (20MB)

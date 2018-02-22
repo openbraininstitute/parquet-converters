@@ -5,7 +5,7 @@
 #include "progress.h"
 #include <iostream>
 
-
+using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
 
 
@@ -13,12 +13,15 @@ void convert_circuit(const std::string & filename)  {
     CircuitReaderParquet reader(filename) ;
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), reader.record_count());
 
-    Converter<CircuitData> converter( reader, writer );
+    Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS );
 
     ProgressMonitor p;
     converter.setProgressHandler(p.getNewHandler());
 
     converter.exportAll();
+
+    p.task_done(0);
+    std::cout << "\nComplete." << std::endl;
 }
 
 int main(int argc, char* argv[]) {

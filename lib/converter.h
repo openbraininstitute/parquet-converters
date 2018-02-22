@@ -5,27 +5,29 @@
 #include "generic_writer.h"
 #include "progress.h"
 
+namespace neuron_parquet {
+
+///
+/// \brief The Format enum
+/// RECORDS: data is passed (between reader and writer) in a buffer (array) of the data type
+/// COLUMNS: data is passed as entire blocks defined by DataType, which shall internally manage the buffer
+///
+enum class ConverterFormat {RECORDS, COLUMNS};
 
 template<typename T>
 class Converter {
 
 public:
-    ///
-    /// \brief The Format enum
-    /// RECORDS: data is passed (between reader and writer) in a buffer (array) of the data type
-    /// COLUMNS: data is passed as entire blocks defined by DataType, which shall internally manage the buffer
-    ///
-    enum class Format {RECORDS, COLUMNS};
 
-    Converter(Reader<T> & reader, Writer<T> & writer, Format dataFormat=Format::RECORDS, uint buffer_len=128*1024)
+    Converter(Reader<T> & reader, Writer<T> & writer, ConverterFormat dataFormat=ConverterFormat::RECORDS, uint buffer_len=128*1024)
     : _reader(reader),
       _writer(writer),
       // With blocks the buffer is virtual, therefore len 1
-      BUFFER_LEN((dataFormat == Format::RECORDS)? buffer_len : 1 )
+      BUFFER_LEN((dataFormat == ConverterFormat::RECORDS)? buffer_len : 1 )
     {
         n_blocks = _reader.block_count();
 
-        if( dataFormat == Format::RECORDS ) {
+        if( dataFormat == ConverterFormat::RECORDS ) {
             // Default: 128K entries (~5MB)
             _buffer = new T[ (n_blocks>BUFFER_LEN)? BUFFER_LEN : n_blocks ];
         }
@@ -86,7 +88,7 @@ public:
 
 
 private:
-    Format mode;
+    ConverterFormat mode;
     Reader<T>& _reader;
     Writer<T>& _writer;
     const unsigned int BUFFER_LEN;
@@ -98,6 +100,6 @@ private:
 
 
 
-
+} //NS
 
 #endif // CONVERTER_H

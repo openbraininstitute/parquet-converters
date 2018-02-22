@@ -5,6 +5,7 @@
 #include <mutex>
 #include <iostream>
 
+
 template <typename T>
 class ZeroMemQ{
 public:
@@ -38,7 +39,9 @@ public:
     inline bool try_push(const std::shared_ptr<T> &col) {
         std::lock_guard<std::mutex> lock(m_);
         if( has_data ) { return false; }
-        std::cerr << "Filling queue " << this_id << std::endl;
+        #ifdef NEURON_DEBUG
+            std::cerr << "Filling queue " << this_id << std::endl;
+        #endif
         // shared_ptr that stays is copied
         column_to_process = col;
         has_data = true;
@@ -66,11 +69,15 @@ public:
     std::shared_ptr<T> blocking_pop() {
         std::shared_ptr<T> col;
         while(!try_pop(col)) {
-            std::cerr << "thread " << this_id << " waiting for data..." << std::endl;
+            #ifdef NEURON_DEBUG
+                std::cerr << "Thread " << this_id << " waiting for data..." << std::endl;
+            #endif
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(10));
         }
-        std::cerr << "thread " << this_id << " POP!" << this_id << std::endl;
+        #ifdef NEURON_DEBUG
+            std::cerr << "Thread " << this_id << " POP!" << std::endl;
+        #endif
         return col;
     }
 
