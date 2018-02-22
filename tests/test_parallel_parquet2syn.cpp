@@ -31,15 +31,27 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS);
 
-    if(mpi_rank==0) {
-        ProgressMonitor p;
-        converter.setProgressHandler(p.getNewHandler());
+    ProgressMonitor* p;
+    if(mpi_rank == 0) {
+        p = new ProgressMonitor();
+        p->getNewHandler();
     }
+
+    auto f = [&p](float progress){
+        float global_progress;
+        MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+        if(mpi_rank == 0) {
+            p->updateProgress(global_progress, 0);
+        }
+
+    };
+    converter.setProgressHandler(f);
 
     converter.exportAll();
 
     std::cout << "\nComplete." << std::endl;
 }
+
 
 int main(int argc, char* argv[]) {
     // Initialize MPI
@@ -49,12 +61,12 @@ int main(int argc, char* argv[]) {
 
     if(argc < 2) {
         if(mpi_rank==0)
-            std::cout << "Please provide at least a file to convert. Multiple files accepted";
+            std::cout << "Please provide at least a file to convert. Multiple files accepted" << endl;
         return -1;
     }
     if (mpi_size != argc-1) {
         if(mpi_rank==0)
-            std::cout << "Please run with one MPI process per file to be converted";
+            std::cout << "Please run with one MPI process per file to be converted" << endl;
         return -2;
     }
 

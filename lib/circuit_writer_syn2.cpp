@@ -51,8 +51,8 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
     //   repeat the cycle
 
     while( cols_to_process.size() >0 ) {
-        //for( int col_i : cols_to_process) {
-            int col_i = 0;
+        for( int col_i : cols_to_process) {
+        //    int col_i = 0;
             auto col = row_group->column(col_i);
             const auto & col_name = col->name();
             Type::type t_id(col->type()->id());
@@ -68,7 +68,7 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
             if( ! q.try_push(col)) {
                 remaining_cols.push_back(col_i);
             }
-        //}
+        }
 
         if( remaining_cols.size() > 0 ) {
             // Avoid sleep if no need
@@ -202,7 +202,9 @@ void CircuitWriterSYN2::close_files() {
     }
     for (h5_ids& outstream : files_) {
         H5Dclose(outstream.ds);
+
         H5Sclose(outstream.dspace);
+
         if(outstream.plist != H5P_DEFAULT) {
             H5Pclose(outstream.plist);
         }
@@ -244,6 +246,7 @@ void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
         #ifdef NEURON_DEBUG
         cout << "\rTerminating writer " << writer_id << "\n" << endl;
         #endif
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     };
 
     thread t(f);
@@ -302,7 +305,7 @@ void write_data(const h5_ids h5_output, uint64_t& offset,
             const hsize_t offset_ = offset;
             const hsize_t buf_len = chunk->length();
 
-            hsize_t memspace = H5Screate_simple(1, &buf_len, NULL);
+            hid_t memspace = H5Screate_simple(1, &buf_len, NULL);
             H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &offset_, NULL, &buf_len, NULL);
 
             H5Dwrite(h5_output.ds, t, memspace, h5_output.dspace, h5_output.plist, buf->data());

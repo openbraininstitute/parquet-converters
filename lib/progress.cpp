@@ -6,8 +6,9 @@
 static const char* const PB_STR = "================================================================================";
 
 
-ProgressMonitor::ProgressMonitor(int n_tasks)
+ProgressMonitor::ProgressMonitor(int n_tasks, bool display_bar)
     : n_tasks(n_tasks),
+      display_bar(display_bar),
       tasks_active(0),
       tasks_done(0)
     {}
@@ -36,22 +37,27 @@ void ProgressMonitor::updateProgress(float progress, int task_i) {
     
     progressV[task_i]=progress;
 
-    if(_progress_mtx.try_lock()) {
+    if(progress_mtx_.try_lock()) {
         float average = std::accumulate(progressV.begin(), progressV.end(), 0.0) / n_tasks;
         if( average > global_progress + 0.0005 ){
             global_progress = average;
-            showProgress();
+            if( display_bar )  {
+                showProgress();
+            }
         }
-        _progress_mtx.unlock();
+        progress_mtx_.unlock();
     }
 }
 
 void ProgressMonitor::task_done(int task_i) {
     tasks_done ++;
     tasks_active --;
-    if(_progress_mtx.try_lock()) {
-        showProgress();
-        _progress_mtx.unlock();
+
+    if(display_bar) {
+        if( progress_mtx_.try_lock() ) {
+            showProgress();
+            progress_mtx_.unlock();
+        }
     }
 }
 
