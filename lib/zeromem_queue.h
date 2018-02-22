@@ -39,6 +39,7 @@ public:
         std::lock_guard<std::mutex> lock(m_);
         if( has_data ) { return false; }
         std::cerr << "Filling queue " << this_id << std::endl;
+        // shared_ptr that stays is copied
         column_to_process = col;
         has_data = true;
         return true;
@@ -56,7 +57,7 @@ public:
     inline bool try_pop(std::shared_ptr<T> &col) {
         std::lock_guard<std::mutex> lock(m_);
         if( ! has_data ) { return false; }
-        // queue shared_ptr can be pilfered
+        // queue shared_ptr no longer needed, can be pilfered
         col = std::move(column_to_process);
         has_data = false;
         return true;
@@ -84,6 +85,7 @@ public:
 
 private:
     int this_id;
+    // designated has_data var since a null shared_ptr must be able to go throught the queue
     bool has_data;
     std::shared_ptr<T> column_to_process;
     std::mutex m_;
