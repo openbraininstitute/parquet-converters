@@ -20,11 +20,18 @@ MPI_Info info  = MPI_INFO_NULL;
 void convert_circuit(const std::vector<std::string>& filenames)  {
 
     // Each reader and each writer in a separate MPI process
+
     CircuitReaderParquet reader(filenames[mpi_rank]);
+
+    // Count the records and
+    // 1. Sum
+    // 2. Calculate offsets
+
     uint64_t record_count = reader.record_count();
 
     uint64_t global_record_sum;
-    MPI_Reduce(&record_count, &global_record_sum, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    MPI_Allreduce(&record_count, &global_record_sum, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 
 
     uint64_t *offsets;
@@ -32,7 +39,7 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
         offsets = new uint64_t[mpi_size+1];
         offsets[0] = 0;
     }
-    MPI_Gather(&record_count, 1, MPI_UINT64_T, offsets+1, 1, MPI_UINT64_T, 0, comm);
+    MPI_Gather(&record_count, 1, MPI_UINT64_T, offsets+1, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
     if (mpi_rank == 0) {
         for(int i=1; i<mpi_size; i++) {
             offsets[i] += offsets[i-1];
@@ -40,22 +47,30 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     }
 
     uint64_t offset;
-    MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, comm);
+    MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
     std::cout << "Process " << mpi_rank << " is gonna write on offset " << offset << std::endl;
+
+
+    // Create writer
 
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), global_record_sum);
     writer.use_mpio();
     writer.set_output_block_position(mpi_rank, offset, record_count);
 
+
+    //Create converter and progress monitor
+
     Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS);
 
-    ProgressMonitor* p;
+    std::unique_ptr<ProgressMonitor> p;
+
     if(mpi_rank == 0) {
-        p = new ProgressMonitor();
-        p->getNewHandler();
+        p.reset(new ProgressMonitor());
     }
 
+    // Progress handlers for worker nodes are just a function that participate in the MPI reduce
+    // This has the additional eventually desirable effect of syncronizing block writes
     auto f = [&p](float progress){
         float global_progress;
         MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -71,6 +86,9 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     if(mpi_rank == 0) {
         std::cout << "\nComplete." << std::endl;
     }
+
+    // Sync before destroying readers, writers
+    MPI_Barrier(comm);
 }
 
 

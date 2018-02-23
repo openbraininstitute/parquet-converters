@@ -32,9 +32,10 @@ private:
     std::atomic_int tasks_done;
 
     std::vector<float> progressV;
-    float global_progress = .0;
+    float global_progress;
 
     std::mutex progress_mtx_;
+    std::mutex handler_mtx_;
 
 };
 

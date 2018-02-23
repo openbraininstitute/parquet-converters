@@ -10,7 +10,9 @@ ProgressMonitor::ProgressMonitor(int n_tasks, bool display_bar)
     : n_tasks(n_tasks),
       display_bar(display_bar),
       tasks_active(0),
-      tasks_done(0)
+      tasks_done(0),
+      progressV(n_tasks),
+      global_progress(.0)
     {}
 
 void ProgressMonitor::showProgress() {
@@ -62,7 +64,11 @@ void ProgressMonitor::task_done(int task_i) {
 }
 
 std::function<void(float)> ProgressMonitor::getNewHandler(){
-    int idx = progressV.size();
-    progressV.push_back(.0);
+    std::lock_guard<std::mutex> l(handler_mtx_);
+    static uint n_handler = 0;
+    uint idx = n_handler++;
+    if(idx >= progressV.size()) {
+        progressV.push_back(.0);
+    }
     return [this, idx](float progress){ this->updateProgress(progress, idx); };
 }
