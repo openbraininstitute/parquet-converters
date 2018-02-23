@@ -13,14 +13,15 @@ void convert_circuit(const std::string & filename)  {
     CircuitReaderParquet reader(filename) ;
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), reader.record_count());
 
-    Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS );
+    Converter<CircuitData> converter( reader, writer );
 
-    ProgressMonitor p;
+    ProgressMonitor p(reader.block_count());
     converter.setProgressHandler(p.getNewHandler());
 
+    p.task_start();
     converter.exportAll();
+    p.task_done();
 
-    p.task_done(0);
     std::cout << "\nComplete." << std::endl;
 }
 

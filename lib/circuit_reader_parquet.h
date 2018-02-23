@@ -18,16 +18,22 @@ public:
     CircuitReaderParquet(const string & filename);
     ~CircuitReaderParquet();
 
-    virtual uint fillBuffer(CircuitData* buf, uint length) override;
+    virtual uint32_t fillBuffer(CircuitData* buf, uint length) override;
 
-    virtual uint block_count() override {
+    uint64_t record_count() const {
+        return record_count_;
+    }
+
+    virtual uint32_t block_count() const override {
         return rowgroup_count_;
     }
 
-    virtual inline void seek(uint pos) override;
+    virtual inline void seek(uint64_t pos) override {
+        cur_row_group_ = pos;
+    }
 
-    size_t record_count() const {
-        return record_count_;
+    bool is_chunked() const {
+        return true;
     }
 
 private:
@@ -38,10 +44,10 @@ private:
     shared_ptr<parquet::FileMetaData> parquet_metadata_;
     parquet::arrow::FileReader data_reader_;
 
-    const int column_count_;
-    const int rowgroup_count_;
-    const size_t record_count_;
-    uint cur_row_group_;
+    const uint32_t column_count_;
+    const uint32_t rowgroup_count_;
+    const uint64_t record_count_;
+    uint32_t cur_row_group_;
 
 };
 

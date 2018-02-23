@@ -3,47 +3,39 @@
 #include <numeric>
 
 
-static const char* const PB_STR = "================================================================================";
+static const char* const PB_STR = "======================================================================";
 
 
-ProgressMonitor::ProgressMonitor(int n_tasks, bool display_bar)
-    : n_tasks(n_tasks),
-      display_bar(display_bar),
-      tasks_active(0),
-      tasks_done(0),
-      progressV(n_tasks),
-      global_progress(.0)
+ProgressMonitor::ProgressMonitor(size_t n_blocks, int n_handlers, bool display_bar)
+    : n_blocks_(n_blocks),
+      n_handlers_(n_handlers),
+      display_bar_(display_bar),
+      tasks_active_(0),
+      blocks_done_(0),
+      global_progress_(.0)
     {}
 
 void ProgressMonitor::showProgress() {
     static const int PB_LEN = strlen(PB_STR);
-    int bar_len = (int) (global_progress * PB_LEN);
+    int bar_len = (int) (global_progress_ * PB_LEN);
     int rpad = PB_LEN - bar_len;
     fprintf(stderr, "\r[%5.1f%%|%.*s>%*s] (%d + %d / %d)",
-            global_progress*100, bar_len, PB_STR, rpad, "", tasks_done.load(), tasks_active.load(), n_tasks);
+            global_progress_*100, bar_len, PB_STR, rpad, "", blocks_done_.load(), tasks_active_.load(), n_blocks_);
 }
 
-void ProgressMonitor::updateProgress(float progress, int task_i) {
+void ProgressMonitor::updateProgress(int blocks_done_inc) {
 
-    if( progress-progressV[task_i] < 0.001 ) {
-        return;
-    }
-    
-    if (progressV[task_i] < 0.00001) {
-        tasks_active ++;
-    }
+    blocks_done_ += blocks_done_inc;
 
-    // If a thread made some visible progress he is elegible for recalculating the global average
+    // After update the thread is elegible for recalculating the global average
     // which might update the visual representation
     // If another thread is already doing so we skip
-    
-    progressV[task_i]=progress;
 
     if(progress_mtx_.try_lock()) {
-        float average = std::accumulate(progressV.begin(), progressV.end(), 0.0) / n_tasks;
-        if( average > global_progress + 0.0005 ){
-            global_progress = average;
-            if( display_bar )  {
+        float average = (float)blocks_done_ / n_blocks_;
+        if( average > global_progress_ + 0.0005 ){
+            global_progress_ = average;
+            if( display_bar_ )  {
                 showProgress();
             }
         }
@@ -51,11 +43,14 @@ void ProgressMonitor::updateProgress(float progress, int task_i) {
     }
 }
 
-void ProgressMonitor::task_done(int task_i) {
-    tasks_done ++;
-    tasks_active --;
 
-    if(display_bar) {
+void ProgressMonitor::task_start(int count) {
+    task_done(-count);
+}
+void ProgressMonitor::task_done(int count) {
+    tasks_active_ -= count;
+
+    if(display_bar_) {
         if( progress_mtx_.try_lock() ) {
             showProgress();
             progress_mtx_.unlock();
@@ -63,12 +58,8 @@ void ProgressMonitor::task_done(int task_i) {
     }
 }
 
-std::function<void(float)> ProgressMonitor::getNewHandler(){
-    std::lock_guard<std::mutex> l(handler_mtx_);
-    static uint n_handler = 0;
-    uint idx = n_handler++;
-    if(idx >= progressV.size()) {
-        progressV.push_back(.0);
-    }
-    return [this, idx](float progress){ this->updateProgress(progress, idx); };
+std::function<void(int)> ProgressMonitor::getNewHandler(){
+    return [this](int blocks_done){
+        this->updateProgress(blocks_done);
+    };
 }

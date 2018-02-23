@@ -23,32 +23,44 @@ public:
     Touch & begin();
     Touch & end();
     Touch & getNext();
-    Touch & getItem( uint index );
+    Touch & getItem( uint32_t index );
 
-    virtual uint block_count() override {
-        return _record_count;
+    virtual uint32_t block_count() const override {
+        uint64_t n_blocks = record_count_ / BUFFER_LEN;
+        if(record_count_ % BUFFER_LEN > 0) {
+            n_blocks ++;
+        }
+        return n_blocks;
     }
 
-    virtual inline void seek(uint pos) override;
+    virtual uint64_t record_count() const override {
+        return record_count_;
+    }
 
-    virtual uint fillBuffer(Touch* buf, uint length) override;
+    virtual inline void seek(uint64_t pos) override;
 
-    static const uint BUFFER_LEN = 256;
+    virtual uint32_t fillBuffer(Touch* buf, uint32_t length) override;
+
+    virtual bool is_chunked() const override {
+        return false;
+    }
+
+    static const uint32_t BUFFER_LEN = 256;
 
 private:
     void _fillBuffer();
     void _load_into( Touch* buf, int length );
 
     // File
-    std::ifstream _touchFile;
-    unsigned long _record_count;
-    bool _endian_swap=false;
+    std::ifstream touchFile_;
+    uint64_t record_count_;
+    bool endian_swap_=false;
 
     // Internal Buffer: to be used for iteration
-    Touch _buffer[BUFFER_LEN];
-    unsigned long _offset;
-    uint _it_buf_index;  // Offset relative to buffer
-    uint _buffer_record_count;
+    Touch buffer_[BUFFER_LEN];
+    uint64_t offset_;
+    uint32_t it_buf_index_;  // Offset relative to buffer
+    uint32_t buffer_record_count_;
 
 };
 

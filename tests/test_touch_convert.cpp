@@ -17,13 +17,18 @@ void convert_touches(char* filename)  {
 
     Converter<Touch> converter( reader, writer );
 
-    ProgressMonitor p;
+    ProgressMonitor p(converter.n_blocks());
     converter.setProgressHandler(p.getNewHandler());
 
+    p.task_start();
     converter.exportAll();
+
+    p.task_done();
+    std::cout << "\nDone." << std::endl;
 }
 
 int main(int argc, char* argv[]) {
+    (void)argc;
     convert_touches(argv[1]);
     return 0;
 }

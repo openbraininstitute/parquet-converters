@@ -28,10 +28,13 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
     // 2. Calculate offsets
 
     uint64_t record_count = reader.record_count();
-
     uint64_t global_record_sum;
-
     MPI_Allreduce(&record_count, &global_record_sum, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+
+    uint32_t block_count = reader.block_count();
+    uint32_t global_block_sum;
+    MPI_Allreduce(&block_count, &global_block_sum, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+
 
 
     uint64_t *offsets;
@@ -61,12 +64,12 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     //Create converter and progress monitor
 
-    Converter<CircuitData> converter( reader, writer, ConverterFormat::COLUMNS);
+    Converter<CircuitData> converter( reader, writer );
 
     std::unique_ptr<ProgressMonitor> p;
 
     if(mpi_rank == 0) {
-        p.reset(new ProgressMonitor());
+        p.reset(new ProgressMonitor(reader.block_count()));
     }
 
     // Progress handlers for worker nodes are just a function that participate in the MPI reduce
@@ -75,7 +78,7 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
         float global_progress;
         MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
         if(mpi_rank == 0) {
-            p->updateProgress(global_progress/mpi_size, 0);
+            p->updateProgress(1);
         }
 
     };

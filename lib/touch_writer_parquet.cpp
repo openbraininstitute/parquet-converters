@@ -53,10 +53,10 @@ TouchWriterParquet::TouchWriterParquet(const string filename)
     prop_builder.compression(Compression::SNAPPY);
     prop_builder.disable_dictionary();
     
-
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
 
-    // Allocate contiguou buffer and get direct pointers
+    // Allocate contiguous buffers for FULL output and TRANSPOSED block
+    // Too big to put in stack
     _buffer.reset(new BUF_T<BUFFER_LEN>());
     _tbuffer.reset(new BUF_T<TRANSPOSE_LEN>());
 }

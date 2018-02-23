@@ -22,27 +22,12 @@ CircuitReaderParquet::~CircuitReaderParquet(){
 }
 
 
-uint CircuitReaderParquet::fillBuffer(CircuitData* buf, uint length) {
+uint32_t CircuitReaderParquet::fillBuffer(CircuitData* buf, uint32_t length) {
     // We are using parquet::arrow::reader to recreate the data
     // parquet::reader is a low-level reader not handling automatically repetition levels, etc...
 
-//    for(int i; i<_column_count; i++) {
-//        char * buffer = new t;
-//        int64_t total_rows_read=0, single_read_rows;
-//        col_reader = row_group_reader->Column(i);
-//        while (col_reader->HasNext()) {
-//            col_reader->ReadBatch(num_rows, nullptr, nullptr, buffer, &single_read_rows);
-//            buffer += single_read_rows;
-//            total_rows_read += single_read_rows;
-//        }
-//    }
     data_reader_.ReadRowGroup(cur_row_group_++, &(buf->row_group));
-    return (uint) buf->row_group->num_rows();
-}
-
-
-void CircuitReaderParquet::seek(uint pos) {
-    cur_row_group_ = pos;
+    return (uint32_t) buf->row_group->num_rows();
 }
 
 

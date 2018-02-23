@@ -12,7 +12,8 @@ using namespace neuron_parquet;
 enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
 struct Args {
     Args (RunMode mode)
-        : mode(mode) {}
+    : mode(mode)
+    {}
     RunMode mode;
     int convert_limit = 0;
     int n_opts = 0;
@@ -92,7 +93,7 @@ int main( int argc, char* argv[] ) {
             else {
                 converter.exportAll();
             }
-            progress.task_done(i-args.n_opts);
+            progress.task_done();
         }
         catch (const std::exception& e){
             printf("\n[ERROR] Could not create output file.\n -> %s", e.what());

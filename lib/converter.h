@@ -4,98 +4,108 @@
 #include "generic_reader.h"
 #include "generic_writer.h"
 #include "progress.h"
+#include <iostream>
 
 namespace neuron_parquet {
 
-///
-/// \brief The Format enum
-/// RECORDS: data is passed (between reader and writer) in a buffer (array) of the data type
-/// COLUMNS: data is passed as entire blocks defined by DataType, which shall internally manage the buffer
-///
-enum class ConverterFormat {RECORDS, COLUMNS};
+
 
 template<typename T>
 class Converter {
 
 public:
+    ///
+    /// \brief The Format enum
+    /// RECORDS: data is passed (between reader and writer) in a buffer (array) of the data type
+    /// CHUNKS: data is passed as entire blocks defined by DataType, which shall internally manage the buffer
+    ///
+    enum class ConverterFormat {RECORDS, CHUNKS};
 
-    Converter(Reader<T> & reader, Writer<T> & writer, ConverterFormat dataFormat=ConverterFormat::RECORDS, uint buffer_len=128*1024)
-    : _reader(reader),
-      _writer(writer),
-      // With blocks the buffer is virtual, therefore len 1
-      BUFFER_LEN((dataFormat == ConverterFormat::RECORDS)? buffer_len : 1 )
+
+    Converter(Reader<T> & reader, Writer<T> & writer, uint32_t buffer_len=128*1024)
+    : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
+      reader_(reader),
+      writer_(writer),
+      n_records_(reader_.record_count())
     {
-        n_blocks = _reader.block_count();
-
-        if( dataFormat == ConverterFormat::RECORDS ) {
-            // Default: 128K entries (~5MB)
-            _buffer = new T[ (n_blocks>BUFFER_LEN)? BUFFER_LEN : n_blocks ];
+        if( reader_.is_chunked() ) {
+            // Buffer is a single chunk
+            buffer_ = new T();
+            n_blocks_ = reader_.block_count();
         }
         else {
-            // we better handle it directly as single object
-            _buffer = new T();
+            // Create a buffe of records. Default: 128K entries (~5MB)
+            buffer_ = new T[ (n_records_>BUFFER_LEN)? BUFFER_LEN : n_records_ ];
+            n_blocks_ = n_records_ / BUFFER_LEN;
+            if(n_records_ % BUFFER_LEN > 0) {
+                n_blocks_++;
+            }
         }
     }
 
 
-    int exportN(unsigned n) {
 
-        if( n > n_blocks ) {
-            n = n_blocks;
-            printf("Warning: Requested export blocks more than available.\n");
+    int exportN(uint64_t n) {
+        if( n > n_records_ ) {
+            n = n_records_;
+            std::cerr << "Warning: Requested export blocks more than available. Setting to max available." << std::endl;
         }
+        reader_.seek(0);
 
         int n_buffers = n / BUFFER_LEN;
-        float progress = .0;
-        float progress_inc;
-        if( n_buffers > 0 ) {
-            progress_inc = 1.0 / (float)n_buffers;
-        }
-
-        _reader.seek(0);
+        int remaining = n % BUFFER_LEN;
 
         for(int i=0; i<n_buffers; i++) {
-            _reader.fillBuffer( _buffer, BUFFER_LEN );
-            _writer.write( _buffer, BUFFER_LEN );
+            reader_.fillBuffer( buffer_, BUFFER_LEN );
+            writer_.write( buffer_, BUFFER_LEN );
 
-            progress +=progress_inc;
-            if( progress_handler ) {
-                progress_handler(progress);
+            if( progress_handler_ ) {
+                progress_handler_(1);
             }
         }
-
-        // Remaining records, smaller than a buffer
-        int remaining = n % BUFFER_LEN;
-        _reader.fillBuffer( _buffer, remaining );
-        _writer.write( _buffer, remaining );
-
-        if( progress_handler ) {
-            progress_handler(1.0);
+        if( remaining > 0) {
+            reader_.fillBuffer( buffer_, remaining );
+            writer_.write( buffer_, remaining );
+            progress_handler_(1);
         }
 
         return n;
     }
 
+
     int exportAll() {
-        exportN(n_blocks);
-        return n_blocks;
+        reader_.seek(0);
+        for(int i=0; i<n_blocks_; i++) {
+            size_t n = reader_.fillBuffer( buffer_, BUFFER_LEN );
+            writer_.write( buffer_, n );
+
+            if( progress_handler_ ) {
+                progress_handler_(1);
+            }
+        }
+        return reader_.record_count();
     }
 
 
-    void setProgressHandler(std::function<void(float)> func) {
-        progress_handler = func;
+    void setProgressHandler(const std::function<void(int)>& func) {
+        progress_handler_ = func;
     }
 
+    uint32_t n_blocks() const {
+        return n_blocks_;
+    }
+
+    const uint32_t BUFFER_LEN;
 
 private:
-    ConverterFormat mode;
-    Reader<T>& _reader;
-    Writer<T>& _writer;
-    const unsigned int BUFFER_LEN;
-    T* _buffer;
+    ConverterFormat mode_;
+    Reader<T>& reader_;
+    Writer<T>& writer_;
+    T* buffer_;
 
-    std::function<void(float)> progress_handler;
-    unsigned n_blocks;
+    std::function<void(int)> progress_handler_;
+    const uint64_t n_records_;
+    uint32_t n_blocks_;
 };
 
 
