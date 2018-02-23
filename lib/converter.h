@@ -21,8 +21,11 @@ public:
     ///
     enum class ConverterFormat {RECORDS, CHUNKS};
 
+    // Default: 128K entries (~5MB)
+    static const uint32_t DEFAULT_BUFFER_LEN = 128*1024;
 
-    Converter(Reader<T> & reader, Writer<T> & writer, uint32_t buffer_len=128*1024)
+
+    Converter(Reader<T> & reader, Writer<T> & writer, uint32_t buffer_len=DEFAULT_BUFFER_LEN)
     : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
       reader_(reader),
       writer_(writer),
@@ -34,7 +37,7 @@ public:
             n_blocks_ = reader_.block_count();
         }
         else {
-            // Create a buffe of records. Default: 128K entries (~5MB)
+            // Create a buffe of records.
             buffer_ = new T[ (n_records_>BUFFER_LEN)? BUFFER_LEN : n_records_ ];
             n_blocks_ = n_records_ / BUFFER_LEN;
             if(n_records_ % BUFFER_LEN > 0) {
@@ -93,6 +96,15 @@ public:
 
     uint32_t n_blocks() const {
         return n_blocks_;
+    }
+
+    ///
+    /// \brief number_of_buffers Calculates the number of record buffers from the filesize, buffer len and record type
+    ///        NOTE: This function only makes sense for record buffers, not data chunks
+    ///
+    static uint32_t number_of_buffers(uint64_t filesize, uint32_t bufferlen=DEFAULT_BUFFER_LEN) {
+        uint32_t buffer_size = bufferlen * sizeof(T);
+        return filesize / buffer_size + ((filesize%buffer_size > 0)? 1 : 0);
     }
 
     const uint32_t BUFFER_LEN;

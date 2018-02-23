@@ -8,11 +8,13 @@
 
 using namespace neuron_parquet;
 
+typedef Converter<Touch> TouchConverter;
+
 
 enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
 struct Args {
-    Args (RunMode mode)
-    : mode(mode)
+    Args (RunMode runmode)
+    : mode(runmode)
     {}
     RunMode mode;
     int convert_limit = 0;
@@ -67,13 +69,23 @@ Args process_args(int argc, char* argv[]) {
 }
 
 
+
 int main( int argc, char* argv[] ) {
     Args args = process_args(argc, argv);
     if( args.mode < RunMode::STANDARD ) {
         return static_cast<int>(args.mode);
     }
 
-    ProgressMonitor progress(argc-args.n_opts);
+    int first_file = args.n_opts;
+    int number_of_files = argc - first_file;
+
+    // Know the total number of buffers to be processed
+    std::ifstream f1(argv[first_file], std::ios::binary | std::ios::ate);
+    uint32_t blocks = TouchConverter::number_of_buffers(f1.tellg());
+    f1.close();
+
+    // Craete the progres monitor with an estimate on the number of blocks
+    ProgressMonitor progress(number_of_files * blocks);
 
     #pragma omp parallel for
     for( int i=args.n_opts; i<argc; i++) {
@@ -86,8 +98,9 @@ int main( int argc, char* argv[] ) {
 
         try {
             TouchWriterParquet tw(parquetFilename);
-            Converter<Touch> converter(tr, tw);
+            TouchConverter converter(tr, tw);
             converter.setProgressHandler(progress.getNewHandler());
+            progress.task_start();
             if( args.convert_limit > 0 )
                 converter.exportN((unsigned) args.convert_limit);
             else {

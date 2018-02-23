@@ -9,7 +9,7 @@
 /// A thread-safe ProgressBar
 class ProgressMonitor {
 public:
-    ProgressMonitor(size_t n_blocks, int n_handlers=1, bool display_bar=true);
+    ProgressMonitor(size_t n_blocks, bool display_bar=true);
 
     inline void showProgress();
 

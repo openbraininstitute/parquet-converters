@@ -6,9 +6,8 @@
 static const char* const PB_STR = "======================================================================";
 
 
-ProgressMonitor::ProgressMonitor(size_t n_blocks, int n_handlers, bool display_bar)
+ProgressMonitor::ProgressMonitor(size_t n_blocks, bool display_bar)
     : n_blocks_(n_blocks),
-      n_handlers_(n_handlers),
       display_bar_(display_bar),
       tasks_active_(0),
       blocks_done_(0),
