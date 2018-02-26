@@ -12,8 +12,6 @@ using namespace arrow;
 using namespace std;
 
 
-#define DATASETS_REL_DIR "_datasets"
-
 
 CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_dir, uint64_t n_records)
     : destination_dir_(destination_dir),
@@ -22,7 +20,7 @@ CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_dir, uint64_t n_
       output_file_offset_(0),
       output_part_id_(0)
 {
-    string create_dirs = string("mkdir -p ") + destination_dir + "/" + DATASETS_REL_DIR;
+    string create_dirs = string("mkdir -p ") + destination_dir;
     system(create_dirs.c_str());
 }
 
@@ -88,7 +86,7 @@ void CircuitWriterSYN2::set_output_block_position(int part_id, uint64_t offset, 
 /// \brief CircuitWriterSYN2::init_h5file
 ///
 h5_ids CircuitWriterSYN2::init_h5file(const string & filepath, shared_ptr<arrow::Column> column) {
-    string destination = destination_dir_ + "/" + DATASETS_REL_DIR + "/" + filepath;
+    string destination = destination_dir_ + "/" + filepath;
     hsize_t dims[1] = { total_records_ };
 
 
@@ -161,7 +159,8 @@ void CircuitWriterSYN2::close_files() {
 
 
 std::vector<std::string> CircuitWriterSYN2::dataset_names() const {
-    std::vector<std::string> cols(col_name_to_idx_.size());
+    std::vector<std::string> cols;
+    cols.reserve(col_name_to_idx_.size());
     for(auto& map_entry : col_name_to_idx_) {
         cols.push_back(map_entry.first);
     }

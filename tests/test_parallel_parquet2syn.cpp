@@ -6,26 +6,30 @@
 #include "syn2_util.h"
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 #include <mpi.h>
 #include <mpio.h>
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
+using std::string;
 
 int mpi_size, mpi_rank;
 MPI_Comm comm  = MPI_COMM_WORLD;
 MPI_Info info  = MPI_INFO_NULL;
 
 
-static const std::string output_dir("circuit_syn2");
+
+static const string output_dir ("circuit_syn2");
+static const string raw_datasets_dir ("_datasets");
 
 
 ///
 /// \brief convert_circuit: Converts parquet files into HDF5 datasets compatible with SYN2
 ///
-std::vector<std::string>
-convert_circuit(const std::vector<std::string>& filenames)  {
+std::vector<string>
+convert_circuit(const std::vector<string>& filenames)  {
 
     // Each reader and each writer in a separate MPI process
 
@@ -65,7 +69,7 @@ convert_circuit(const std::vector<std::string>& filenames)  {
 
     // Create writer
 
-    CircuitWriterSYN2 writer(output_dir, global_record_sum);
+    CircuitWriterSYN2 writer(output_dir + "/" + raw_datasets_dir, global_record_sum);
     writer.use_mpio();
     writer.set_output_block_position(mpi_rank, offset, record_count);
 
@@ -103,12 +107,23 @@ convert_circuit(const std::vector<std::string>& filenames)  {
 
 
 
-void create_syn2_container(const std::vector<std::string>& dataset_names) {
+void create_syn2_container(const std::vector<string>& dataset_names) {
     if(mpi_rank > 0) { return; }
 
-    Syn2CircuitHdf5 syn2circuit(output_dir);
+    std::unordered_map<string, string> mapping {
+        { string("pre_neuron_id"),  string("connected_neurons_pre")  },
+        { string("post_neuron_id"), string("connected_neurons_post") },
+    };
+
+
+    Syn2CircuitHdf5 syn2circuit(output_dir + "/circuit.syn2");
     for(const auto& ds_name : dataset_names) {
-        syn2circuit.link_existing_dataset(output_dir + "/" + ds_name + ".h5", ds_name);
+        if(mapping.count(ds_name)>0) {
+            syn2circuit.link_existing_dataset(raw_datasets_dir + "/" + ds_name + ".h5", ds_name, mapping[ds_name]);
+        }
+        else {
+            syn2circuit.link_existing_dataset(raw_datasets_dir + "/" + ds_name + ".h5", ds_name);
+        }
     }
 
 }
@@ -132,23 +147,22 @@ int main(int argc, char* argv[]) {
         return -2;
     }
 
-    std::vector<std::string> filenames(argc-1);
+    std::vector<string> filenames(argc-1);
     for(int i=1; i<argc; i++) {
-        filenames[i-1] = std::string(argv[i]);
+        filenames[i-1] = string(argv[i]);
     }
 
     // Bulk conversion with MPI
-    std::vector<std::string> ds_names =
+    std::vector<string> ds_names =
         convert_circuit(filenames);
-
-    MPI_Finalize();
 
     if(mpi_rank == 0) {
         std::cout << "\nData copy complete. Building SYN2 archive..." << std::endl;
         create_syn2_container(ds_names);
+        std::cout << "Conversion finished." << std::endl;
     }
 
-    std::cout << "Conversion finished." << std::endl;
+    MPI_Finalize();
 
     return 0;
 }
