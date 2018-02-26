@@ -85,36 +85,6 @@ void CircuitWriterSYN2::set_output_block_position(int part_id, uint64_t offset, 
 
 // ================================================================================================
 ///
-/// \brief CircuitWriterSYN2::create_handler_for_column Initializes output file and writing thread for a single column
-///
-ZeroMemQ_Column & CircuitWriterSYN2::get_create_handler_for_column(const shared_ptr<Column> col) {
-    int idx;
-    const string col_name(col->name());
-
-    if( col_name_to_idx_.count(col_name) > 0) {
-        idx = col_name_to_idx_[col_name];
-        return *column_writer_queues_[idx];
-    }
-
-    #ifdef NEURON_LOGGING
-        cerr << "Creating new column and thread for " << col_name << endl;
-    #endif
-    idx = column_writer_queues_.size();
-    col_name_to_idx_[col_name] = idx;
-
-    h5_ids h5_file = init_h5file(col_name + ".h5", col);
-    std::unique_ptr<ZeroMemQ_Column> queue(new ZeroMemQ_Column(idx));
-
-    column_writer_queues_.push_back(std::move(queue)); // move the unique_ptr
-    ZeroMemQ_Column & q = *column_writer_queues_.back();
-    create_thread_process_data(h5_file, q);
-
-    return q;
-}
-
-
-// ================================================================================================
-///
 /// \brief CircuitWriterSYN2::init_h5file
 ///
 h5_ids CircuitWriterSYN2::init_h5file(const string & filepath, shared_ptr<arrow::Column> column) {
@@ -174,6 +144,8 @@ void CircuitWriterSYN2::use_mpio(MPI_Comm comm, MPI_Info info) {
 /// \brief CircuitWriterSYN2::close_files
 ///
 void CircuitWriterSYN2::close_files() {
+    static bool files_closed = false;
+    if(files_closed) {return;}
 
     for (h5_ids& outstream : files_) {
         H5Dclose(outstream.ds);
@@ -183,16 +155,56 @@ void CircuitWriterSYN2::close_files() {
         }
         H5Fclose(outstream.file);
     }
+    files_closed = true;
 }
 
 
 
-// ================================================================================================
+std::vector<std::string> CircuitWriterSYN2::dataset_names() const {
+    std::vector<std::string> cols(col_name_to_idx_.size());
+    for(auto& map_entry : col_name_to_idx_) {
+        cols.push_back(map_entry.first);
+    }
+    return cols;
+}
+
+
+/// ------------------------------------------------------------------------------------
+/// These routines are deprected since hdf5 is not thread-safe
+/// ------------------------------------------------------------------------------------
+#ifdef SYN2_USE_THREADS
+///
+/// \brief CircuitWriterSYN2::create_handler_for_column Initializes output file and writing thread for a single column
+///
+ZeroMemQ_Column & CircuitWriterSYN2::get_create_handler_for_column(const shared_ptr<Column> col) {
+    int idx;
+    const string col_name(col->name());
+
+    if( col_name_to_idx_.count(col_name) > 0) {
+        idx = col_name_to_idx_[col_name];
+        return *column_writer_queues_[idx];
+    }
+
+    #ifdef NEURON_LOGGING
+        cerr << "Creating new column and thread for " << col_name << endl;
+    #endif
+    idx = column_writer_queues_.size();
+    col_name_to_idx_[col_name] = idx;
+
+    h5_ids h5_file = init_h5file(col_name + ".h5", col);
+    std::unique_ptr<ZeroMemQ_Column> queue(new ZeroMemQ_Column(idx));
+
+    column_writer_queues_.push_back(std::move(queue)); // move the unique_ptr
+    ZeroMemQ_Column & q = *column_writer_queues_.back();
+    create_thread_process_data(h5_file, q);
+
+    return q;
+}
+
+
 /// --------------------------
 /// The THREAD to process data
 /// --------------------------
-/// This process is deprected since it is incompatile with hdf5 without incurring a lot of locking
-
 void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
                                                    ZeroMemQ_Column & q) {
     static int writer_count = 0;
@@ -226,7 +238,7 @@ void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
     thread t(f);
     threads_.push_back(std::move(t));
 }
-
+#endif
 
 // ================================================================================================
 

@@ -10,12 +10,11 @@
 namespace neuron_parquet {
 namespace circuit {
 
-using namespace std;
 
 class CircuitReaderParquet : public Reader<CircuitData>
 {
 public:
-    CircuitReaderParquet(const string & filename);
+    CircuitReaderParquet(const std::string & filename);
     ~CircuitReaderParquet();
 
     virtual uint32_t fillBuffer(CircuitData* buf, uint length) override;
@@ -40,8 +39,8 @@ private:
 
 
     // Variables
-    unique_ptr<parquet::ParquetFileReader> reader_;
-    shared_ptr<parquet::FileMetaData> parquet_metadata_;
+    std::unique_ptr<parquet::ParquetFileReader> reader_;
+    std::shared_ptr<parquet::FileMetaData> parquet_metadata_;
     parquet::arrow::FileReader data_reader_;
 
     const uint32_t column_count_;

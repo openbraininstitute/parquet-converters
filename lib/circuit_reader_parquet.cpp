@@ -4,7 +4,7 @@
 namespace neuron_parquet {
 namespace circuit {
 
-CircuitReaderParquet::CircuitReaderParquet(const string & filename)
+CircuitReaderParquet::CircuitReaderParquet(const std::string & filename)
   :
     reader_(parquet::ParquetFileReader::OpenFile(filename, false)),
     parquet_metadata_(reader_->metadata()),
@@ -14,11 +14,9 @@ CircuitReaderParquet::CircuitReaderParquet(const string & filename)
     rowgroup_count_(parquet_metadata_->num_row_groups()),
     record_count_(parquet_metadata_->num_rows()),
     cur_row_group_(0)
-{
-}
+{ }
 
 CircuitReaderParquet::~CircuitReaderParquet(){
-
 }
 
 

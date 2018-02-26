@@ -6,6 +6,7 @@
 #include <functional>
 #include <atomic>
 
+
 /// A thread-safe ProgressBar
 class ProgressMonitor {
 public:

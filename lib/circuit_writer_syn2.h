@@ -4,7 +4,6 @@
 
 #include "generic_writer.h"
 #include "circuit_defs.h"
-#include "zeromem_queue.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -15,8 +14,6 @@
 namespace neuron_parquet {
 namespace circuit {
 
-
-typedef ZeroMemQ<arrow::Column> ZeroMemQ_Column;
 
 struct h5_ids {
     hid_t file, ds, dspace, plist;
@@ -37,10 +34,11 @@ public:
 
     void set_output_block_position(int part_id, uint64_t offset, uint64_t part_length);
 
-//    /// If not initialized called automatically on first write. If mpio is to be enables call use_mpio beforehand
-//    void create_files_and_handles(const shared_ptr<Table> data);
-
     void use_mpio(MPI_Comm comm=MPI_COMM_WORLD, MPI_Info info=MPI_INFO_NULL);
+
+    std::vector<std::string> dataset_names() const;
+
+    void close_files();
 
     ~CircuitWriterSYN2() {
         close_files();
@@ -52,19 +50,11 @@ private:
 
     h5_ids init_h5file(const std::string & filename, std::shared_ptr<arrow::Column> column);
 
-    void create_thread_process_data(h5_ids h5_output, ZeroMemQ_Column & queue);
-
-    ZeroMemQ_Column & get_create_handler_for_column(const std::shared_ptr<arrow::Column> col);
-
-    void close_files();
-
-
-    std::vector<std::unique_ptr<ZeroMemQ_Column>> column_writer_queues_;
     std::unordered_map<std::string, int> col_name_to_idx_;
-
-    std::vector<std::thread> threads_;
+    // threaded version is deprectaed
+    // std::vector<std::unique_ptr<ZeroMemQ_Column>> column_writer_queues_;
+    // std::vector<std::thread> threads_;
     std::vector<h5_ids> files_;
-
 
     const std::string destination_dir_;
     const uint64_t total_records_;
@@ -80,9 +70,6 @@ private:
     } mpi_;
 
 };
-
-
-// Thread functions
 
 inline void write_data(h5_ids h5_ds, uint64_t r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);

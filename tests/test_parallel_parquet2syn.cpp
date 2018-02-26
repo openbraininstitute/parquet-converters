@@ -3,6 +3,7 @@
 #include "circuit_writer_syn2.h"
 #include "converter.h"
 #include "progress.h"
+#include "syn2_util.h"
 #include <iostream>
 #include <vector>
 
@@ -17,7 +18,14 @@ MPI_Comm comm  = MPI_COMM_WORLD;
 MPI_Info info  = MPI_INFO_NULL;
 
 
-void convert_circuit(const std::vector<std::string>& filenames)  {
+static const std::string output_dir("circuit_syn2");
+
+
+///
+/// \brief convert_circuit: Converts parquet files into HDF5 datasets compatible with SYN2
+///
+std::vector<std::string>
+convert_circuit(const std::vector<std::string>& filenames)  {
 
     // Each reader and each writer in a separate MPI process
 
@@ -57,7 +65,7 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     // Create writer
 
-    CircuitWriterSYN2 writer(std::string("circuit_syn2"), global_record_sum);
+    CircuitWriterSYN2 writer(output_dir, global_record_sum);
     writer.use_mpio();
     writer.set_output_block_position(mpi_rank, offset, record_count);
 
@@ -73,11 +81,10 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
         p->task_start(mpi_size);
     }
 
-    // Progress handlers for worker nodes are just a function that participate in the MPI reduce
-    // This has the additional eventually desirable effect of synchronizing block writes
-    auto f = [&p](float progress){
-        float global_progress;
-        MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+    // Progress handlers for worker nodes are just a function that triggers incrementing the progressbar
+    auto f = [&p](int){
+        // After each block write, sinc
+        MPI_Barrier(comm);
         if(mpi_rank == 0) {
             p->updateProgress(1);
         }
@@ -87,16 +94,24 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     converter.exportAll();
 
-
-    // Sync before destroying readers, writers
-    MPI_Barrier(comm);
-
     if(mpi_rank == 0) {
         p->task_done(mpi_size);
     }
 
+    return writer.dataset_names();
 }
 
+
+
+void create_syn2_container(const std::vector<std::string>& dataset_names) {
+    if(mpi_rank > 0) { return; }
+
+    Syn2CircuitHdf5 syn2circuit(output_dir);
+    for(const auto& ds_name : dataset_names) {
+        syn2circuit.link_existing_dataset(output_dir + "/" + ds_name + ".h5", ds_name);
+    }
+
+}
 
 
 
@@ -108,12 +123,12 @@ int main(int argc, char* argv[]) {
 
     if(argc < 2) {
         if(mpi_rank==0)
-            std::cout << "Please provide at least a file to convert. Multiple files accepted" << endl;
+            std::cout << "Please provide at least a file to convert. Multiple files accepted" << std::endl;
         return -1;
     }
     if (mpi_size != argc-1) {
         if(mpi_rank==0)
-            std::cout << "Please run with one MPI process per file to be converted" << endl;
+            std::cout << "Please run with one MPI process per file to be converted" << std::endl;
         return -2;
     }
 
@@ -121,12 +136,19 @@ int main(int argc, char* argv[]) {
     for(int i=1; i<argc; i++) {
         filenames[i-1] = std::string(argv[i]);
     }
-    convert_circuit(filenames);
+
+    // Bulk conversion with MPI
+    std::vector<std::string> ds_names =
+        convert_circuit(filenames);
+
     MPI_Finalize();
 
     if(mpi_rank == 0) {
-        std::cout << "\nComplete." << std::endl;
+        std::cout << "\nData copy complete. Building SYN2 archive..." << std::endl;
+        create_syn2_container(ds_names);
     }
+
+    std::cout << "Conversion finished." << std::endl;
 
     return 0;
 }

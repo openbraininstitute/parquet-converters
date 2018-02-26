@@ -5,24 +5,30 @@
 #include <string>
 
 namespace neuron_parquet {
-namespace syn2 {
+namespace circuit {
+
 using std::string;
 
+const char* DEFAULT_SYN2_DS_PATH = "/synapses/default/properties/";
 
 
-class CircuitHdf5 {
+class Syn2CircuitHdf5 {
 public:
-    CircuitHdf5(const string& filepath) {
+
+    Syn2CircuitHdf5(const string& filepath) {
         circuit = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     }
 
+    ~Syn2CircuitHdf5() {
+        H5Fclose(circuit);
+    }
+
     void link_existing_dataset(const string& filepath, const string& dataset_name)  {
-        const string dst = DEFAULT_DATASET_PATH + filepath;
+        const string dst (string(DEFAULT_SYN2_DS_PATH) + filepath);
         H5Lcreate_external(dst.c_str(), dataset_name.c_str(), circuit, dataset_name.c_str(), H5P_DEFAULT, H5P_DEFAULT);
     }
 
 
-    static const string DEFAULT_SYN2_DS_PATH = "/synapses/default/properties/";
 
 private:
     hid_t circuit;
