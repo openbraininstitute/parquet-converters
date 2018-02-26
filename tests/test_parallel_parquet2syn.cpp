@@ -7,9 +7,8 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-
 #include <mpi.h>
-#include <mpio.h>
+
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
@@ -87,12 +86,9 @@ convert_circuit(const std::vector<string>& filenames)  {
 
     // Progress handlers for worker nodes are just a function that triggers incrementing the progressbar
     auto f = [&p](int){
-        // After each block write, sinc
-        MPI_Barrier(comm);
         if(mpi_rank == 0) {
             p->updateProgress(1);
         }
-
     };
     converter.setProgressHandler(f);
 
@@ -156,6 +152,7 @@ int main(int argc, char* argv[]) {
     std::vector<string> ds_names =
         convert_circuit(filenames);
 
+    // Master creates the SYN2 archive
     if(mpi_rank == 0) {
         std::cout << "\nData copy complete. Building SYN2 archive..." << std::endl;
         create_syn2_container(ds_names);
