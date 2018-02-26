@@ -12,3 +12,7 @@ add_test(
     COMMAND test_touch_convert ${CMAKE_CURRENT_SOURCE_DIR}/touchesData.0
 )
 
+add_test(
+    NAME circuit_conversion
+    COMMAND test_circuit_convert_parallel ${CMAKE_CURRENT_SOURCE_DIR}/testCircuit.parquet
+)
