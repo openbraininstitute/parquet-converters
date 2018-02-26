@@ -70,10 +70,11 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     if(mpi_rank == 0) {
         p.reset(new ProgressMonitor(reader.block_count()));
+        p->task_start(mpi_size);
     }
 
     // Progress handlers for worker nodes are just a function that participate in the MPI reduce
-    // This has the additional eventually desirable effect of syncronizing block writes
+    // This has the additional eventually desirable effect of synchronizing block writes
     auto f = [&p](float progress){
         float global_progress;
         MPI_Reduce(&progress, &global_progress, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -86,13 +87,17 @@ void convert_circuit(const std::vector<std::string>& filenames)  {
 
     converter.exportAll();
 
-    if(mpi_rank == 0) {
-        std::cout << "\nComplete." << std::endl;
-    }
 
     // Sync before destroying readers, writers
     MPI_Barrier(comm);
+
+    if(mpi_rank == 0) {
+        p->task_done(mpi_size);
+    }
+
 }
+
+
 
 
 int main(int argc, char* argv[]) {
@@ -118,5 +123,10 @@ int main(int argc, char* argv[]) {
     }
     convert_circuit(filenames);
     MPI_Finalize();
+
+    if(mpi_rank == 0) {
+        std::cout << "\nComplete." << std::endl;
+    }
+
     return 0;
 }

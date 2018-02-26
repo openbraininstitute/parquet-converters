@@ -12,13 +12,19 @@ using namespace arrow;
 using namespace std;
 
 
+#define DATASETS_REL_DIR "_datasets"
+
+
 CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_dir, uint64_t n_records)
     : destination_dir_(destination_dir),
       total_records_(n_records),
       output_part_length_(n_records),
       output_file_offset_(0),
       output_part_id_(0)
-{ }
+{
+    string create_dirs = string("mkdir -p ") + destination_dir + "/" + DATASETS_REL_DIR;
+    system(create_dirs.c_str());
+}
 
 
 // ================================================================================================
@@ -112,7 +118,7 @@ ZeroMemQ_Column & CircuitWriterSYN2::get_create_handler_for_column(const shared_
 /// \brief CircuitWriterSYN2::init_h5file
 ///
 h5_ids CircuitWriterSYN2::init_h5file(const string & filepath, shared_ptr<arrow::Column> column) {
-    string destination = destination_dir_ + "/" + filepath;
+    string destination = destination_dir_ + "/" + DATASETS_REL_DIR + "/" + filepath;
     hsize_t dims[1] = { total_records_ };
 
 
@@ -185,6 +191,7 @@ void CircuitWriterSYN2::close_files() {
 /// --------------------------
 /// The THREAD to process data
 /// --------------------------
+/// This process is deprected since it is incompatile with hdf5 without incurring a lot of locking
 
 void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
                                                    ZeroMemQ_Column & q) {
