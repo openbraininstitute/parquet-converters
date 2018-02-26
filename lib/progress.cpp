@@ -42,10 +42,14 @@ void ProgressMonitor::updateProgress(int blocks_done_inc) {
     }
 }
 
+void ProgressMonitor::next() {
+    updateProgress(1);
+}
 
 void ProgressMonitor::task_start(int count) {
     task_done(-count);
 }
+
 void ProgressMonitor::task_done(int count) {
     tasks_active_ -= count;
 

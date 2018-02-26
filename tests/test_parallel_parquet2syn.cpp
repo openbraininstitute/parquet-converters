@@ -87,7 +87,7 @@ convert_circuit(const std::vector<string>& filenames)  {
     // Progress handlers for worker nodes are just a function that triggers incrementing the progressbar
     auto f = [&p](int){
         if(mpi_rank == 0) {
-            p->updateProgress(1);
+            p->next();
         }
     };
     converter.setProgressHandler(f);
