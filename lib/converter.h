@@ -78,7 +78,7 @@ public:
 
     int exportAll() {
         reader_.seek(0);
-        for(int i=0; i<n_blocks_; i++) {
+        for(uint32_t i=0; i<n_blocks_; i++) {
             size_t n = reader_.fillBuffer( buffer_, BUFFER_LEN );
             writer_.write( buffer_, n );
 
