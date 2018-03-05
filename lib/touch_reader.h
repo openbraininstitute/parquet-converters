@@ -49,7 +49,7 @@ public:
 
 private:
     void _fillBuffer();
-    void _load_into( Touch* buf, int length );
+    void _load_into( Touch* buf, uint32_t length );
 
     // File
     std::ifstream touchFile_;

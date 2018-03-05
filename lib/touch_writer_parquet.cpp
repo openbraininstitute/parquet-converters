@@ -72,12 +72,11 @@ TouchWriterParquet::~TouchWriterParquet() {
 }
 
 
-void TouchWriterParquet::write(const Touch* data, uint length) {
+void TouchWriterParquet::write(const Touch* data, uint32_t length) {
 
     //Split large Data in BUFFER_SIZE chunks
     while( length > 0 ) {
-
-        uint write_n = BUFFER_LEN - _buffer_offset;
+        uint32_t write_n = BUFFER_LEN - _buffer_offset;
         if( length < write_n ) {
             write_n = length;
         }

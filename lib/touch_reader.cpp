@@ -121,12 +121,18 @@ void TouchReader::seek(uint64_t pos)   {
 }
 
 
+/**
+ * @brief TouchReader::fillBuffer Fills a given buffer, incrementing the offset
+ *        NOTE: This invalidates the internal buffer. A seek shall be performed before changing buffers
+ * @return The number of records read
+ */
 uint32_t TouchReader::fillBuffer( Touch* buf, uint32_t load_n ) {
     if( load_n + offset_ > record_count_ ) {
         load_n = record_count_ - offset_;
     }
 
     _load_into( buf, load_n );
+    offset_ += load_n;
     return load_n;
 }
 
@@ -143,12 +149,12 @@ void TouchReader::_fillBuffer() {
 }
 
 
-void TouchReader::_load_into( Touch* buf, int length ) {
+void TouchReader::_load_into( Touch* buf, uint32_t length ) {
     touchFile_.read( (char*)buf, length*RECORD_SIZE );
 
     if( endian_swap_ ){
         Touch* curTouch = buf;
-        for(int i=0; i<length; i++) {
+        for(uint32_t i=0; i<length; i++) {
             // Given all the fields are contiguous and are 32bits long
             // we loop over them as if it was an array
             uint32_t* touch_data = (uint32_t*) (curTouch);
@@ -160,5 +166,4 @@ void TouchReader::_load_into( Touch* buf, int length ) {
         }
     }
 }
-
 

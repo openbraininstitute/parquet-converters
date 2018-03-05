@@ -33,17 +33,22 @@ public:
     {
         if( reader_.is_chunked() ) {
             // Buffer is a single chunk
-            buffer_ = new T();
+            buffer_ = new T[1];
             n_blocks_ = reader_.block_count();
         }
         else {
-            // Create a buffe of records.
+            // Create a buffer of records.
             buffer_ = new T[ (n_records_>BUFFER_LEN)? BUFFER_LEN : n_records_ ];
             n_blocks_ = n_records_ / BUFFER_LEN;
             if(n_records_ % BUFFER_LEN > 0) {
                 n_blocks_++;
             }
         }
+    }
+
+
+    ~Converter() {
+        delete[] buffer_;
     }
 
 
@@ -78,8 +83,7 @@ public:
 
     int exportAll() {
         reader_.seek(0);
-        for(uint32_t i=0; i<n_blocks_; i++) {
-            size_t n = reader_.fillBuffer( buffer_, BUFFER_LEN );
+        while(uint32_t n = reader_.fillBuffer( buffer_, BUFFER_LEN ) > 0) {
             writer_.write( buffer_, n );
 
             if( progress_handler_ ) {

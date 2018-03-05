@@ -18,7 +18,7 @@ public:
     TouchWriterParquet(const string);
     ~TouchWriterParquet();
 
-    virtual void write(const Touch* data, uint length) override;  // offset are directly added to data ptr
+    virtual void write(const Touch* data, uint32_t length) override;  // offset are directly added to data ptr
 
 
 
