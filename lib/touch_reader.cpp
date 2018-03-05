@@ -106,7 +106,7 @@ Touch & TouchReader::getItem(uint32_t index) {
 ///
 void TouchReader::seek(uint64_t pos)   {
     if( pos >= record_count_ ) {
-        throw NULL;
+        throw runtime_error(string("Invalid file position ") + to_string(pos));
     }
 
     uint32_t nth_buffer = (pos / BUFFER_LEN);

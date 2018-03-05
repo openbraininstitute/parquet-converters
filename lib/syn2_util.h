@@ -1,8 +1,10 @@
 #ifndef SYN2_UTIL_H
 #define SYN2_UTIL_H
 
-#include <hdf5.h>
+#include <stdexcept>
 #include <string>
+#include <hdf5.h>
+
 
 namespace neuron_parquet {
 namespace circuit {
@@ -18,13 +20,13 @@ public:
     Syn2CircuitHdf5(const string& filepath)   {
         circuit = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
         if( ! H5Iis_valid(circuit)) {
-            throw "Cant open circuit file for writing";
+            throw std::runtime_error("Cant open circuit file for writing");
         }
 
 
         hid_t g = H5Gcreate2(circuit, "/synapses", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         if( ! H5Iis_valid(circuit)) {
-            throw "Cant create properties group";
+            throw std::runtime_error("Cant create properties group");
         }
         H5Gclose(g);
 

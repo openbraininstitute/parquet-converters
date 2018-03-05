@@ -132,7 +132,7 @@ void TouchWriterParquet::_transpose_buffer_part(const Touch* data, uint offset, 
         _tbuffer->post_segment[i] = data[i].post_synapse_ids[SEGMENT_ID];
         if( _tbuffer->pre_section[i]>0x7fff ) {
             printf("Problematic pre_section %d\n", _tbuffer->pre_section[i]);
-            throw "Invalid pre_section. Please check endianess";
+            throw runtime_error("Invalid pre_section. Please check endianess");
         }
         if( _tbuffer->pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", _tbuffer->pre_segment[i]);
         if( _tbuffer->post_section[i]>0x7fff ) printf("Problematic post_section %d\n", _tbuffer->post_section[i]);
