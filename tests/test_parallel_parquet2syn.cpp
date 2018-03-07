@@ -46,9 +46,7 @@ convert_circuit(const std::vector<string>& filenames)  {
     uint32_t global_block_sum;
     MPI_Allreduce(&block_count, &global_block_sum, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
 
-
-
-    uint64_t *offsets;
+    uint64_t *offsets=nullptr;
     if (mpi_rank == 0) {
         offsets = new uint64_t[mpi_size+1];
         offsets[0] = 0;
@@ -109,6 +107,8 @@ void create_syn2_container(const std::vector<string>& dataset_names) {
     std::unordered_map<string, string> mapping {
         { string("pre_neuron_id"),  string("connected_neurons_pre")  },
         { string("post_neuron_id"), string("connected_neurons_post") },
+        { string("pre_gid"),  string("connected_neurons_pre")  },
+        { string("post_gid"), string("connected_neurons_post") },
     };
 
 

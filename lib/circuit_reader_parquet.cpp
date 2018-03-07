@@ -23,7 +23,9 @@ CircuitReaderParquet::~CircuitReaderParquet(){
 uint32_t CircuitReaderParquet::fillBuffer(CircuitData* buf, uint32_t length) {
     // We are using parquet::arrow::reader to recreate the data
     // parquet::reader is a low-level reader not handling automatically repetition levels, etc...
-
+    if( cur_row_group_ >= rowgroup_count_) {
+        return 0;
+    }
     data_reader_.ReadRowGroup(cur_row_group_++, &(buf->row_group));
     return (uint32_t) buf->row_group->num_rows();
 }

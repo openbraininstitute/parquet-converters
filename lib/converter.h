@@ -83,7 +83,8 @@ public:
 
     int exportAll() {
         reader_.seek(0);
-        while(uint32_t n = reader_.fillBuffer( buffer_, BUFFER_LEN ) > 0) {
+        uint32_t n;
+        while( (n = reader_.fillBuffer( buffer_, BUFFER_LEN )) > 0) {
             writer_.write( buffer_, n );
 
             if( progress_handler_ ) {

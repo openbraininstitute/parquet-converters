@@ -281,23 +281,15 @@ void write_data(const h5_ids h5_output, uint64_t offset,
 
     // get data in buffers
     for( const shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
-        for( const shared_ptr<Buffer> & buf : chunk->data()->buffers ) {
-            if( !buf ) {
-                // Some buffers might be empty
-                continue;
-            }
-            // convert and set const
-            const hsize_t offset_ = offset;
-            const hsize_t buf_len = chunk->length();
+        auto values = chunk->data()->buffers[1];  // 1 is the magic position containing values
+        const hsize_t h5offset = offset;
+        const hsize_t buf_len = chunk->length();
+        hid_t memspace = H5Screate_simple(1, &buf_len, NULL);
 
-            hid_t memspace = H5Screate_simple(1, &buf_len, NULL);
-            H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &offset_, NULL, &buf_len, NULL);
-
-            H5Dwrite(h5_output.ds, t, memspace, h5_output.dspace, h5_output.plist, buf->data());
-            H5Sclose(memspace);
-
-            offset += buf_len;
-        }
+        H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &h5offset, NULL, &buf_len, NULL);
+        H5Dwrite(h5_output.ds, t, memspace, h5_output.dspace, h5_output.plist, values->data());
+        H5Sclose(memspace);
+        offset += buf_len;
     }
 }
 
