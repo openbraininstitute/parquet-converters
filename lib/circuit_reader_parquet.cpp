@@ -103,8 +103,8 @@ void CircuitMultiReaderParquet::seek(uint64_t pos) {
         throw std::runtime_error("Cant seek over file length");
     }
 
-    cur_file_ = 0;
-    for(unsigned int i=0; i<rowgroup_offsets_.size() && rowgroup_offsets_[i]<pos  ; i++) {
+    for(unsigned int i=0; i<rowgroup_offsets_.size()
+                         && rowgroup_offsets_[i]<=pos  ; i++) {
         cur_file_ = i;
     }
 

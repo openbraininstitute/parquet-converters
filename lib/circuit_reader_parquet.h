@@ -38,7 +38,6 @@ public:
 private:
     const std::string filename_;
     std::unique_ptr<parquet::ParquetFileReader> reader_;
-    bool reader_open_;
     std::shared_ptr<parquet::FileMetaData> parquet_metadata_;
     std::unique_ptr<parquet::arrow::FileReader> data_reader_;
 

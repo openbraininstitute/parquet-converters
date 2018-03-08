@@ -23,8 +23,9 @@ add_test(
 
 add_test(
     NAME multifile_parquet2syn
-    COMMAND test_multi_parquet2syn /
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet /
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet /
+    COMMAND test_multi_parquet2syn
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
         ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part3.parquet
 )
