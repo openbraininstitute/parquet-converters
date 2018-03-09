@@ -64,7 +64,7 @@ private:
 class Syn2CircuitHdf5 : public BaseSyn2CircuitHdf5 {
 public:
     Syn2CircuitHdf5(const string& filepath, const string &population_name)
-      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Truncate), population_name)
+      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Create), population_name)
     {}
 
     int create_dataset(const string& name, hid_t h5type, uint32_t length) {
@@ -80,7 +80,7 @@ public:
 class ParallelSyn2CircuitHdf5 : public BaseSyn2CircuitHdf5{
 public:
     ParallelSyn2CircuitHdf5(const string& filepath, const string& population_name, MPI_Comm mpicomm, MPI_Info mpiinfo)
-      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Truncate, H5::MPIOFileDriver(mpicomm, mpiinfo)), population_name)
+      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Create, H5::MPIOFileDriver(mpicomm, mpiinfo)), population_name)
     { }
 
     int create_dataset(const string& name, hid_t h5type, uint32_t length) {
