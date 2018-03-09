@@ -13,16 +13,13 @@ using namespace std;
 
 
 
-CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_dir, uint64_t n_records)
-    : destination_dir_(destination_dir),
-      total_records_(n_records),
-      output_part_length_(n_records),
-      output_file_offset_(0),
-      output_part_id_(0)
-{
-    string create_dirs = string("mkdir -p ") + destination_dir;
-    system(create_dirs.c_str());
-}
+CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_file, uint64_t n_records)
+  : destination_file_(destination_file),
+    total_records_(n_records),
+    output_part_length_(n_records),
+    output_file_offset_(0),
+    output_part_id_(0)
+{ }
 
 
 // ================================================================================================
@@ -48,14 +45,14 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 
         int idx = -1;
         if( col_name_to_idx_.count(col_name) == 0) {
-            idx = files_.size();
-            init_h5file(col_name + ".h5", col);
+            idx = ds_ids_.size();
+            init_h5_ds(col);
             col_name_to_idx_[col_name] = idx;
         }
         else {
             idx = col_name_to_idx_[col_name];
         }
-        h5_ids output(files_[idx]);
+        h5_ids output(ds_ids_[idx]);
 
         size_t cur_offset = output_file_offset_;
         write_data(output, cur_offset, col);
@@ -81,25 +78,28 @@ void CircuitWriterSYN2::set_output_block_position(int part_id, uint64_t offset, 
 }
 
 
+void CircuitWriterSYN2::init_h5_file() {
+    if(use_mpio_) {
+        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+        H5Pset_fapl_mpio(plist_id, mpi_.comm, mpi_.info);
+        out_file_ = H5Fcreate(destination_file_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+        H5Pclose(plist_id);
+    }
+    else {
+        out_file_ = H5Fcreate(destination_file_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    }
+}
+
+
 // ================================================================================================
 ///
 /// \brief CircuitWriterSYN2::init_h5file
 ///
-h5_ids CircuitWriterSYN2::init_h5file(const string & filepath, shared_ptr<arrow::Column> column) {
-    string destination = destination_dir_ + "/" + filepath;
+h5_ids CircuitWriterSYN2::init_h5_ds(shared_ptr<arrow::Column> column) {
     hsize_t dims[1] = { total_records_ };
 
-
-    hid_t file_id;
-
-    if(use_mpio_) {
-        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-        H5Pset_fapl_mpio(plist_id, mpi_.comm, mpi_.info);
-        file_id = H5Fcreate(destination.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-        H5Pclose(plist_id);
-    }
-    else {
-        file_id = H5Fcreate(destination.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    if( ! H5Iis_valid(out_file_)) {
+        init_h5_file();
     }
 
     // Dataspace create
@@ -109,19 +109,19 @@ h5_ids CircuitWriterSYN2::init_h5file(const string & filepath, shared_ptr<arrow:
     string col_name (string("/") + column->name());
 
     // Dataset
-    hid_t ds_id = H5Dcreate2(file_id, col_name.c_str(), parquet_types_to_h5(t), dataspace_id,
+    hid_t ds_id = H5Dcreate2(out_file_, col_name.c_str(), parquet_types_to_h5(t), dataspace_id,
                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     // Once ds is created we change the filespace relative to ds
     H5Sclose(dataspace_id);
 
-    h5_ids output_id {file_id, ds_id, H5Dget_space(ds_id), H5P_DEFAULT};
+    h5_ids output_id {ds_id, H5Dget_space(ds_id), H5P_DEFAULT};
 
     if(use_mpio_) {
         output_id.plist = H5Pcreate(H5P_DATASET_XFER);
     }
 
-    files_.push_back(output_id);
+    ds_ids_.push_back(output_id);
     return output_id;
 }
 
@@ -141,19 +141,21 @@ void CircuitWriterSYN2::use_mpio(MPI_Comm comm, MPI_Info info) {
 ///
 /// \brief CircuitWriterSYN2::close_files
 ///
-void CircuitWriterSYN2::close_files() {
-    static bool files_closed = false;
-    if(files_closed) {return;}
+void CircuitWriterSYN2::close() {
+    // Dont run twice
+    static bool closed = false;
+    if(closed) {return;}
 
-    for (h5_ids& outstream : files_) {
+    for (h5_ids& outstream : ds_ids_) {
         H5Dclose(outstream.ds);
         H5Sclose(outstream.dspace);
         if(outstream.plist != H5P_DEFAULT) {
             H5Pclose(outstream.plist);
         }
-        H5Fclose(outstream.file);
+
     }
-    files_closed = true;
+    H5Fclose(out_file_);
+    closed = true;
 }
 
 

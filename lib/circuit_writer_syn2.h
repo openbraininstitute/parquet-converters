@@ -16,7 +16,7 @@ namespace circuit {
 
 
 struct h5_ids {
-    hid_t file, ds, dspace, plist;
+    hid_t ds, dspace, plist;
 };
 
 
@@ -38,26 +38,25 @@ public:
 
     std::vector<std::string> dataset_names() const;
 
-    void close_files();
+    void close();
 
     ~CircuitWriterSYN2() {
-        close_files();
+        close();
     }
 
 private:
     // The writer can write to several files using different threads
     // and therefore release the main thread to go and fetch more data
 
-    h5_ids init_h5file(const std::string & filename, std::shared_ptr<arrow::Column> column);
+    void init_h5_file();
+    h5_ids init_h5_ds(std::shared_ptr<arrow::Column> column);
 
-    std::unordered_map<std::string, int> col_name_to_idx_;
-    // threaded version is deprectaed
-    // std::vector<std::unique_ptr<ZeroMemQ_Column>> column_writer_queues_;
-    // std::vector<std::thread> threads_;
-    std::vector<h5_ids> files_;
-
-    const std::string destination_dir_;
+    const std::string destination_file_;
     const uint64_t total_records_;
+    hid_t out_file_;
+    std::vector<h5_ids> ds_ids_;
+    std::unordered_map<std::string, int> col_name_to_idx_;
+
     //These entries are mostly useful in parallel writing
     uint64_t output_part_length_;
     uint64_t output_file_offset_;
@@ -71,7 +70,7 @@ private:
 
 };
 
-inline void write_data(h5_ids h5_ds, uint64_t r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
+void write_data(h5_ids h5_ds, uint64_t r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 
