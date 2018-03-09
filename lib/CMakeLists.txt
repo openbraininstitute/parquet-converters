@@ -1,5 +1,5 @@
 set(TOUCH_SRCS touch_reader.cpp touch_writer_parquet.cpp)
-set(CIRCUIT_SRCS circuit_reader_parquet.cpp circuit_writer_syn2.cpp)
+set(CIRCUIT_SRCS circuit_reader_parquet.cpp circuit_writer_syn2.cpp syn2_circuit.cpp)
 
 include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 

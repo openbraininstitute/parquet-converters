@@ -12,10 +12,13 @@ using namespace arrow;
 using namespace std;
 
 
+const string CircuitWriterSYN2::DEFAULT_POPULATION_NAME(DEFAULT_SYN2_POPULATION_NAME);
 
-CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_file, uint64_t n_records)
+
+CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_file, uint64_t n_records, const string& population_name)
   : destination_file_(destination_file),
     total_records_(n_records),
+    population_name_(population_name),
     output_part_length_(n_records),
     output_file_offset_(0),
     output_part_id_(0)
@@ -78,7 +81,8 @@ void CircuitWriterSYN2::set_output_block_position(int part_id, uint64_t offset, 
 }
 
 
-void CircuitWriterSYN2::init_h5_file() {
+void CircuitWriterSYN2::init_syn2_file() {
+    // Create the file
     if(use_mpio_) {
         hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
         H5Pset_fapl_mpio(plist_id, mpi_.comm, mpi_.info);
@@ -88,6 +92,7 @@ void CircuitWriterSYN2::init_h5_file() {
     else {
         out_file_ = H5Fcreate(destination_file_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     }
+
 }
 
 
@@ -99,7 +104,7 @@ h5_ids CircuitWriterSYN2::init_h5_ds(shared_ptr<arrow::Column> column) {
     hsize_t dims[1] = { total_records_ };
 
     if( ! H5Iis_valid(out_file_)) {
-        init_h5_file();
+        init_syn2_file();
     }
 
     // Dataspace create

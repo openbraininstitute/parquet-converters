@@ -10,6 +10,8 @@
 #include <mpi.h>
 #include <hdf5.h>
 
+#define DEFAULT_SYN2_POPULATION_NAME "default"
+
 
 namespace neuron_parquet {
 namespace circuit {
@@ -28,7 +30,9 @@ struct h5_ids {
 class CircuitWriterSYN2 : public Writer<CircuitData>
 {
 public:
-    CircuitWriterSYN2(const std::string & destination_dir, uint64_t n_records);
+    typedef std::string string;
+
+    CircuitWriterSYN2(const string& destination_dir, uint64_t n_records, const string& population_name=DEFAULT_POPULATION_NAME);
 
     virtual void write(const CircuitData* data, uint length) override;
 
@@ -36,7 +40,7 @@ public:
 
     void use_mpio(MPI_Comm comm=MPI_COMM_WORLD, MPI_Info info=MPI_INFO_NULL);
 
-    std::vector<std::string> dataset_names() const;
+    std::vector<string> dataset_names() const;
 
     void close();
 
@@ -44,18 +48,21 @@ public:
         close();
     }
 
+    static const string DEFAULT_POPULATION_NAME;
+
 private:
     // The writer can write to several files using different threads
     // and therefore release the main thread to go and fetch more data
 
-    void init_h5_file();
+    void init_syn2_file();
     h5_ids init_h5_ds(std::shared_ptr<arrow::Column> column);
 
-    const std::string destination_file_;
+    const string destination_file_;
     const uint64_t total_records_;
+    const string population_name_;
     hid_t out_file_;
     std::vector<h5_ids> ds_ids_;
-    std::unordered_map<std::string, int> col_name_to_idx_;
+    std::unordered_map<string, int> col_name_to_idx_;
 
     //These entries are mostly useful in parallel writing
     uint64_t output_part_length_;
@@ -69,6 +76,7 @@ private:
     } mpi_;
 
 };
+
 
 void write_data(h5_ids h5_ds, uint64_t r_offset, const std::shared_ptr<const arrow::Column>& r_col_data);
 inline hid_t parquet_types_to_h5(arrow::Type::type t);

@@ -3,7 +3,7 @@
 #include "circuit_writer_syn2.h"
 #include "converter.h"
 #include "progress.h"
-#include "syn2_util.h"
+#include "syn2_circuit.h"
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -112,7 +112,7 @@ void create_syn2_container(const std::vector<string>& dataset_names) {
     };
 
 
-    Syn2CircuitHdf5 syn2circuit(output_dir + "/circuit.syn2");
+    Syn2CircuitHdf5 syn2circuit(output_dir + "/circuit.syn2", string("default") );
     for(const auto& ds_name : dataset_names) {
         if(mapping.count(ds_name)>0) {
             syn2circuit.link_existing_dataset(raw_datasets_dir + "/" + ds_name + ".h5", ds_name, mapping[ds_name]);

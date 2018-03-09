@@ -15,7 +15,7 @@ using std::string;
 
 void convert_circuit(const vector<string> & filenames)  {
     CircuitMultiReaderParquet reader(filenames) ;
-    CircuitWriterSYN2 writer(string("circuit_syn2"), reader.record_count());
+    CircuitWriterSYN2 writer(string("circuit.syn2"), reader.record_count());
 
     Converter<CircuitData> converter( reader, writer );
 
