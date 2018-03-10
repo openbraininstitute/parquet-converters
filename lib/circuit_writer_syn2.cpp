@@ -15,13 +15,24 @@ using namespace std;
 const string CircuitWriterSYN2::DEFAULT_POPULATION_NAME(DEFAULT_SYN2_POPULATION_NAME);
 
 
-CircuitWriterSYN2::CircuitWriterSYN2(const string & destination_file, uint64_t n_records, const string& population_name)
-  : destination_file_(destination_file),
+CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
+                                     uint64_t n_records,
+                                     const string& population_name)
+  : syn2_file_(filepath, population_name, n_records),
     total_records_(n_records),
     population_name_(population_name),
-    output_part_length_(n_records),
-    output_file_offset_(0),
-    output_part_id_(0)
+    output_file_offset_(0)
+{ }
+
+CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
+                                     uint64_t n_records,
+                                     const MPI_Params& mpi_params,
+                                     uint64_t output_offset,
+                                     const string& population_name)
+  : syn2_file_(filepath, population_name, mpi_params.comm, mpi_params.info, n_records),
+    total_records_(n_records),
+    population_name_(population_name),
+    output_file_offset_(output_offset)
 { }
 
 
@@ -35,10 +46,6 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
         return;
     }
 
-    #ifdef NEURON_DEBUG
-    cout << "Writing data block with " << data->row_group->num_rows() << " rows." << endl;
-    #endif
-
     shared_ptr<Table> row_group(data->row_group);
     int n_cols = row_group->num_columns();
 
@@ -46,19 +53,12 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
         shared_ptr<Column> col(row_group->column(i));
         const string& col_name = col->name();
 
-        int idx = -1;
-        if( col_name_to_idx_.count(col_name) == 0) {
-            idx = ds_ids_.size();
-            init_h5_ds(col);
-            col_name_to_idx_[col_name] = idx;
+        if( !syn2_file_.has_dataset(col_name) ){
+            Type::type t (col->type()->id());
+            syn2_file_.create_dataset(col_name, parquet_types_to_h5(t));
         }
-        else {
-            idx = col_name_to_idx_[col_name];
-        }
-        h5_ids output(ds_ids_[idx]);
 
-        size_t cur_offset = output_file_offset_;
-        write_data(output, cur_offset, col);
+        write_data(syn2_file_[col_name], output_file_offset_, col);
     }
 
     output_file_offset_ += row_group->num_rows();
@@ -66,185 +66,14 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 }
 
 
-// ================================================================================================
-///
-/// \brief CircuitWriterSYN2::create_handles_existing_files
-/// \param data The arrow::Table object
-/// \param hids The hdfs file hid
-/// \param offset The offset where to append to the file
-/// \param part_id An identifier of the data part for logging purposes
-///
-void CircuitWriterSYN2::set_output_block_position(int part_id, uint64_t offset, uint64_t part_length) {
-    output_part_id_ = part_id;
-    output_file_offset_ = offset;
-    output_part_length_ = part_length;
-}
-
-
-void CircuitWriterSYN2::init_syn2_file() {
-    // Create the file
-    if(use_mpio_) {
-        hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-        H5Pset_fapl_mpio(plist_id, mpi_.comm, mpi_.info);
-        out_file_ = H5Fcreate(destination_file_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-        H5Pclose(plist_id);
+const std::vector<string>& CircuitWriterSYN2::dataset_names() {
+    vector<string> keys(syn2_file_.datasets().size());
+    for( const auto& item : syn2_file_.datasets() ) {
+        keys.push_back(item.first);
     }
-    else {
-        out_file_ = H5Fcreate(destination_file_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    }
-
+    return keys;
 }
 
-
-// ================================================================================================
-///
-/// \brief CircuitWriterSYN2::init_h5file
-///
-h5_ids CircuitWriterSYN2::init_h5_ds(shared_ptr<arrow::Column> column) {
-    hsize_t dims[1] = { total_records_ };
-
-    if( ! H5Iis_valid(out_file_)) {
-        init_syn2_file();
-    }
-
-    // Dataspace create
-    hid_t dataspace_id = H5Screate_simple(1, dims, NULL);
-
-    Type::type t (column->type()->id());
-    string col_name (string("/") + column->name());
-
-    // Dataset
-    hid_t ds_id = H5Dcreate2(out_file_, col_name.c_str(), parquet_types_to_h5(t), dataspace_id,
-                       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-    // Once ds is created we change the filespace relative to ds
-    H5Sclose(dataspace_id);
-
-    h5_ids output_id {ds_id, H5Dget_space(ds_id), H5P_DEFAULT};
-
-    if(use_mpio_) {
-        output_id.plist = H5Pcreate(H5P_DATASET_XFER);
-    }
-
-    ds_ids_.push_back(output_id);
-    return output_id;
-}
-
-
-// ================================================================================================
-///
-/// \brief CircuitWriterSYN2::use_mpio
-///
-void CircuitWriterSYN2::use_mpio(MPI_Comm comm, MPI_Info info) {
-    use_mpio_ = true;
-    mpi_.comm = comm;
-    mpi_.info = info;
-}
-
-
-// ================================================================================================
-///
-/// \brief CircuitWriterSYN2::close_files
-///
-void CircuitWriterSYN2::close() {
-    // Dont run twice
-    static bool closed = false;
-    if(closed) {return;}
-
-    for (h5_ids& outstream : ds_ids_) {
-        H5Dclose(outstream.ds);
-        H5Sclose(outstream.dspace);
-        if(outstream.plist != H5P_DEFAULT) {
-            H5Pclose(outstream.plist);
-        }
-
-    }
-    H5Fclose(out_file_);
-    closed = true;
-}
-
-
-
-std::vector<std::string> CircuitWriterSYN2::dataset_names() const {
-    std::vector<std::string> cols;
-    cols.reserve(col_name_to_idx_.size());
-    for(auto& map_entry : col_name_to_idx_) {
-        cols.push_back(map_entry.first);
-    }
-    return cols;
-}
-
-
-/// ------------------------------------------------------------------------------------
-/// These routines are deprected since hdf5 is not thread-safe
-/// ------------------------------------------------------------------------------------
-#ifdef SYN2_USE_THREADS
-///
-/// \brief CircuitWriterSYN2::create_handler_for_column Initializes output file and writing thread for a single column
-///
-ZeroMemQ_Column & CircuitWriterSYN2::get_create_handler_for_column(const shared_ptr<Column> col) {
-    int idx;
-    const string col_name(col->name());
-
-    if( col_name_to_idx_.count(col_name) > 0) {
-        idx = col_name_to_idx_[col_name];
-        return *column_writer_queues_[idx];
-    }
-
-    #ifdef NEURON_LOGGING
-        cerr << "Creating new column and thread for " << col_name << endl;
-    #endif
-    idx = column_writer_queues_.size();
-    col_name_to_idx_[col_name] = idx;
-
-    h5_ids h5_file = init_h5file(col_name + ".h5", col);
-    std::unique_ptr<ZeroMemQ_Column> queue(new ZeroMemQ_Column(idx));
-
-    column_writer_queues_.push_back(std::move(queue)); // move the unique_ptr
-    ZeroMemQ_Column & q = *column_writer_queues_.back();
-    create_thread_process_data(h5_file, q);
-
-    return q;
-}
-
-
-/// --------------------------
-/// The THREAD to process data
-/// --------------------------
-void CircuitWriterSYN2::create_thread_process_data(const h5_ids h5_output,
-                                                   ZeroMemQ_Column & q) {
-    static int writer_count = 0;
-    int writer_id = writer_count ++;
-    #ifdef NEURON_DEBUG
-    cerr << "Initting thread on queue " << q.id() << endl;
-    #endif
-
-    auto f = [this, h5_output, &q, writer_id]{
-        uint64_t cur_offset = this->output_file_offset_;
-
-        while(true) {
-            #ifdef NEURON_DEBUG
-                cerr << "Thread " << writer_id << " Gonna read data from queue " << q.id() << endl;
-            #endif
-
-            shared_ptr<Column> column_ptr(q.blocking_pop());
-            if( !column_ptr ) {
-                break;
-            }
-            write_data(h5_output, cur_offset, column_ptr);
-
-        }
-
-        #ifdef NEURON_DEBUG
-        cout << "\rTerminating writer " << writer_id << "\n" << endl;
-        #endif
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    };
-
-    thread t(f);
-    threads_.push_back(std::move(t));
-}
-#endif
 
 // ================================================================================================
 
@@ -276,7 +105,8 @@ inline hid_t parquet_types_to_h5(Type::type t) {
 
 // ================================================================================================
 
-void write_data(const h5_ids h5_output, uint64_t offset,
+void write_data(Syn2CircuitHdf5::Dataset& dataset,
+                uint64_t offset,
                 const shared_ptr<const Column>& col_data) {
 
     Type::type t_id(col_data->type()->id());
@@ -286,16 +116,14 @@ void write_data(const h5_ids h5_output, uint64_t offset,
     cerr << "Writing data... " <<  col_data->length() << " records." << endl;
     #endif
 
-    // get data in buffers
+    // get chunks and retrieve the raw data from the buffer
     for( const shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
-        auto values = chunk->data()->buffers[1];  // 1 is the magic position containing values
-        const hsize_t h5offset = offset;
-        const hsize_t buf_len = chunk->length();
-        hid_t memspace = H5Screate_simple(1, &buf_len, NULL);
+        uint64_t buf_len = chunk->length();
 
-        H5Sselect_hyperslab(h5_output.dspace, H5S_SELECT_SET, &h5offset, NULL, &buf_len, NULL);
-        H5Dwrite(h5_output.ds, t, memspace, h5_output.dspace, h5_output.plist, values->data());
-        H5Sclose(memspace);
+        // 1 is the position containing values for PrimitiveArrays (otherwise we need a static pointer cast)
+        shared_ptr<Buffer> buffer = chunk->data()->buffers[1];
+
+        dataset.write(buffer->data(), buf_len, offset);
         offset += buf_len;
     }
 }

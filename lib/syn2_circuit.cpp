@@ -6,15 +6,23 @@ namespace circuit {
 namespace H5 = ::HighFive;
 
 
+Syn2CircuitHdf5::Syn2CircuitHdf5(const string& filepath, const string &population_name, uint64_t n_records)
+  : parallel_mode_(false),
+    file_(H5::File(filepath, H5::File::Create)),
+    properties_group_(create_base_groups(file_, population_name)),
+    n_records_(n_records)
+{ }
 
-
-BaseSyn2CircuitHdf5::BaseSyn2CircuitHdf5(H5::File&& f, const string& population_name)
-  : file_(f),
-    properties_group_(create_base_groups(file_, population_name))
+Syn2CircuitHdf5::Syn2CircuitHdf5(const string& filepath, const string &population_name,
+                                 const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records)
+  : parallel_mode_(true),
+    file_(H5::File(filepath, H5::File::Create, H5::MPIOFileDriver(mpicomm, mpiinfo))),
+    properties_group_(create_base_groups(file_, population_name)),
+    n_records_(n_records)
 { }
 
 
-H5::Group BaseSyn2CircuitHdf5::create_base_groups(H5::File& f, const string& population_name) {
+H5::Group Syn2CircuitHdf5::create_base_groups(H5::File& f, const string& population_name) {
     H5::Group g1 = f.createGroup(string("synapses"));
     H5::Group g2 = g1.createGroup(population_name);
     H5::Group g3 = g2.createGroup(string("properties"));
@@ -22,21 +30,31 @@ H5::Group BaseSyn2CircuitHdf5::create_base_groups(H5::File& f, const string& pop
 }
 
 
-BaseSyn2CircuitHdf5::Dataset BaseSyn2CircuitHdf5::get_dataset(int i) {
-    return datasets_[i];
+void Syn2CircuitHdf5::create_dataset(const string& name, hid_t h5type, uint64_t length) {
+    if(length==0) length = n_records_;
+    assert( length>0 );
+    if( datasets_.count(name) >0 ) {
+        throw std::runtime_error("Attempt to create an existing dataset dataset: " + name);
+    }
+    datasets_.insert({name, Dataset(properties_group_.getId(), name, h5type, length, parallel_mode_)});
 }
 
-BaseSyn2CircuitHdf5::Dataset::Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint32_t length) {
+
+
+Syn2CircuitHdf5::Dataset::Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length, bool parallel) {
     hsize_t dims[] = { length };
     dspace = H5Screate_simple(1, dims, NULL);
-    hid_t ds_id = H5Dcreate2(h5_loc, name.c_str(), h5type, dspace,
-                             H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    ds = H5Dcreate2(h5_loc, name.c_str(), h5type, dspace,
+                    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    plist = parallel? H5Pcreate(H5P_DATASET_XFER) : H5P_DEFAULT;
+    dtype = h5type;
 }
 
-ParallelSyn2CircuitHdf5::Dataset::Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint32_t length)
-  : BaseSyn2CircuitHdf5::Dataset(h5_loc, name, h5type, length)
-{
-    plist = H5Pcreate(H5P_DATASET_XFER);
+void Syn2CircuitHdf5::Dataset::write(const void *buffer, const hsize_t buf_len, const hsize_t h5offset) {
+    hid_t memspace = H5Screate_simple(1, &buf_len, NULL);
+    H5Sselect_hyperslab(dspace, H5S_SELECT_SET, &h5offset, NULL, &buf_len, NULL);
+    H5Dwrite(ds, dtype, memspace, dspace, plist, buffer);
+    H5Sclose(memspace);
 }
 
 

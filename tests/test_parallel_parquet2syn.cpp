@@ -20,7 +20,7 @@ MPI_Info info  = MPI_INFO_NULL;
 
 
 
-static const string raw_datasets_dir ("_datasets");
+static const string syn2_filename ("circuit.syn2");
 
 
 ///
@@ -65,10 +65,7 @@ convert_circuit(const std::vector<string>& filenames)  {
 
     // Create writer
 
-    CircuitWriterSYN2 writer(raw_datasets_dir, global_record_sum);
-    writer.use_mpio();
-    writer.set_output_block_position(mpi_rank, offset, record_count);
-
+    CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
 
     //Create converter and progress monitor
 
@@ -114,10 +111,10 @@ void create_syn2_container(const std::vector<string>& dataset_names) {
     Syn2CircuitHdf5 syn2circuit("circuit.syn2", string("default") );
     for(const auto& ds_name : dataset_names) {
         if(mapping.count(ds_name)>0) {
-            syn2circuit.link_existing_dataset(raw_datasets_dir + "/" + ds_name + ".h5", ds_name, mapping[ds_name]);
+            syn2circuit.link_existing_dataset(ds_name + ".h5", ds_name, mapping[ds_name]);
         }
         else {
-            syn2circuit.link_existing_dataset(raw_datasets_dir + "/" + ds_name + ".h5", ds_name);
+            syn2circuit.link_existing_dataset(ds_name + ".h5", ds_name);
         }
     }
 

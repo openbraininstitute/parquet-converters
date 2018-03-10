@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 #include <string>
-#include <vector>
+#include <unordered_map>
 #include <hdf5.h>
 #include <highfive/H5File.hpp>
 
@@ -14,91 +14,76 @@ namespace circuit {
 namespace H5 = ::HighFive;
 
 
-class BaseSyn2CircuitHdf5 {
-protected:
+class Syn2CircuitHdf5 {
+public:
     class Dataset;
     typedef std::string string;
 
-public:
-    BaseSyn2CircuitHdf5(H5::File&& f, const string& population_name);
+    Syn2CircuitHdf5(const string& filepath, const string& population_name, uint64_t n_records=0);
+    Syn2CircuitHdf5(const string& filepath, const string& population_name,
+                    const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records=0);
 
-    virtual ~BaseSyn2CircuitHdf5() {}
+    ~Syn2CircuitHdf5() {}
 
-    void link_existing_dataset(const string& circuit_syn2_path,
-                               const string& dataset_name,
-                               const string& link_name)  {
-        H5Lcreate_external(circuit_syn2_path.c_str(), dataset_name.c_str(),
-                           properties_group_.getId(), link_name.c_str(),
+
+    void create_dataset(const string& name, hid_t h5type, uint64_t length=0);
+
+    inline void link_existing_dataset(const string& circuit_syn2_path, const string& dataset_name, const string& link_name) {
+        H5Lcreate_external(circuit_syn2_path.c_str(), dataset_name.c_str(), properties_group_.getId(), link_name.c_str(),
                            H5P_DEFAULT, H5P_DEFAULT);
     }
 
-    void link_existing_dataset(const string& filepath, const string& dataset_name)  {
+    inline void link_existing_dataset(const string& filepath, const string& dataset_name)  {
         link_existing_dataset(filepath, dataset_name, dataset_name);
     }
 
-    virtual Dataset get_dataset(int i);
+    inline const std::unordered_map<string, Dataset>& datasets() {
+        return datasets_;
+    }
 
-protected:
+    inline bool has_dataset(const string& name) {
+        return datasets_.count(name) > 0;
+    }
+
+    inline Dataset& operator[](const string& name) {
+        return datasets_.at(name);
+    }
+
+
     class Dataset {
     public:
-        Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint32_t length);
+        Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length, bool parallel=false);
         Dataset() = delete;
-        virtual ~Dataset() {
+
+        ~Dataset() {
             H5Dclose(ds);
             H5Sclose(dspace);
+            if(plist != H5P_DEFAULT) {
+                H5Pclose(plist);
+            }
         }
+
+        void write(const void* buffer, const hsize_t buf_len, const hsize_t h5offset);
+
     protected:
-        hid_t ds, dspace;
+        hid_t ds, dspace, plist, dtype;
     };
 
+
+protected:
+    Syn2CircuitHdf5() = delete;
+
+    bool parallel_mode_;
     H5::File file_;
     H5::Group properties_group_;
-    std::vector<Dataset> datasets_;
+    uint64_t n_records_;
+    std::unordered_map<string, Dataset> datasets_;
+
 
 private:
     static H5::Group create_base_groups(H5::File& f, const string& population_name);
 };
 
-
-
-class Syn2CircuitHdf5 : public BaseSyn2CircuitHdf5 {
-public:
-    Syn2CircuitHdf5(const string& filepath, const string &population_name)
-      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Create), population_name)
-    {}
-
-    int create_dataset(const string& name, hid_t h5type, uint32_t length) {
-        datasets_.push_back(Dataset(properties_group_.getId(), name, h5type, length));
-        return datasets_.size() - 1;
-    }
-
-    typedef BaseSyn2CircuitHdf5::Dataset Dataset;
-};
-
-
-
-class ParallelSyn2CircuitHdf5 : public BaseSyn2CircuitHdf5{
-public:
-    ParallelSyn2CircuitHdf5(const string& filepath, const string& population_name, MPI_Comm mpicomm, MPI_Info mpiinfo)
-      : BaseSyn2CircuitHdf5(H5::File(filepath, H5::File::Create, H5::MPIOFileDriver(mpicomm, mpiinfo)), population_name)
-    { }
-
-    int create_dataset(const string& name, hid_t h5type, uint32_t length) {
-        datasets_.push_back(Dataset(properties_group_.getId(), name, h5type, length));
-        return datasets_.size() - 1;
-    }
-
-    class Dataset : public BaseSyn2CircuitHdf5::Dataset {
-    public:
-        Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint32_t length);
-        Dataset() = delete;
-        virtual ~Dataset(){
-            H5Pclose(plist);
-        }
-    private:
-        hid_t plist;
-    };
-};
 
 
 
