@@ -52,14 +52,15 @@ public:
 
     class Dataset {
     public:
-        Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length, bool parallel=false);
+        Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length,
+                bool parallel=false);
         Dataset() {}
         ~Dataset();
 
-        // no copies
+        // no copies (we hold ids for h5 objects and must know when to destroy them)
         Dataset(const Dataset&) = delete;
         Dataset& operator=(const Dataset&) = delete;
-        // just move
+        // Move ok given we invalidate the old one
         Dataset& operator=(Dataset&&) = default;
         Dataset(Dataset&&) = default;
 
@@ -68,7 +69,8 @@ public:
     protected:
         hid_t ds, dspace, plist, dtype;
         // Keep control after moves if this is a valid object
-        std::unique_ptr<bool> valid_;
+        // Base types are not reset, but unique_ptr's are.
+        std::unique_ptr<void> valid_;
     };
 
 
