@@ -27,6 +27,7 @@ find_package(OpenMP)
 find_package(Boost COMPONENTS regex)
 find_path(PARQUET_INCLUDE_DIR "parquet")
 find_library(PARQUET_LIB NAMES libparquet.a parquet)
+find_library(SYN2_LIB "syn2")
 
 # Should be optional
 find_package(MPI)
@@ -36,6 +37,7 @@ set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} $ENV{MPI_LIB})
 
 set(HDF5_PREFER_PARALLEL True)
 find_package(HDF5)
+
 
 
 # Transitive dependencies. Give preference to static for the critical ones

@@ -48,6 +48,10 @@ public:
 
     const std::vector<string> dataset_names();
 
+    Syn2CircuitHdf5& syn2_file () {
+        return syn2_file_;
+    }
+
     static const string DEFAULT_POPULATION_NAME;
 
 private:

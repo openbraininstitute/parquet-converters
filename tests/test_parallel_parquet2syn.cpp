@@ -14,6 +14,7 @@ using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
 using std::string;
 
+
 int mpi_size, mpi_rank;
 MPI_Comm comm  = MPI_COMM_WORLD;
 MPI_Info info  = MPI_INFO_NULL;
@@ -24,10 +25,9 @@ static const string syn2_filename ("circuit.syn2");
 
 
 ///
-/// \brief convert_circuit: Converts parquet files into HDF5 datasets compatible with SYN2
+/// \brief convert_circuit: Converts parquet files to SYN2
 ///
-std::vector<string>
-convert_circuit(const std::vector<string>& filenames)  {
+void convert_circuit(const std::vector<string>& filenames)  {
 
     // Each reader and each writer in a separate MPI process
 
@@ -62,7 +62,6 @@ convert_circuit(const std::vector<string>& filenames)  {
 
     std::cout << "Process " << mpi_rank << " is gonna write on offset " << offset << std::endl;
 
-
     // Create writer
 
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
@@ -92,7 +91,32 @@ convert_circuit(const std::vector<string>& filenames)  {
         p->task_done(mpi_size);
     }
 
-    return writer.dataset_names();
+    if(mpi_rank == 0) {
+        std::cout << "\nData copy complete. Creating SYN2 indexes..." << std::endl;
+        Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
+
+        // SYN2 required fields might have a different name
+        if(!syn2circuit.has_dataset("connected_neurons_pre")) {
+            std::unordered_map<string, string> mapping {
+                { string("pre_neuron_id"),  string("connected_neurons_pre")  },
+                { string("post_neuron_id"), string("connected_neurons_post") },
+                { string("pre_gid"),  string("connected_neurons_pre")  },
+                { string("post_gid"), string("connected_neurons_post") },
+            };
+
+            for(auto map_pair : mapping) {
+                if(syn2circuit.has_dataset(map_pair.first)) {
+                    syn2circuit.link_dataset(map_pair.second, map_pair.first);
+                }
+            }
+        }
+
+
+        syn2circuit.index_neuron_ids();
+
+        std::cout << "Conversion finished." << std::endl;
+    }
+
 }
 
 
@@ -120,14 +144,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Bulk conversion with MPI
-    std::vector<string> ds_names = convert_circuit(filenames);
-
-    // Master creates the SYN2 archive
-    if(mpi_rank == 0) {
-        std::cout << "\nData copy complete. Building SYN2 archive..." << std::endl;
-        //create_syn2_container(ds_names);
-        std::cout << "Conversion finished." << std::endl;
-    }
+    convert_circuit(filenames);
 
     MPI_Finalize();
 

@@ -28,13 +28,19 @@ public:
 
     void create_dataset(const string& name, hid_t h5type, uint64_t length=0);
 
-    inline void link_existing_dataset(const string& circuit_syn2_path, const string& dataset_name, const string& link_name) {
-        H5Lcreate_external(circuit_syn2_path.c_str(), dataset_name.c_str(), properties_group_.getId(), link_name.c_str(),
+    inline void link_external_dataset(const string& circuit_syn2_path, const string& dataset_name, const string& link_name) {
+        H5::Group properties_group = population_group_.getGroup("properties");
+        H5Lcreate_external(circuit_syn2_path.c_str(), dataset_name.c_str(), properties_group.getId(), link_name.c_str(),
                            H5P_DEFAULT, H5P_DEFAULT);
     }
 
-    inline void link_existing_dataset(const string& filepath, const string& dataset_name)  {
-        link_existing_dataset(filepath, dataset_name, dataset_name);
+    inline void link_external_dataset(const string& filepath, const string& dataset_name)  {
+        link_external_dataset(filepath, dataset_name, dataset_name);
+    }
+
+    inline void link_dataset(const string& link_name, const string& dataset_name)  {
+        H5::Group propg = population_group_.getGroup("properties");
+        H5Lcreate_hard(propg.getId(), dataset_name.c_str(), propg.getId(), link_name.c_str(), H5P_DEFAULT, H5P_DEFAULT);
     }
 
     inline const std::unordered_map<string, Dataset>& datasets() {
@@ -49,7 +55,13 @@ public:
         return datasets_.at(name);
     }
 
+    void index_neuron_ids();
 
+    /**
+     * @brief The Dataset class
+     *        A relativelly low-level wrapper to Hdf5 SYN2 datasets, optimized for many small-chunk writing
+     *        The dataset is not resizable, but can be written in chunks given the buffer length and destination offset
+     */
     class Dataset {
     public:
         Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length,
@@ -60,7 +72,7 @@ public:
         // no copies (we hold ids for h5 objects and must know when to destroy them)
         Dataset(const Dataset&) = delete;
         Dataset& operator=(const Dataset&) = delete;
-        // Move ok given we invalidate the old one
+        // Move ok given we track invalidation (the old doesnt close the ids)
         Dataset& operator=(Dataset&&) = default;
         Dataset(Dataset&&) = default;
 
@@ -69,18 +81,20 @@ public:
     protected:
         hid_t ds, dspace, plist, dtype;
         // Keep control after moves if this is a valid object
-        // Base types are not reset, but unique_ptr's are.
+        // unique_ptr's work, they init as "false" and become "false" after moved.
         std::unique_ptr<void> valid_;
     };
 
+    Syn2CircuitHdf5(Syn2CircuitHdf5&&) = default;
 
 protected:
-    Syn2CircuitHdf5() = delete;
+    Syn2CircuitHdf5() = default;
+
     static H5::Group create_base_groups(H5::File& f, const string& population_name);
 
     bool parallel_mode_;
     H5::File file_;
-    H5::Group properties_group_;
+    H5::Group population_group_;
     uint64_t n_records_;
     std::unordered_map<string, Dataset> datasets_;
 };

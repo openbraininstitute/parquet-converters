@@ -9,9 +9,9 @@ add_library(ConversionProgress OBJECT progress.cpp)
 
 if(PARQUET_STATICALLY_LINKED)
     target_link_libraries(TouchParquet ${PARQUET_LIB} ${Boost_LIBRARIES})
-    target_link_libraries(CircuitParquet ${PARQUET_LIB} ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
+    target_link_libraries(CircuitParquet ${PARQUET_LIB} ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${SYN2_LIB})
 else()
     target_link_libraries(TouchParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${SNAPPY_LIB} ${Boost_LIBRARIES} ${SNAPPY_LIB} ${Z_LIB})
-    target_link_libraries(CircuitParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${SNAPPY_LIB} ${Boost_LIBRARIES} ${SNAPPY_LIB} ${Z_LIB} ${HDF5_LIBRARIES})
+    target_link_libraries(CircuitParquet ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${SNAPPY_LIB} ${Boost_LIBRARIES} ${SNAPPY_LIB} ${Z_LIB} ${HDF5_LIBRARIES} ${SYN2_LIB})
 endif()
 
