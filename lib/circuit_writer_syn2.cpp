@@ -66,7 +66,7 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 }
 
 
-const std::vector<string>& CircuitWriterSYN2::dataset_names() {
+const std::vector<string> CircuitWriterSYN2::dataset_names() {
     vector<string> keys(syn2_file_.datasets().size());
     for( const auto& item : syn2_file_.datasets() ) {
         keys.push_back(item.first);
@@ -108,9 +108,6 @@ inline hid_t parquet_types_to_h5(Type::type t) {
 void write_data(Syn2CircuitHdf5::Dataset& dataset,
                 uint64_t offset,
                 const shared_ptr<const Column>& col_data) {
-
-    Type::type t_id(col_data->type()->id());
-    hid_t t = parquet_types_to_h5(t_id);
 
     #ifdef NEURON_LOGGING
     cerr << "Writing data... " <<  col_data->length() << " records." << endl;

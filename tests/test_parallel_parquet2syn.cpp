@@ -97,31 +97,6 @@ convert_circuit(const std::vector<string>& filenames)  {
 
 
 
-void create_syn2_container(const std::vector<string>& dataset_names) {
-    if(mpi_rank > 0) { return; }
-
-    std::unordered_map<string, string> mapping {
-        { string("pre_neuron_id"),  string("connected_neurons_pre")  },
-        { string("post_neuron_id"), string("connected_neurons_post") },
-        { string("pre_gid"),  string("connected_neurons_pre")  },
-        { string("post_gid"), string("connected_neurons_post") },
-    };
-
-
-    Syn2CircuitHdf5 syn2circuit("circuit.syn2", string("default") );
-    for(const auto& ds_name : dataset_names) {
-        if(mapping.count(ds_name)>0) {
-            syn2circuit.link_existing_dataset(ds_name + ".h5", ds_name, mapping[ds_name]);
-        }
-        else {
-            syn2circuit.link_existing_dataset(ds_name + ".h5", ds_name);
-        }
-    }
-
-}
-
-
-
 int main(int argc, char* argv[]) {
     // Initialize MPI
     MPI_Init(&argc, &argv);
@@ -145,13 +120,12 @@ int main(int argc, char* argv[]) {
     }
 
     // Bulk conversion with MPI
-    std::vector<string> ds_names =
-        convert_circuit(filenames);
+    std::vector<string> ds_names = convert_circuit(filenames);
 
     // Master creates the SYN2 archive
     if(mpi_rank == 0) {
         std::cout << "\nData copy complete. Building SYN2 archive..." << std::endl;
-        create_syn2_container(ds_names);
+        //create_syn2_container(ds_names);
         std::cout << "Conversion finished." << std::endl;
     }
 

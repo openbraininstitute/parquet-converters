@@ -53,35 +53,34 @@ public:
     class Dataset {
     public:
         Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length, bool parallel=false);
-        Dataset() = delete;
+        Dataset() {}
+        ~Dataset();
 
-        ~Dataset() {
-            H5Dclose(ds);
-            H5Sclose(dspace);
-            if(plist != H5P_DEFAULT) {
-                H5Pclose(plist);
-            }
-        }
+        // no copies
+        Dataset(const Dataset&) = delete;
+        Dataset& operator=(const Dataset&) = delete;
+        // just move
+        Dataset& operator=(Dataset&&) = default;
+        Dataset(Dataset&&) = default;
 
         void write(const void* buffer, const hsize_t buf_len, const hsize_t h5offset);
 
     protected:
         hid_t ds, dspace, plist, dtype;
+        // Keep control after moves if this is a valid object
+        std::unique_ptr<bool> valid_;
     };
 
 
 protected:
     Syn2CircuitHdf5() = delete;
+    static H5::Group create_base_groups(H5::File& f, const string& population_name);
 
     bool parallel_mode_;
     H5::File file_;
     H5::Group properties_group_;
     uint64_t n_records_;
     std::unordered_map<string, Dataset> datasets_;
-
-
-private:
-    static H5::Group create_base_groups(H5::File& f, const string& population_name);
 };
 
 

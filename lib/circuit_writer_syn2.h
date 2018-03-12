@@ -46,7 +46,7 @@ public:
 
     virtual void write(const CircuitData* data, uint length) override;
 
-    const std::vector<string>& dataset_names();
+    const std::vector<string> dataset_names();
 
     static const string DEFAULT_POPULATION_NAME;
 
