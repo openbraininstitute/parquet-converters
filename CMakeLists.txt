@@ -74,8 +74,14 @@ add_custom_target( touch2parquet_endian ALL
                    COMMENT "Generating touch2parquet_endian")
 
 
+
 add_executable(parquet2syn2 parquet2syn2.cpp $<TARGET_OBJECTS:ConversionProgress>)
 target_link_libraries(parquet2syn2 CircuitParquet)
+
+if(MPI_FOUND)
+    add_executable(parquet2syn2p parquet2syn2p.cpp $<TARGET_OBJECTS:ConversionProgress>)
+    target_link_libraries(parquet2syn2p CircuitParquet ${MPI_LIBRARIES})
+endif()
 
 
 # TESTS
