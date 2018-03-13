@@ -82,7 +82,7 @@ public:
         hid_t ds, dspace, plist, dtype;
         // Keep control after moves if this is a valid object
         // unique_ptr's work, they init as "false" and become "false" after moved.
-        std::unique_ptr<void> valid_;
+        std::unique_ptr<bool> valid_;
     };
 
     Syn2CircuitHdf5(Syn2CircuitHdf5&&) = default;
