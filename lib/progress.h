@@ -12,11 +12,11 @@ class ProgressMonitor {
 public:
     ProgressMonitor(size_t n_blocks, bool display_bar=true);
 
-    inline void showProgress();
+    void updateProgress(int tasks_done_inc);
 
-    inline void updateProgress(int tasks_done_inc);
-
-    void next();
+    inline void next() {
+        updateProgress(1);
+    }
 
     void task_start(int count=1);
     void task_done(int count=1);
@@ -24,10 +24,12 @@ public:
     /// Returns a handler function for a new thread
     std::function<void(int)> getNewHandler();
 
-    float cur_progress() const {
+    inline float cur_progress() const {
         return global_progress_;
     }
 
+protected:
+    inline void showProgress();
 
 private:
     const uint n_blocks_;
