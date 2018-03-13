@@ -4,6 +4,8 @@
 #include "converter.h"
 #include "progress.h"
 #include "syn2_circuit.h"
+#include <syn2/synapses_writer.hpp>
+
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -89,10 +91,8 @@ void convert_circuit(const std::vector<string>& filenames)  {
 
     if(mpi_rank == 0) {
         p->task_done(mpi_size);
-    }
 
-    if(mpi_rank == 0) {
-        std::cout << "\nData copy complete. Creating SYN2 indexes..." << std::endl;
+        // Check for datasets with required name for SYN2
         Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
 
         // SYN2 required fields might have a different name
@@ -110,11 +110,6 @@ void convert_circuit(const std::vector<string>& filenames)  {
                 }
             }
         }
-
-
-        syn2circuit.index_neuron_ids();
-
-        std::cout << "Conversion finished." << std::endl;
     }
 
 }
@@ -145,6 +140,16 @@ int main(int argc, char* argv[]) {
 
     // Bulk conversion with MPI
     convert_circuit(filenames);
+
+    if(mpi_rank == 0) {
+        std::cout << "\nData copy complete. Creating SYN2 indexes..." << std::endl;
+
+        syn2::synapses_writer writer(syn2_filename);
+        writer.create_all_index();
+
+        std::cout << "Conversion finished." << std::endl;
+    }
+
 
     MPI_Finalize();
 

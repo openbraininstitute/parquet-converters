@@ -47,9 +47,9 @@ void Syn2CircuitHdf5::index_neuron_ids() {
     namespace syn2prop = syn2::property;
 
     //Something is weird, this is not working, the lib cant find connected_neurons_pre
-//    file_.flush();
-//    population_group_ = file_.getGroup(string("synapses/default"));
-    std::cout << string(population_group_.listObjectNames());
+    //file_.flush();
+    population_group_ = file_.getGroup(string("/synapses/default"));
+    //std::cout << string(population_group_.listObjectNames());
     syn2::create_neuron_index(population_group_, syn2prop::connected_neurons_pre(), syn2prop::connected_neurons_pre());
     syn2::create_neuron_index(population_group_, syn2prop::connected_neurons_post(), syn2prop::connected_neurons_post());
 }
