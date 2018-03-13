@@ -23,6 +23,7 @@ public:
     Syn2CircuitHdf5(const string& filepath, const string& population_name,
                     const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records=0);
 
+    Syn2CircuitHdf5(Syn2CircuitHdf5&&) = default;
     ~Syn2CircuitHdf5() {}
 
 
@@ -55,8 +56,6 @@ public:
         return datasets_.at(name);
     }
 
-    void index_neuron_ids();
-
     /**
      * @brief The Dataset class
      *        A relativelly low-level wrapper to Hdf5 SYN2 datasets, optimized for many small-chunk writing
@@ -85,7 +84,6 @@ public:
         std::unique_ptr<bool> valid_;
     };
 
-    Syn2CircuitHdf5(Syn2CircuitHdf5&&) = default;
 
 protected:
     Syn2CircuitHdf5() = default;

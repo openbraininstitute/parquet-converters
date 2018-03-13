@@ -57,7 +57,8 @@ include_directories(${MPI_INCLUDE_PATH})
 add_subdirectory(lib)
 include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
-# MAIN EXECUTABLE
+
+# MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp $<TARGET_OBJECTS:ConversionProgress>)
 target_link_libraries(touch2parquet TouchParquet)
 
@@ -71,6 +72,11 @@ add_custom_target( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian
                    DEPENDS touch2parquet
                    COMMENT "Generating touch2parquet_endian")
+
+
+add_executable(parquet2syn2 parquet2syn2.cpp $<TARGET_OBJECTS:ConversionProgress>)
+target_link_libraries(parquet2syn2 CircuitParquet)
+
 
 # TESTS
 enable_testing()
