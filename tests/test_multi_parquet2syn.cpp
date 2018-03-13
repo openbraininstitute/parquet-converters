@@ -5,7 +5,7 @@
 #include "progress.h"
 #include <vector>
 #include <iostream>
-
+#include <syn2/synapses_writer.hpp>
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
@@ -26,7 +26,24 @@ void convert_circuit(const vector<string> & filenames)  {
     converter.exportAll();
     p.task_done();
 
-    std::cout << "\nComplete." << std::endl;
+    // Check for datasets with required name for SYN2
+    Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
+ 
+    // SYN2 required fields might have a different name
+    if(!syn2circuit.has_dataset("connected_neurons_pre")) {
+        std::unordered_map<string, string> mapping {
+            { string("pre_neuron_id"),  string("connected_neurons_pre")  },
+            { string("post_neuron_id"), string("connected_neurons_post") },
+            { string("pre_gid"),  string("connected_neurons_pre")  },
+            { string("post_gid"), string("connected_neurons_post") },
+        };
+        for(auto map_pair : mapping) {
+            if(syn2circuit.has_dataset(map_pair.first)) {
+                syn2circuit.link_dataset(map_pair.second, map_pair.first);
+            }
+        }
+    }
+    
 }
 
 int main(int argc, char* argv[]) {
@@ -42,5 +59,13 @@ int main(int argc, char* argv[]) {
     }
 
     convert_circuit(names);
+
+    std::cout << "\nData copy complete. Creating SYN2 indexes..." << std::endl;
+
+    syn2::synapses_writer writer(string("circuit.syn2"));
+    writer.create_all_index();
+
+    std::cout << "\nComplete." << std::endl;
+
     return 0;
 }
