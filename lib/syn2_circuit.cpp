@@ -1,5 +1,4 @@
 #include "syn2_circuit.h"
-#include <syn2/synapses_properties.hpp>
 
 namespace neuron_parquet {
 namespace circuit {
@@ -41,19 +40,6 @@ void Syn2CircuitHdf5::create_dataset(const string& name, hid_t h5type, uint64_t 
     datasets_[name] = Dataset(properties_group.getId(), name, h5type, length, parallel_mode_);
 }
 
-
-#ifdef INLIBINDEXING
-void Syn2CircuitHdf5::index_neuron_ids() {
-    namespace syn2prop = syn2::property;
-
-    //Something is weird, this is not working, the lib cant find connected_neurons_pre
-    //file_.flush();
-    population_group_ = file_.getGroup(string("/synapses/default"));
-    //std::cout << string(population_group_.listObjectNames());
-    syn2::create_neuron_index(population_group_, syn2prop::connected_neurons_pre(), syn2prop::connected_neurons_pre());
-    syn2::create_neuron_index(population_group_, syn2prop::connected_neurons_post(), syn2prop::connected_neurons_post());
-}
-#endif
 
 
 Syn2CircuitHdf5::Dataset::Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length, bool parallel) {

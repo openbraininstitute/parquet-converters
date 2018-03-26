@@ -177,8 +177,8 @@ int main(int argc, char* argv[]) {
     int my_offset = total_files / mpi_size * mpi_rank;
     my_offset += ( mpi_rank > remaining )? remaining : mpi_rank;
 
-    std::vector<string> my_input_names(all_input_names.begin()+my_offset, all_input_names.begin()+my_offset+my_n_files);
-    cout << "Process " << mpi_rank << " is gonna write files " << my_offset << " to " << my_offset+my_n_files << std::endl;
+    std::vector<string> my_input_names(all_input_names.begin()+my_offset, all_input_names.begin() + my_offset + my_n_files);
+    cout << "Process " << mpi_rank << " is gonna write files " << my_offset << " to " << my_offset + my_n_files << std::endl;
 
     // Bulk conversion with MPI
     convert_circuit(my_input_names, output_filename);
@@ -186,15 +186,19 @@ int main(int argc, char* argv[]) {
     MPI_Barrier(comm);
 
     if(mpi_rank == 0) {
-        cout << std::endl << "Data conversion complete. "
+        cout << std::endl
+             << "Data conversion complete. " << std::endl
              << "Creating SYN2 indexes..." << std::endl;
-
-        syn2::synapses_writer writer(output_filename);
-        writer.create_all_index();
-
-        cout << "Finished." << std::endl;
     }
 
+    {
+        syn2::synapses_writer writer(output_filename, syn2::synapses_writer::use_mpi_flag);
+        writer.create_all_index();
+    }
+
+    if(mpi_rank == 0) {
+        cout << "Finished." << std::endl;
+    }
 
     MPI_Finalize();
 

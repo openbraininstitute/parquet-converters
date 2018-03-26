@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
     if(mpi_rank == 0) {
         std::cout << "\nData copy complete. Creating SYN2 indexes..." << std::endl;
 
-        syn2::synapses_writer writer(syn2_filename);
+        syn2::synapses_writer writer(syn2_filename, syn2::synapses_writer::use_mpi_flag);
         writer.create_all_index();
 
         std::cout << "Conversion finished." << std::endl;
