@@ -27,5 +27,13 @@ add_test(
         ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
         ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
         ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part3.parquet
+)
+
+add_test(
+    NAME parquet2syn_mpi
+    COMMAND mpiexec -np 2 ../parquet2syn2p
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
+        --with-mpi
 )
