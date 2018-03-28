@@ -20,8 +20,10 @@ public:
     typedef std::string string;
 
     Syn2CircuitHdf5(const string& filepath, const string& population_name, uint64_t n_records=0);
+#ifdef NEURONPARQUET_USE_MPI
     Syn2CircuitHdf5(const string& filepath, const string& population_name,
                     const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records=0);
+#endif
 
     Syn2CircuitHdf5(Syn2CircuitHdf5&&) = default;
     ~Syn2CircuitHdf5() {}

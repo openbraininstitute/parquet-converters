@@ -7,7 +7,9 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#ifdef NEURONPARQUET_USE_MPI
 #include <mpi.h>
+#endif
 #include <hdf5.h>
 
 #define DEFAULT_SYN2_POPULATION_NAME "default"
@@ -27,20 +29,25 @@ class CircuitWriterSYN2 : public Writer<CircuitData>
 {
 public:
     typedef std::string string;
+
+#ifdef NEURONPARQUET_USE_MPI
     struct MPI_Params {
         MPI_Comm comm;
         MPI_Info info;
     };
+#endif
 
     CircuitWriterSYN2(const string& filepath,
                       uint64_t n_records,
                       const string& population_name=DEFAULT_POPULATION_NAME);
 
+#ifdef NEURONPARQUET_USE_MPI
     CircuitWriterSYN2(const string& filepath,
                       uint64_t n_records,
                       const MPI_Params& mpi_params,
                       uint64_t output_offset,
                       const string& population_name=DEFAULT_POPULATION_NAME);
+#endif
 
     ~CircuitWriterSYN2() {}
 

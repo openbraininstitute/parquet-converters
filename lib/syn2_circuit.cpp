@@ -13,6 +13,7 @@ Syn2CircuitHdf5::Syn2CircuitHdf5(const string& filepath, const string &populatio
     n_records_(n_records)
 { }
 
+#ifdef NEURONPARQUET_USE_MPI
 Syn2CircuitHdf5::Syn2CircuitHdf5(const string& filepath, const string &population_name,
                                  const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records)
   : parallel_mode_(true),
@@ -20,7 +21,7 @@ Syn2CircuitHdf5::Syn2CircuitHdf5(const string& filepath, const string &populatio
     population_group_(create_base_groups(file_, population_name)),
     n_records_(n_records)
 { }
-
+#endif
 
 H5::Group Syn2CircuitHdf5::create_base_groups(H5::File& f, const string& population_name) {
     H5::Group g1 = f.createGroup(string("synapses"));
@@ -47,11 +48,15 @@ Syn2CircuitHdf5::Dataset::Dataset(hid_t h5_loc, const string& name, hid_t h5type
     dspace = H5Screate_simple(1, dims, NULL);
     ds = H5Dcreate2(h5_loc, name.c_str(), h5type, dspace,
                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#ifdef NEURONPARQUET_USE_MPI
     if(parallel) {
         plist = H5Pcreate(H5P_DATASET_XFER);
         H5Pset_dxpl_mpio(plist, H5FD_MPIO_INDEPENDENT);
     }
-    else {
+    else
+#endif
+    {
+        (void) parallel;
         plist = H5P_DEFAULT;
     }
     dtype = h5type;
