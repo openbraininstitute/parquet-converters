@@ -24,6 +24,7 @@ CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
     output_file_offset_(0)
 { }
 
+#ifdef NEURONPARQUET_USE_MPI
 CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
                                      uint64_t n_records,
                                      const MPI_Params& mpi_params,
@@ -34,6 +35,7 @@ CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
     population_name_(population_name),
     output_file_offset_(output_offset)
 { }
+#endif
 
 
 // ================================================================================================
