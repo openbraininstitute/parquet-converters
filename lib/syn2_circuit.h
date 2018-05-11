@@ -1,9 +1,11 @@
 #ifndef SYN2_UTIL_H
 #define SYN2_UTIL_H
 
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <mpi.h>
 #include <hdf5.h>
 #include <highfive/H5File.hpp>
 

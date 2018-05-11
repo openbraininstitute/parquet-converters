@@ -7,5 +7,5 @@ add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 add_library(ConversionProgress OBJECT progress.cpp)
 
-target_link_libraries(TouchParquet ${PARQUET_LIB_DEPS} )
-target_link_libraries(CircuitParquet ${HDF5_LIBRARIES} ${PARQUET_LIB_DEPS} ${SYN2_LIB} )
+target_link_libraries(TouchParquet ${PARQUET_LIB_DEPS} ${ZSTD_LIB})
+target_link_libraries(CircuitParquet ${HDF5_LIBRARIES} ${PARQUET_LIB_DEPS} ${SYN2_LIB} ${ZSTD_LIB})
