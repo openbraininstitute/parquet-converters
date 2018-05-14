@@ -37,7 +37,7 @@ public:
         return record_count_;
     }
 
-    virtual inline void seek(uint64_t pos) override;
+    virtual void seek(uint64_t pos) override;
 
     virtual uint32_t fillBuffer(Touch* buf, uint32_t length) override;
 

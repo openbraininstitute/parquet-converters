@@ -26,7 +26,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 ## DEPENDENCIES
 ##
 find_package(OpenMP)
-find_package(Boost COMPONENTS regex REQUIRED)
+find_package(Boost COMPONENTS regex filesystem REQUIRED)
 
 find_library(SYN2_LIB "syn2")
 
@@ -75,6 +75,8 @@ include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 # MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp $<TARGET_OBJECTS:ConversionProgress>)
 target_link_libraries(touch2parquet TouchParquet)
+add_executable(touch2parquetp touch2parquetp.cpp $<TARGET_OBJECTS:ConversionProgress>)
+target_link_libraries(touch2parquetp TouchParquet)
 
 if (OPENMP_FOUND)
     set_target_properties( touch2parquet PROPERTIES
@@ -105,6 +107,7 @@ add_subdirectory(tests)
 
 # INSTALL
 install(TARGETS touch2parquet DESTINATION bin)
+install(TARGETS touch2parquetp DESTINATION bin)
 install(TARGETS parquet2syn2 DESTINATION bin)
 install(FILES ${CMAKE_BINARY_DIR}/touch2parquet_endian DESTINATION bin)
 
