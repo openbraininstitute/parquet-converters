@@ -103,14 +103,18 @@ Touch & TouchReader::getItem(uint32_t index) {
 ///        So that the specified position is contained in the buffer
 ///        NOTE: This functions doesnt imply any buffer filling.
 /// \param pos
+/// \param buffered
 ///
-void TouchReader::seek(uint64_t pos)   {
+void TouchReader::seek(uint64_t pos, bool buffered)   {
     if( pos >= record_count_ ) {
         throw runtime_error(string("Invalid file position ") + to_string(pos));
     }
 
-    uint32_t nth_buffer = (pos / BUFFER_LEN);
-    uint32_t new_offset = nth_buffer * BUFFER_LEN;
+    uint64_t new_offset = pos;
+    if (buffered) {
+        uint64_t nth_buffer = (pos / BUFFER_LEN);
+        new_offset = nth_buffer * BUFFER_LEN;
+    }
 
     if( new_offset != offset_ ) {
         offset_ = new_offset;

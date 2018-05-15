@@ -98,7 +98,7 @@ uint32_t CircuitMultiReaderParquet::fillBuffer(CircuitData *buf, uint length) {
 }
 
 
-void CircuitMultiReaderParquet::seek(uint64_t pos) {
+void CircuitMultiReaderParquet::seek(uint64_t pos, bool buffered) {
     if( pos >= rowgroup_count_ ){
         throw std::runtime_error("Cant seek over file length");
     }

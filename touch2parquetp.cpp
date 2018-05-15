@@ -101,12 +101,11 @@ int main( int argc, char* argv[] ) {
         progress.task_start(mpi_size);
 
     auto outfn = fs::path(argv[first_file]).stem().string() + "." + std::to_string(mpi_rank) + ".parquet";
-    std::cout << "Process " << mpi_rank << " will write file " << outfn << std::endl;
-    MPI_Barrier(comm);
     try {
         TouchWriterParquet tw(outfn);
 
         for (int i = args.n_opts; i < argc; i++) {
+            MPI_Barrier(comm);
             if (mpi_rank == 0)
                 printf("\r[Info] Converting %-86s\n", argv[i]);
 
@@ -114,37 +113,30 @@ int main( int argc, char* argv[] ) {
             auto work_unit = static_cast<long unsigned int>(std::ceil(tr.record_count() / double(mpi_size)));
             auto offset = work_unit * mpi_rank;
             work_unit = std::min(tr.record_count() - offset, work_unit);
-            tr.seek((unsigned) offset);
-
-            std::cout << "Process " << mpi_rank << " will process touches " << offset
-                      << " to " << (offset + work_unit) << std::endl;
 
             TouchConverter converter(tr, tw);
             if (mpi_rank == 0) {
                 // Progress handlers is just a function that triggers incrementing the progressbar
-                auto f = [&progress](int) {
-                    if(mpi_rank == 0) {
-                        progress.updateProgress(mpi_size);
-                    }
-                };
+                auto f = [&progress](int) { progress.updateProgress(mpi_size); };
                 converter.setProgressHandler(f);
             }
-            converter.exportN((unsigned) work_unit);
+            converter.exportN(work_unit, offset);
         }
     }
     catch (const std::exception& e){
-        printf("\n[ERROR] Could not create output file.\n -> %s", e.what());
+        printf("\n[ERROR] Could not create output file for rank %d.\n -> %s\n", mpi_rank, e.what());
         MPI_Finalize();
         return 1;
     }
 
-    if(mpi_rank == 0)
+    if (mpi_rank == 0)
         progress.task_done(mpi_size);
 
     MPI_Barrier(comm);
     MPI_Finalize();
 
-    printf("\nDone exporting\n");
+    if (mpi_rank == 0)
+        printf("\nDone exporting\n");
     return 0;
 }
 

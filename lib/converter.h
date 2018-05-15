@@ -53,28 +53,28 @@ public:
 
 
 
-    int exportN(uint64_t n) {
-        if( n > n_records_ ) {
-            n = n_records_;
+    int exportN(uint64_t n, uint64_t offset=0) {
+        if( n + offset > n_records_ ) {
+            n = n_records_ - offset;
             std::cerr << "Warning: Requested export blocks more than available. Setting to max available." << std::endl;
         }
-        reader_.seek(0);
+        reader_.seek(offset);
 
         int n_buffers = n / BUFFER_LEN;
         int remaining = n % BUFFER_LEN;
 
-        for(int i=0; i<n_buffers; i++) {
+        for (int i = 0; i < n_buffers; i++) {
             reader_.fillBuffer( buffer_, BUFFER_LEN );
             writer_.write( buffer_, BUFFER_LEN );
 
-            if( progress_handler_ ) {
+            if (progress_handler_)
                 progress_handler_(1);
-            }
         }
         if( remaining > 0) {
             reader_.fillBuffer( buffer_, remaining );
             writer_.write( buffer_, remaining );
-            progress_handler_(1);
+            if (progress_handler_)
+                progress_handler_(1);
         }
 
         return n;

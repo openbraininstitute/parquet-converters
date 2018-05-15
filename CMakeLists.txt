@@ -26,7 +26,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 ## DEPENDENCIES
 ##
 find_package(OpenMP)
-find_package(Boost COMPONENTS regex filesystem REQUIRED)
+find_package(Boost COMPONENTS filesystem regex REQUIRED)
 
 find_library(SYN2_LIB "syn2")
 
@@ -88,6 +88,10 @@ add_custom_target( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian
                    DEPENDS touch2parquet
                    COMMENT "Generating touch2parquet_endian")
+add_custom_target( touch2parquetp_endian ALL
+                   COMMAND ln -sf touch2parquetp touch2parquetp_endian
+                   DEPENDS touch2parquetp
+                   COMMENT "Generating touch2parquetp_endian")
 
 
 
@@ -110,6 +114,7 @@ install(TARGETS touch2parquet DESTINATION bin)
 install(TARGETS touch2parquetp DESTINATION bin)
 install(TARGETS parquet2syn2 DESTINATION bin)
 install(FILES ${CMAKE_BINARY_DIR}/touch2parquet_endian DESTINATION bin)
+install(FILES ${CMAKE_BINARY_DIR}/touch2parquetp_endian DESTINATION bin)
 
 if(NEURONPARQUET_USE_MPI)
     install(TARGETS parquet2syn2p DESTINATION bin)

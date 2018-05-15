@@ -27,7 +27,7 @@ public:
         return rowgroup_count_;
     }
 
-    virtual void seek(uint64_t pos) override {
+    virtual void seek(uint64_t pos, bool buffered=false) override {
         cur_row_group_ = pos;
     }
 
@@ -77,7 +77,7 @@ public:
         return rowgroup_count_;
     }
 
-    virtual void seek(uint64_t pos) override;
+    virtual void seek(uint64_t pos, bool buffered=false) override;
 
     bool is_chunked() const {
         return true;

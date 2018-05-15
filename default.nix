@@ -9,8 +9,8 @@
 with import <BBPpkgs> { };
 
 {
-  converters = converters.overrideDerivation (oldAttr: rec {
-    name = "converters-DEV_ENV";
+  parquet-converters = parquet-converters.overrideDerivation (oldAttr: rec {
+    name = "parquet-converters-DEV_ENV";
     src = ./../.;
     makeFlags = [ "VERBOSE=1" ];
   });
