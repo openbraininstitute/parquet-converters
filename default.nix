@@ -11,7 +11,7 @@ with import <BBPpkgs> { };
 {
   parquet-converters = parquet-converters.overrideDerivation (oldAttr: rec {
     name = "parquet-converters-DEV_ENV";
-    src = ./../.;
+    src = ./.;
     makeFlags = [ "VERBOSE=1" ];
   });
 }
