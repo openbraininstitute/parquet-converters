@@ -1,4 +1,4 @@
-#include "touch_writer_parquet.h"
+#include "parquet_writer.h"
 #include <assert.h>
 
 using namespace parquet;

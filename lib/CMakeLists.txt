@@ -1,7 +1,12 @@
-set(TOUCH_SRCS touch_reader.cpp touch_writer_parquet.cpp)
-set(CIRCUIT_SRCS circuit_reader_parquet.cpp circuit_writer_syn2.cpp syn2_circuit.cpp)
+set(TOUCH_SRCS
+    "touches/touch_reader.cpp"
+    "touches/parquet_writer.cpp")
+set(CIRCUIT_SRCS
+    "circuit/parquet_reader.cpp"
+    "circuit/syn2_writer.cpp"
+    "circuit/syn2hdf5.cpp")
 
-include_directories(${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+include_directories("." ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})

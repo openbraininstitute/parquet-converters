@@ -1,6 +1,6 @@
 #include <iostream>
 #include "touch_reader.h"
-#include "touch_writer_parquet.h"
+#include "parquet_reader.h"
 #include "converter.h"
 #include "progress.h"
 

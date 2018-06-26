@@ -1,4 +1,4 @@
-#include "circuit_reader_parquet.h"
+#include "parquet_reader.h"
 #include <stdexcept>
 
 namespace neuron_parquet {

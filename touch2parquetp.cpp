@@ -4,8 +4,8 @@
 #include <mpi.h>
 #include <unistd.h>
 #include <string.h>
-#include "touch_reader.h"
-#include "touch_writer_parquet.h"
+#include "touches/touch_reader.h"
+#include "touches/parquet_writer.h"
 #include "converter.h"
 #include "progress.h"
 

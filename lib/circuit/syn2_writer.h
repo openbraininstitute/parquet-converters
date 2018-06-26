@@ -3,7 +3,7 @@
 
 #include "generic_writer.h"
 #include "circuit_defs.h"
-#include "syn2_circuit.h"
+#include "syn2hdf5.h"
 #include <string>
 #include <unordered_map>
 #include <memory>

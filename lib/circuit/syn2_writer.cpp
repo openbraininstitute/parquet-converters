@@ -1,4 +1,4 @@
-#include "circuit_writer_syn2.h"
+#include "syn2_writer.h"
 #include <functional>
 #include <thread>
 #include <iostream>

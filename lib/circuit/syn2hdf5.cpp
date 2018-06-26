@@ -1,4 +1,4 @@
-#include "syn2_circuit.h"
+#include "syn2hdf5.h"
 
 namespace neuron_parquet {
 namespace circuit {

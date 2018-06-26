@@ -1,6 +1,6 @@
-#include "circuit_defs.h"
-#include "circuit_reader_parquet.h"
-#include "circuit_writer_syn2.h"
+#include "circuit/circuit_defs.h"
+#include "circuit/parquet_reader.h"
+#include "circuit/syn2_writer.h"
 #include "converter.h"
 #include "progress.h"
 #include <vector>
