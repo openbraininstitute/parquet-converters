@@ -164,8 +164,8 @@ int main(int argc, char* argv[]) {
         }
     }
     catch(const std::exception& e) {
-        std::cout << "Arguments error: " << e.what()
-                  << "Usage: " << argv[0] << " [-o outfile] file..." << std::endl;
+        std::cout << "Arguments error: " << e.what() << std::endl
+                  << "Usage: parquet2syn2p [-o outfile] file..." << std::endl;
         MPI_Finalize();
         return -1;
     }
