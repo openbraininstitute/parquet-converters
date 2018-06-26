@@ -4,6 +4,7 @@
 #include <fstream>
 #include <istream>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <numeric>
 #include <mutex>
@@ -16,7 +17,7 @@
 
 class TouchReader : public Reader<Touch>{
 public:
-    TouchReader( const char *filename, bool different_endian=false );
+    TouchReader( const char *filename, bool different_endian=false, bool buffered=false );
     ~TouchReader();
 
 
@@ -37,7 +38,7 @@ public:
         return record_count_;
     }
 
-    virtual void seek(uint64_t pos, bool buffered=false) override;
+    virtual void seek(uint64_t pos) override;
 
     virtual uint32_t fillBuffer(Touch* buf, uint32_t length) override;
 
@@ -54,14 +55,14 @@ private:
     // File
     std::ifstream touchFile_;
     uint64_t record_count_;
-    bool endian_swap_=false;
+    uint64_t offset_;
+    bool endian_swap_;
+    bool buffered_;
 
     // Internal Buffer: to be used for iteration
-    Touch buffer_[BUFFER_LEN];
-    uint64_t offset_;
     uint32_t it_buf_index_;  // Offset relative to buffer
     uint32_t buffer_record_count_;
-
+    std::unique_ptr<Touch[]> buffer_;
 };
 
 

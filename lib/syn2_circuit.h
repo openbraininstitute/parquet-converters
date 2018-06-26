@@ -5,10 +5,11 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <mpi.h>
 #include <hdf5.h>
 #include <highfive/H5File.hpp>
-
+#ifdef NEURONPARQUET_USE_MPI
+#include <mpi.h>
+#endif
 
 namespace neuron_parquet {
 namespace circuit {

@@ -18,7 +18,7 @@ public:
     // Non-chunked formats shall return 0
     virtual uint32_t block_count() const = 0;
 
-    virtual void seek(uint64_t pos, bool buffered=false) = 0;
+    virtual void seek(uint64_t pos) = 0;
 
     virtual bool is_chunked() const = 0;
 

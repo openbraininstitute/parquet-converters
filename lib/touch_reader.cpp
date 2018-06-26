@@ -38,10 +38,13 @@ struct TouchInfoSerialized {
 
 
 
-TouchReader::TouchReader(const char* filename, bool different_endian)
+TouchReader::TouchReader(const char* filename, bool different_endian, bool buffered)
 :   offset_(0),
+    endian_swap_(different_endian),
+    buffered_(buffered),
     it_buf_index_(0),
-    buffer_record_count_(0)
+    buffer_record_count_(0),
+    buffer_(new Touch[buffered ? BUFFER_LEN : 1])
 {
     //test_str_size();
     touchFile_.open(filename, ifstream::binary);
@@ -49,8 +52,6 @@ TouchReader::TouchReader(const char* filename, bool different_endian)
     uint64_t length = touchFile_.tellg();
     record_count_ = length / RECORD_SIZE;
     touchFile_.seekg (0);
-    endian_swap_ = different_endian;
-
 }
 
 TouchReader::~TouchReader() {
@@ -71,11 +72,16 @@ Touch & TouchReader::begin() {
 Touch & TouchReader::getNext() {
     uint32_t next_position = it_buf_index_ + 1;
 
+    // Throw NULL if we are at the end
     if( offset_ + next_position >= record_count_ ) {
-        // Throw NULL if we are at the end
         throw NULL;
     }
 
+    if (!buffered_) {
+        _load_into(buffer_.get(), 1);
+        offset_++;
+        return buffer_[0];
+    }
     if(next_position >= buffer_record_count_) {
         // Need change buffer offset?
         if(next_position >= BUFFER_LEN) {
@@ -103,15 +109,14 @@ Touch & TouchReader::getItem(uint32_t index) {
 ///        So that the specified position is contained in the buffer
 ///        NOTE: This functions doesnt imply any buffer filling.
 /// \param pos
-/// \param buffered
 ///
-void TouchReader::seek(uint64_t pos, bool buffered)   {
+void TouchReader::seek(uint64_t pos)   {
     if( pos >= record_count_ ) {
         throw runtime_error(string("Invalid file position ") + to_string(pos));
     }
 
     uint64_t new_offset = pos;
-    if (buffered) {
+    if (buffered_) {
         uint64_t nth_buffer = (pos / BUFFER_LEN);
         new_offset = nth_buffer * BUFFER_LEN;
     }
@@ -147,7 +152,7 @@ void TouchReader::_fillBuffer() {
         load_n = record_count_ - offset_;
     }
 
-    _load_into(buffer_, load_n);
+    _load_into(buffer_.get(), load_n);
     offset_ += load_n;
     buffer_record_count_ = load_n;
 }

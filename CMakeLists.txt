@@ -29,7 +29,6 @@ find_package(OpenMP)
 find_package(Boost COMPONENTS filesystem regex REQUIRED)
 
 find_library(SYN2_LIB "syn2")
-
 if(NEURONPARQUET_USE_MPI)
     find_package(MPI REQUIRED)
     add_definitions("-DNEURONPARQUET_USE_MPI")
@@ -55,6 +54,10 @@ if(NEURONPARQUET_USE_STATIC)
     find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
     find_library(Z_LIB NAMES libz.a z)
     find_library(ZSTD_LIB NAMES libzstd.a zstd)
+    # attept to build without ZSTD if not found
+    if(NOT ZSTD_LIB)
+        set(ZSTD_LIB "")
+    endif()
     set(PARQUET_LIB_DEPS ${PARQUET_LIB} ${ARROW_LIB} ${THRIFT_LIB} ${SNAPPY_LIB} ${Boost_LIBRARIES} ${SNAPPY_LIB} ${Z_LIB} ${ZSTD_LIB} ${Boost_LIBRARIES})
 else()
     find_library(PARQUET_LIB NAMES parquet)
@@ -75,8 +78,6 @@ include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 # MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp $<TARGET_OBJECTS:ConversionProgress>)
 target_link_libraries(touch2parquet TouchParquet)
-add_executable(touch2parquetp touch2parquetp.cpp $<TARGET_OBJECTS:ConversionProgress>)
-target_link_libraries(touch2parquetp TouchParquet)
 
 if (OPENMP_FOUND)
     set_target_properties( touch2parquet PROPERTIES
@@ -88,11 +89,17 @@ add_custom_target( touch2parquet_endian ALL
                    COMMAND ln -sf touch2parquet touch2parquet_endian
                    DEPENDS touch2parquet
                    COMMENT "Generating touch2parquet_endian")
-add_custom_target( touch2parquetp_endian ALL
-                   COMMAND ln -sf touch2parquetp touch2parquetp_endian
-                   DEPENDS touch2parquetp
-                   COMMENT "Generating touch2parquetp_endian")
 
+
+if(NEURONPARQUET_USE_MPI)
+  add_executable(touch2parquetp touch2parquetp.cpp $<TARGET_OBJECTS:ConversionProgress>)
+  target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
+
+  add_custom_target( touch2parquetp_endian ALL
+                     COMMAND ln -sf touch2parquetp touch2parquetp_endian
+                     DEPENDS touch2parquetp
+                     COMMENT "Generating touch2parquetp_endian")
+endif()
 
 
 add_executable(parquet2syn2 parquet2syn2.cpp $<TARGET_OBJECTS:ConversionProgress>)
@@ -111,11 +118,11 @@ add_subdirectory(tests)
 
 # INSTALL
 install(TARGETS touch2parquet DESTINATION bin)
-install(TARGETS touch2parquetp DESTINATION bin)
 install(TARGETS parquet2syn2 DESTINATION bin)
 install(FILES ${CMAKE_BINARY_DIR}/touch2parquet_endian DESTINATION bin)
-install(FILES ${CMAKE_BINARY_DIR}/touch2parquetp_endian DESTINATION bin)
 
 if(NEURONPARQUET_USE_MPI)
+    install(TARGETS touch2parquetp DESTINATION bin)
     install(TARGETS parquet2syn2p DESTINATION bin)
+    install(FILES ${CMAKE_BINARY_DIR}/touch2parquetp_endian DESTINATION bin)
 endif()
