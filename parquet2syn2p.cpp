@@ -7,6 +7,7 @@
 #include <syn2/synapses_writer.hpp>
 
 #include <stdexcept>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -61,7 +62,10 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
     uint64_t offset;
     MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
-    std::cout << "Process " << mpi_rank << " is gonna write " << reader.block_count() << " block(s) on offset " << offset << std::endl;
+    std::cout << std::setfill('.')
+              << "Process " << std::setw(4) << mpi_rank
+              << " is going to write " << std::setw(12) << reader.block_count()
+              << " block(s) with an offset of " << std::setw(12) << offset << std::endl;
 
     // Create writer
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
@@ -115,8 +119,6 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
 }
 
 
-
-
 void parse_arguments(const int argc, char* argv[], string& output_filename, std::vector<string>& input_names)  {
     for(int i=1; i<argc; i++) {
         if(argv[i][0] != '-') {
@@ -162,7 +164,8 @@ int main(int argc, char* argv[]) {
         }
     }
     catch(const std::exception& e) {
-        cout << "Arguments error: " << e.what() << std::endl;
+        std::cout << "Arguments error: " << e.what()
+                  << "Usage: " << argv[0] << " [-o outfile] file..." << std::endl;
         MPI_Finalize();
         return -1;
     }
@@ -178,7 +181,17 @@ int main(int argc, char* argv[]) {
     my_offset += ( mpi_rank > remaining )? remaining : mpi_rank;
 
     std::vector<string> my_input_names(all_input_names.begin()+my_offset, all_input_names.begin() + my_offset + my_n_files);
-    cout << "Process " << mpi_rank << " is gonna write files " << my_offset << " to " << my_offset + my_n_files << std::endl;
+    cout << std::setfill('.')
+         << "Process " << std::setw(4) << mpi_rank
+         << " is going to read files " << std::setw(8) << my_offset
+         << " to " << std::setw(8) << my_offset + my_n_files << std::endl;
+
+    MPI_Barrier(comm);
+
+    if (mpi_rank == 0)
+        std::cout << "Writing to " << output_filename << std::endl;
+
+    MPI_Barrier(comm);
 
     // Bulk conversion with MPI
     convert_circuit(my_input_names, output_filename);
@@ -191,10 +204,14 @@ int main(int argc, char* argv[]) {
              << "Creating SYN2 indexes..." << std::endl;
     }
 
+    MPI_Barrier(comm);
+
     {
         syn2::synapses_writer writer(output_filename, syn2::synapses_writer::use_mpi_flag);
         writer.create_all_index();
     }
+
+    MPI_Barrier(comm);
 
     if(mpi_rank == 0) {
         cout << "Finished." << std::endl;
