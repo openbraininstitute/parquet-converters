@@ -69,10 +69,12 @@ endif()
 ## includes
 find_path(PARQUET_INCLUDE_DIR "parquet")
 find_path(ARROW_INCLUDE_DIR "arrow")
+include_directories(${Boost_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 
-# Lib
+# Build core lib
 add_subdirectory(lib)
-include_directories(lib ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+
+include_directories("lib")
 
 
 # MAIN EXECUTABLES

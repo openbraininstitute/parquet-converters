@@ -1,6 +1,6 @@
-#include <time.h>
 #include "touch_reader.h"
-#include "parquet_writer.h"
+
+#include <time.h>
 
 
 static inline void bswap_32(uint32_t* b) {
@@ -13,29 +13,6 @@ using namespace std;
 
 #define swap_int(x) bswap_32((uint32_t*)&x)
 #define swap_float(x) bswap_32((uint32_t*)&x)
-
-
-//More global definitions (lost around the code)
-struct NeuronInfoSerialized {
-    NeuronInfoSerialized() :
-        neuronID(-1),
-        touchesCount(0),
-        binaryOffset(0)     {}
-
-    int neuronID;
-    uint32_t touchesCount;
-    long long binaryOffset;
-};
-
-struct TouchInfoSerialized {
-    TouchInfoSerialized() :
-        ids(),
-        dis() {}
-
-    int ids[7];
-    float dis[3];
-};
-
 
 
 TouchReader::TouchReader(const char* filename, bool different_endian, bool buffered)

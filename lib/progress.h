@@ -7,7 +7,12 @@
 #include <atomic>
 
 
-/// A thread-safe ProgressBar
+///
+/// \brief The ProgressMonitor class is a thread safe progress monitor
+///     which optionally displays a spark-like progress-bar.
+///     It controls update intervals so that it can be used even in
+///     fast-cycle loops without incurring performance penalty.
+///
 class ProgressMonitor {
 public:
     ProgressMonitor(size_t n_blocks, bool display_bar=true);

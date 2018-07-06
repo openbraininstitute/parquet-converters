@@ -6,8 +6,6 @@ set(CIRCUIT_SRCS
     "circuit/syn2_writer.cpp"
     "circuit/syn2hdf5.cpp")
 
-include_directories("." ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
-
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 add_library(ConversionProgress OBJECT progress.cpp)

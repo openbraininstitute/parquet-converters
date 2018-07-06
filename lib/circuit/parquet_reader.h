@@ -1,11 +1,10 @@
 #ifndef NRN_READER_PARQUET_H
 #define NRN_READER_PARQUET_H
 
-#include "generic_reader.h"
-#include "circuit_defs.h"
 #include <parquet/api/reader.h>
 #include <parquet/arrow/reader.h>
-
+#include "../generic_reader.h"
+#include "circuit_defs.h"
 
 namespace neuron_parquet {
 namespace circuit {

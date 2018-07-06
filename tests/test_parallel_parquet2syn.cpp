@@ -1,14 +1,14 @@
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <mpi.h>
+#include <syn2/synapses_writer.hpp>
+
 #include "circuit/circuit_defs.h"
 #include "circuit/parquet_reader.h"
 #include "circuit/syn2_writer.h"
 #include "converter.h"
 #include "progress.h"
-#include <syn2/synapses_writer.hpp>
-
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <mpi.h>
 
 
 using namespace neuron_parquet;

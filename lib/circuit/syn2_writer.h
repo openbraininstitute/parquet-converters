@@ -1,9 +1,6 @@
 #ifndef CIRCUITWRITERSYN2_H
 #define CIRCUITWRITERSYN2_H
 
-#include "generic_writer.h"
-#include "circuit_defs.h"
-#include "syn2hdf5.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -11,6 +8,10 @@
 #include <mpi.h>
 #endif
 #include <hdf5.h>
+
+#include "../generic_writer.h"
+#include "circuit_defs.h"
+#include "syn2hdf5.h"
 
 #define DEFAULT_SYN2_POPULATION_NAME "default"
 

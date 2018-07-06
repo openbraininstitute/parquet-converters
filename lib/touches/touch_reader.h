@@ -10,7 +10,7 @@
 #include <mutex>
 #include <string.h>
 
-#include "generic_reader.h"
+#include "../generic_reader.h"
 #include "touch_defs.h"
 
 

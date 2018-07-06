@@ -1,9 +1,10 @@
+#include <iostream>
 #include "circuit/circuit_defs.h"
 #include "circuit/parquet_reader.h"
 #include "circuit/syn2_writer.h"
 #include "converter.h"
 #include "progress.h"
-#include <iostream>
+
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
