@@ -9,10 +9,10 @@
 #define CONVERTER_H
 
 #include <iostream>
+#include <functional>
 
 #include "generic_reader.h"
 #include "generic_writer.h"
-#include "progress.h"
 
 
 namespace neuron_parquet {
@@ -35,10 +35,10 @@ class Converter {
 
 
     Converter(Reader<T> & reader, Writer<T> & writer, uint32_t buffer_len=DEFAULT_BUFFER_LEN)
-      : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
-        reader_(reader),
-        writer_(writer),
-        n_records_(reader_.record_count())
+    : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
+      reader_(reader),
+      writer_(writer),
+      n_records_(reader_.record_count())
     {
         if( reader_.is_chunked() ) {
             // Buffer is a single chunk
@@ -103,9 +103,17 @@ class Converter {
         return reader_.record_count();
     }
 
+    // T shall have += operator overloaded
+    template<class P>
+    void setProgressHandler(P& progress) {
+        progress_handler_ = [&progress](int add_prog) {
+            progress += add_prog;
+        };
+    }
 
-    void setProgressHandler(const std::function<void(int)>& func) {
-        progress_handler_ = func;
+    // Custom function handler
+    void setProgressHandler(std::function<void(int)> handler) {
+        progress_handler_ = handler;
     }
 
     uint32_t n_blocks() const {

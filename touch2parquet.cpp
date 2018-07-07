@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include <neuron_parquet/touches.h>
-
+#include <progress.hpp>
 
 using namespace neuron_parquet;
 
@@ -105,14 +105,15 @@ int main( int argc, char* argv[] ) {
         try {
             TouchWriterParquet tw(parquetFilename);
             TouchConverter converter(tr, tw);
-            converter.setProgressHandler(progress.getNewHandler());
-            progress.task_start();
+            ProgressMonitor::SubTask subp = progress.subtask();
+
+            converter.setProgressHandler(subp);
+
             if( args.convert_limit > 0 )
                 converter.exportN((unsigned) args.convert_limit);
             else {
                 converter.exportAll();
             }
-            progress.task_done();
         }
         catch (const std::exception& e){
             printf("\n[ERROR] Could not create output file.\n -> %s", e.what());

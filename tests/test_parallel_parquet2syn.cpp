@@ -12,6 +12,7 @@
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
+#include <progress.hpp>
 
 
 using namespace neuron_parquet;
@@ -64,36 +65,25 @@ void convert_circuit(const std::vector<string>& filenames)  {
     uint64_t offset;
     MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
-    std::cout << "Process " << mpi_rank << " is gonna write on offset " << offset << std::endl;
+    std::cout << "Process " << mpi_rank << " is gonna write on offset " << offset
+              << std::endl;
 
     // Create writer
-
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
 
+
     //Create converter and progress monitor
+    {
+        Converter<CircuitData> converter( reader, writer );
+        ProgressMonitor p(reader.block_count());
 
-    Converter<CircuitData> converter( reader, writer );
+        if (mpi_rank == 0)
+            converter.setProgressHandler(p);
 
-    std::unique_ptr<ProgressMonitor> p;
-
-    if(mpi_rank == 0) {
-        p.reset(new ProgressMonitor(reader.block_count()));
-        p->task_start(mpi_size);
+        converter.exportAll();
     }
 
-    // Progress handlers for worker nodes are just a function that triggers incrementing the progressbar
-    auto f = [&p](int){
-        if(mpi_rank == 0) {
-            p->next();
-        }
-    };
-    converter.setProgressHandler(f);
-
-    converter.exportAll();
-
     if(mpi_rank == 0) {
-        p->task_done(mpi_size);
-
         // Check for datasets with required name for SYN2
         Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
 

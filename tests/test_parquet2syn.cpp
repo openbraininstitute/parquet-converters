@@ -7,6 +7,7 @@
  */
 #include <iostream>
 #include <neuron_parquet/circuit.h>
+#include <progress.hpp>
 
 
 using namespace neuron_parquet;
@@ -17,14 +18,14 @@ void convert_circuit(const std::string & filename)  {
     CircuitReaderParquet reader(filename) ;
     CircuitWriterSYN2 writer(std::string("circuit_syn2"), reader.record_count());
 
-    Converter<CircuitData> converter( reader, writer );
+    {
+        Converter<CircuitData> converter( reader, writer );
+        ProgressMonitor p(reader.block_count());
 
-    ProgressMonitor p(reader.block_count());
-    converter.setProgressHandler(p.getNewHandler());
+        converter.setProgressHandler(p);
 
-    p.task_start();
-    converter.exportAll();
-    p.task_done();
+        converter.exportAll();
+    }
 
     std::cout << "\nComplete." << std::endl;
 }

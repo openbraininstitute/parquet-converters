@@ -6,7 +6,6 @@
 #include "lib/circuit/syn2hdf5.h"
 #include "lib/circuit/syn2_writer.h"
 #include "lib/converter.h"
-#include "lib/progress.h"
 
 
 #endif // PARQUET_CIRCUIT_H

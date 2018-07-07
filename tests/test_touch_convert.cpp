@@ -6,6 +6,7 @@
  *
  */
 #include <neuron_parquet/touches.h>
+#include <progress.hpp>
 
 
 using namespace neuron_parquet;
@@ -19,15 +20,15 @@ void convert_touches(char* filename)  {
     TouchReader reader(filename) ;
     TouchWriterParquet writer("output.parquet");
 
-    Converter<Touch> converter( reader, writer );
+    {
+        Converter<Touch> converter( reader, writer );
+        ProgressMonitor p(reader.block_count());
 
-    ProgressMonitor p(converter.n_blocks());
-    converter.setProgressHandler(p.getNewHandler());
+        converter.setProgressHandler(p);
 
-    p.task_start();
-    converter.exportAll();
+        converter.exportAll();
+    }
 
-    p.task_done();
     std::cout << "\nDone." << std::endl;
 }
 

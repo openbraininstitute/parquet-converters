@@ -14,6 +14,7 @@
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
+#include <progress.hpp>
 
 
 using namespace neuron_parquet;
@@ -74,30 +75,22 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
 
 
     //Create converter and progress monitor
+    {
+        Converter<CircuitData> converter( reader, writer );
+        ProgressMonitor p(global_block_sum, mpi_rank==0);
 
-    Converter<CircuitData> converter( reader, writer );
+        // Use progress of first process to estimate global progress
+        if (mpi_rank == 0) {
+            p.set_parallelism(mpi_size);
+            converter.setProgressHandler([&p](int) {
+                p += mpi_size;
+            });
+        }
 
-    ProgressMonitor p(global_block_sum);
-
-    //Only the first shows progress
-    if(mpi_rank == 0) {
-        p.task_start(mpi_size);
-        // Progress handlers is just a function that triggers incrementing the progressbar
-        auto f = [&p](int){
-            if(mpi_rank == 0) {
-                p.updateProgress(mpi_size);
-            }
-        };
-        converter.setProgressHandler(f);
+        converter.exportAll();
     }
-
-    converter.exportAll();
 
     MPI_Barrier(comm);
-
-    if(mpi_rank == 0) {
-        p.task_done(mpi_size);
-    }
 
     // Check for datasets with required name for SYN2
     Syn2CircuitHdf5& syn2circuit = writer.syn2_file();

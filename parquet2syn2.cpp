@@ -10,6 +10,7 @@
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
+#include <progress.hpp>
 
 
 using namespace neuron_parquet;
@@ -29,16 +30,14 @@ void convert_circuit(const vector<string> & filenames, const string& output_file
          << reader.record_count() << " records ("
          << reader.block_count() << " blocks)" << endl;
 
-    Converter<CircuitData> converter( reader, writer );
+    {
+        Converter<CircuitData> converter( reader, writer );
+        ProgressMonitor p(reader.block_count());
 
-    ProgressMonitor p(reader.block_count());
-    converter.setProgressHandler(p.getNewHandler());
+        converter.setProgressHandler(p);
 
-    cout << "Converting data" << endl;
-
-    p.task_start();
-    converter.exportAll();
-    p.task_done();
+        converter.exportAll();
+    }
 
     // Check for datasets with required name for SYN2
     Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
