@@ -1,24 +1,16 @@
-cmake_minimum_required(VERSION 2.8)
-
+cmake_minimum_required(VERSION 3.1)
 project(neuron_parquet)
 
 option(NEURONPARQUET_USE_STATIC "Use static libraries for dependencies" ON)
 option(NEURONPARQUET_USE_MPI "Enable MPI" OFF)
+option(NEURONPARQUET_INSTALL_DEVEL "Install devel library" OFF)
 
-include(CheckCXXCompilerFlag)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
+include(ReleaseDebugAutoFlags)
 
-CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
-add_definitions(-std=c++11 -Wall -Wextra -Wcast-align -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option)
+add_definitions(${CMAKE_CXX_WARNING_EXTREME})
 
-if (COMPILER_OPT_ARCH_NATIVE_SUPPORTED)
-    add_definitions(-march=native)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo)
-endif()
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
-
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
@@ -44,7 +36,6 @@ unset(HDF5_C_LIBRARY_hdf5 CACHE)
 unset(PARQUET_LIB CACHE)
 unset(ARROW_LIB CACHE)
 
-#set(HDF5_USE_STATIC_LIBRARIES ON)
 find_package(HDF5)
 
 if(NEURONPARQUET_USE_STATIC)
@@ -74,11 +65,11 @@ include_directories(${Boost_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_
 # Build core lib
 add_subdirectory(lib)
 
-include_directories("lib")
+include_directories("include")
 
 
 # MAIN EXECUTABLES
-add_executable(touch2parquet touch2parquet.cpp $<TARGET_OBJECTS:ConversionProgress>)
+add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet TouchParquet)
 
 if (OPENMP_FOUND)
@@ -94,7 +85,7 @@ add_custom_target( touch2parquet_endian ALL
 
 
 if(NEURONPARQUET_USE_MPI)
-  add_executable(touch2parquetp touch2parquetp.cpp $<TARGET_OBJECTS:ConversionProgress>)
+  add_executable(touch2parquetp touch2parquetp.cpp)
   target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
 
   add_custom_target( touch2parquetp_endian ALL
@@ -104,11 +95,11 @@ if(NEURONPARQUET_USE_MPI)
 endif()
 
 
-add_executable(parquet2syn2 parquet2syn2.cpp $<TARGET_OBJECTS:ConversionProgress>)
+add_executable(parquet2syn2 parquet2syn2.cpp)
 target_link_libraries(parquet2syn2 CircuitParquet)
 
 if(NEURONPARQUET_USE_MPI)
-    add_executable(parquet2syn2p parquet2syn2p.cpp $<TARGET_OBJECTS:ConversionProgress>)
+    add_executable(parquet2syn2p parquet2syn2p.cpp)
     target_link_libraries(parquet2syn2p ${MPI_LIBRARIES} CircuitParquet)
 endif()
 
@@ -127,4 +118,16 @@ if(NEURONPARQUET_USE_MPI)
     install(TARGETS touch2parquetp DESTINATION bin)
     install(TARGETS parquet2syn2p DESTINATION bin)
     install(FILES ${CMAKE_BINARY_DIR}/touch2parquetp_endian DESTINATION bin)
+endif()
+
+
+# lib install
+# In case the devel lib is installed to the system these header files must be copied over,
+# including those under the lib sym-link
+if(NEURONPARQUET_INSTALL_DEVEL)
+    install(DIRECTORY lib DESTINATION include/neuron_parquet
+            FILES_MATCHING PATTERN "*.h")
+    file(GLOB header_files "include/neuron_parquet/*.h")
+    install(FILES ${header_files}
+            DESTINATION include/neuron_parquet)
 endif()

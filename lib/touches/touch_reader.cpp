@@ -1,5 +1,11 @@
+/**
+ * Copyright (C) 2018 Blue Brain Project
+ * All rights reserved. Do not distribute without further notice.
+ *
+ * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ *
+ */
 #include "touch_reader.h"
-
 #include <time.h>
 
 

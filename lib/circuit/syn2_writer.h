@@ -1,3 +1,10 @@
+/**
+ * Copyright (C) 2018 Blue Brain Project
+ * All rights reserved. Do not distribute without further notice.
+ *
+ * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ *
+ */
 #ifndef CIRCUITWRITERSYN2_H
 #define CIRCUITWRITERSYN2_H
 

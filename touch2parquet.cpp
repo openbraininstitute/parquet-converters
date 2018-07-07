@@ -1,11 +1,16 @@
+/**
+ * Copyright (C) 2018 Blue Brain Project
+ * All rights reserved. Do not distribute without further notice.
+ *
+ * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ *
+ */
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 
-#include "touches/touch_reader.h"
-#include "touches/parquet_writer.h"
-#include "converter.h"
-#include "progress.h"
+#include <neuron_parquet/touches.h>
+
 
 using namespace neuron_parquet;
 

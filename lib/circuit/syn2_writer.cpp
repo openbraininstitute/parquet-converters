@@ -1,3 +1,10 @@
+/**
+ * Copyright (C) 2018 Blue Brain Project
+ * All rights reserved. Do not distribute without further notice.
+ *
+ * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ *
+ */
 #include "syn2_writer.h"
 #include <functional>
 #include <thread>

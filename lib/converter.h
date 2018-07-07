@@ -1,19 +1,28 @@
+/**
+ * Copyright (C) 2018 Blue Brain Project
+ * All rights reserved. Do not distribute without further notice.
+ *
+ * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ *
+ */
 #ifndef CONVERTER_H
 #define CONVERTER_H
+
+#include <iostream>
 
 #include "generic_reader.h"
 #include "generic_writer.h"
 #include "progress.h"
-#include <iostream>
+
 
 namespace neuron_parquet {
-
 
 
 template<typename T>
 class Converter {
 
-public:
+ public:
+
     ///
     /// \brief The Format enum
     /// RECORDS: data is passed (between reader and writer) in a buffer (array) of the data type
@@ -26,10 +35,10 @@ public:
 
 
     Converter(Reader<T> & reader, Writer<T> & writer, uint32_t buffer_len=DEFAULT_BUFFER_LEN)
-    : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
-      reader_(reader),
-      writer_(writer),
-      n_records_(reader_.record_count())
+      : BUFFER_LEN(reader.is_chunked()? 1 : buffer_len ),
+        reader_(reader),
+        writer_(writer),
+        n_records_(reader_.record_count())
     {
         if( reader_.is_chunked() ) {
             // Buffer is a single chunk
@@ -127,6 +136,6 @@ private:
 
 
 
-} //NS
+}  // namespace neuron_parquet
 
-#endif // CONVERTER_H
+#endif  // CONVERTER_H

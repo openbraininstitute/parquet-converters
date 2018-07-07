@@ -1,10 +1,10 @@
-add_executable(test_touch_convert test_touch_convert.cpp $<TARGET_OBJECTS:ConversionProgress>)
+add_executable(test_touch_convert test_touch_convert.cpp)
 target_link_libraries(test_touch_convert TouchParquet)
 
-add_executable(test_circuit_convert test_parquet2syn.cpp $<TARGET_OBJECTS:ConversionProgress>)
+add_executable(test_circuit_convert test_parquet2syn.cpp)
 target_link_libraries(test_circuit_convert CircuitParquet)
 
-add_executable(test_multi_parquet2syn test_multi_parquet2syn.cpp $<TARGET_OBJECTS:ConversionProgress>)
+add_executable(test_multi_parquet2syn test_multi_parquet2syn.cpp)
 target_link_libraries(test_multi_parquet2syn CircuitParquet)
 
 
@@ -23,7 +23,7 @@ add_test(
 
 
 if(NEURONPARQUET_USE_MPI)
-    add_executable(test_circuit_convert_parallel test_parallel_parquet2syn.cpp $<TARGET_OBJECTS:ConversionProgress>)
+    add_executable(test_circuit_convert_parallel test_parallel_parquet2syn.cpp)
     target_link_libraries(test_circuit_convert_parallel CircuitParquet ${MPI_LIBRARIES})
 
     add_test(
