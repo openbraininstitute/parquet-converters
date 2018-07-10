@@ -5,43 +5,47 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef NRN_READER_PARQUET_H
-#define NRN_READER_PARQUET_H
+#ifndef LIB_CIRCUIT_PARQUET_READER_H_
+#define LIB_CIRCUIT_PARQUET_READER_H_
 
 #include <parquet/api/reader.h>
 #include <parquet/arrow/reader.h>
+#include <string>
+#include <vector>
 #include "../generic_reader.h"
-#include "circuit_defs.h"
+#include "./circuit_defs.h"
 
 namespace neuron_parquet {
 namespace circuit {
 
 
-class CircuitReaderParquet : public Reader<CircuitData>
-{
-public:    
-    CircuitReaderParquet(const std::string & filename);
-    ~CircuitReaderParquet(){}
+class CircuitReaderParquet : public Reader<CircuitData> {
+    friend class CircuitMultiReaderParquet;
 
-    virtual uint32_t fillBuffer(CircuitData* buf, uint length) override;
+ public:
+    explicit CircuitReaderParquet(const std::string & filename);
 
-    uint64_t record_count() const {
-        return record_count_;
-    }
+    ~CircuitReaderParquet() {}
 
-    virtual uint32_t block_count() const override {
-        return rowgroup_count_;
-    }
-
-    virtual void seek(uint64_t pos) override {
-        cur_row_group_ = pos;
-    }
-
-    bool is_chunked() const {
+    bool is_chunked() const override {
         return true;
     }
 
-private:
+    uint64_t record_count() const override {
+        return record_count_;
+    }
+
+    uint32_t block_count() const override {
+        return rowgroup_count_;
+    }
+
+    void seek(uint64_t pos) override {
+        cur_row_group_ = pos;
+    }
+
+    uint32_t fillBuffer(CircuitData* buf, uint length) override;
+
+ private:
     const std::string filename_;
     std::unique_ptr<parquet::ParquetFileReader> reader_;
     std::shared_ptr<parquet::FileMetaData> parquet_metadata_;
@@ -57,8 +61,6 @@ private:
     void close();
     /// Initializes the data reader
     void init_data_reader();
-
-    friend class CircuitMultiReaderParquet;
 };
 
 
@@ -67,40 +69,41 @@ private:
  * @brief The CircuitMultiReaderParquet class
  *        Implements a reader of multiple combined files
  */
-class CircuitMultiReaderParquet : public Reader<CircuitData>
-{
-public:
-    CircuitMultiReaderParquet(const std::vector<std::string> & filenames);
-    ~CircuitMultiReaderParquet(){}
+class CircuitMultiReaderParquet : public Reader<CircuitData> {
+ public:
+    explicit CircuitMultiReaderParquet(const std::vector<std::string> & filenames);
 
-    virtual uint32_t fillBuffer(CircuitData* buf, uint length) override;
+    ~CircuitMultiReaderParquet() {}
 
-    uint64_t record_count() const {
-        return record_count_;
-    }
-
-    virtual uint32_t block_count() const override {
-        return rowgroup_count_;
-    }
-
-    virtual void seek(uint64_t pos) override;
-
-    bool is_chunked() const {
+    bool is_chunked() const override {
         return true;
     }
 
-private:
+    uint64_t record_count() const override {
+        return record_count_;
+    }
+
+    uint32_t block_count() const override {
+        return rowgroup_count_;
+    }
+
+    void seek(uint64_t pos) override;
+
+    uint32_t fillBuffer(CircuitData* buf, uint length) override;
+
+
+ private:
     std::vector<std::shared_ptr<CircuitReaderParquet>> circuit_readers_;
     uint32_t rowgroup_count_;
-    uint64_t record_count_;    
+    uint64_t record_count_;
     std::vector<uint32_t> rowgroup_offsets_;
     uint32_t cur_row_group_;
     unsigned int cur_file_;
-
 };
 
 
 
-}}  //ns nrn_parquet::circuit
+}  // namespace circuit
+}  // namespace neuron_parquet
 
-#endif // NRN_READER_PARQUET_H
+#endif  // LIB_CIRCUIT_PARQUET_READER_H_

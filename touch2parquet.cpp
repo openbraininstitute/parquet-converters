@@ -12,19 +12,26 @@
 #include <neuron_parquet/touches.h>
 #include <progress.hpp>
 
-using namespace neuron_parquet;
+
+using namespace neuron_parquet::touches;
+
+using neuron_parquet::Converter;
+using utils::ProgressMonitor;
 
 typedef Converter<Touch> TouchConverter;
 
 
-enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
+enum class RunMode:int {QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP};
 struct Args {
     Args (RunMode runmode)
-    : mode(runmode)
+        : mode(runmode)
+        , convert_limit(0)
+        , n_opts(0)
     {}
+
     RunMode mode;
-    int convert_limit = 0;
-    int n_opts = 0;
+    int convert_limit;
+    int n_opts;
 };
 
 
@@ -40,10 +47,10 @@ Args process_args(int argc, char* argv[]) {
     }
 
     Args args(RunMode::STANDARD);
-    int cur_opt = 1;
 
     //Handle options
-    for( ;cur_opt < argc && argv[cur_opt][0] == '-'; cur_opt++ ) {
+    int cur_opt = 1;
+    for (; cur_opt < argc && argv[cur_opt][0] == '-'; cur_opt++ ) {
         switch( argv[cur_opt][1] ) {
             case 'h':
                 printf("%s", usage);
@@ -86,17 +93,25 @@ int main( int argc, char* argv[] ) {
     int number_of_files = argc - first_file;
 
     // Know the total number of buffers to be processed
-    std::ifstream f1(argv[first_file], std::ios::binary | std::ios::ate);
-    uint32_t blocks = TouchConverter::number_of_buffers(f1.tellg());
-    f1.close();
+    uint32_t blocks;
+    if (args.convert_limit > 0) {
+        blocks = TouchConverter::number_of_buffers(args.convert_limit * sizeof(Touch));
+    }
+    else {
+        std::ifstream f1(argv[first_file], std::ios::binary | std::ios::ate);
+        blocks = TouchConverter::number_of_buffers(f1.tellg());
+    }
 
     // Craete the progres monitor with an estimate on the number of blocks
-    ProgressMonitor progress(number_of_files * blocks);
+    ProgressMonitor progress(number_of_files * blocks, true);
+    progress.set_parallelism(0);
 
     #pragma omp parallel for
-    for( int i=args.n_opts; i<argc; i++) {
-        printf("\r[Info] Converting %-86s\n", argv[i]);
-        TouchReader tr(argv[i], args.mode == RunMode::ENDIAN_SWAP);
+    for (int i=args.n_opts; i<argc; i++) {
+        const char* in_filename = argv[i];
+        progress.print_info("[Info] Converting %-86s\n", in_filename);
+
+        TouchReader tr(in_filename, args.mode == RunMode::ENDIAN_SWAP);
         string parquetFilename( argv[i] );
         std::size_t slashPos = parquetFilename.find_last_of("/\\");
         parquetFilename = parquetFilename.substr(slashPos+1);
@@ -104,9 +119,8 @@ int main( int argc, char* argv[] ) {
 
         try {
             TouchWriterParquet tw(parquetFilename);
-            TouchConverter converter(tr, tw);
             ProgressMonitor::SubTask subp = progress.subtask();
-
+            TouchConverter converter(tr, tw);
             converter.setProgressHandler(subp);
 
             if( args.convert_limit > 0 )
@@ -119,9 +133,9 @@ int main( int argc, char* argv[] ) {
             printf("\n[ERROR] Could not create output file.\n -> %s", e.what());
         }
     }
+    progress.clear(); // - this works well but
+    printf("Done exporting\n");
 
-    printf("\nDone exporting\n");
     return 0;
 }
-
 

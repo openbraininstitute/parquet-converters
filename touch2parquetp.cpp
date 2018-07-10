@@ -5,21 +5,24 @@
  * @author Matthias Wolf <matthias.wolf@epfl.ch>
  *
  */
+#include <unistd.h>
 #include <cmath>
 #include <boost/filesystem.hpp>
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
 #include <mpi.h>
-#include <unistd.h>
-#include <string.h>
 
 #include <neuron_parquet/touches.h>
 #include <progress.hpp>
 
 
-using namespace neuron_parquet;
-
 // Stand-in until c++ std::filesystem is supported
 namespace fs = boost::filesystem;
+
+using namespace neuron_parquet::touches;
+
+using neuron_parquet::Converter;
+using utils::ProgressMonitor;
 
 typedef Converter<Touch> TouchConverter;
 
@@ -97,30 +100,31 @@ int main( int argc, char* argv[] ) {
     std::string first_file(argv[args.n_opts]);
     int number_of_files = argc - args.n_opts;
 
-    size_t nblocks = 0;
+    // Progress with an estimate number of blocks
+    size_t nblocks = 1;
     if (mpi_rank == 0) {
-        // Know the total number of buffers to be processed
         std::ifstream f1(first_file, std::ios::binary | std::ios::ate);
         nblocks = TouchConverter::number_of_buffers(f1.tellg());
         f1.close();
     }
-
-
-    // Progress with an estimate number of blocks
     ProgressMonitor progress(number_of_files * nblocks, mpi_rank==0);
     progress.set_parallelism(mpi_size);
 
     auto outfn = fs::path(first_file).stem().string() + "."
                  + std::to_string(mpi_rank) + ".parquet";
+
     try {
+        // Every rank participates in the conversion of every file, different regions
         TouchWriterParquet tw(outfn);
 
         for (int i = args.n_opts; i < argc; i++) {
             MPI_Barrier(comm);
-            if (mpi_rank == 0)
-                printf("\r[Info] Converting %-86s\n", argv[i]);
+            const char* in_filename = argv[i];
 
-            TouchReader tr(argv[i], args.mode == RunMode::ENDIAN_SWAP);
+            if (mpi_rank == 0)
+                printf("\r[Info] Converting %-86s\n", in_filename);
+
+            TouchReader tr(in_filename, args.mode == RunMode::ENDIAN_SWAP);
             auto work_unit = static_cast<size_t>(std::ceil(tr.record_count() / double(mpi_size)));
             auto offset = work_unit * mpi_rank;
             work_unit = std::min(tr.record_count() - offset, work_unit);
@@ -128,9 +132,7 @@ int main( int argc, char* argv[] ) {
             TouchConverter converter(tr, tw);
             if (mpi_rank == 0) {
                 // Progress handlers is just a function that triggers incrementing the progressbar
-                converter.setProgressHandler([&progress](int) {
-                    progress += mpi_size;
-                });
+                converter.setProgressHandler(progress, mpi_size);
             }
             converter.exportN(work_unit, offset);
         }

@@ -5,17 +5,17 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef GENERIC_READER_H
-#define GENERIC_READER_H
+#ifndef LIB_GENERIC_READER_H_
+#define LIB_GENERIC_READER_H_
 
 #include <cstdint>
 
 template <typename T>
 class Reader {
-
-public:
+ public:
     // For most operations the small internal buffer is used
-    // But in the case of fill buffer the use can specify a much larger region, .e.g. full file conversion
+    // But in the case of fill buffer the use can specify a much larger region,
+    //  .e.g. full file conversion
     // NOTE: The buffer must be allocated
     virtual uint32_t fillBuffer(T *buf, uint32_t length) = 0;
 
@@ -32,9 +32,8 @@ public:
     // bytes per record
     static constexpr uint32_t RECORD_SIZE = sizeof(T);
 
-protected:
+ protected:
     ~Reader() = default;
-
 };
 
-#endif // GENERIC_READER_H
+#endif  // LIB_GENERIC_READER_H_

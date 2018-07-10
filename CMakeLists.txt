@@ -3,7 +3,7 @@ project(neuron_parquet)
 
 option(NEURONPARQUET_USE_STATIC "Use static libraries for dependencies" ON)
 option(NEURONPARQUET_USE_MPI "Enable MPI" OFF)
-option(NEURONPARQUET_INSTALL_DEVEL "Install devel library" OFF)
+option(NEURONPARQUET_TESTS "Build tests" ON)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
 include(ReleaseDebugAutoFlags)
@@ -105,8 +105,10 @@ endif()
 
 
 # TESTS
-enable_testing()
-add_subdirectory(tests)
+if (NEURONPARQUET_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 
 # INSTALL
@@ -124,10 +126,8 @@ endif()
 # lib install
 # In case the devel lib is installed to the system these header files must be copied over,
 # including those under the lib sym-link
-if(NEURONPARQUET_INSTALL_DEVEL)
-    install(DIRECTORY lib DESTINATION include/neuron_parquet
-            FILES_MATCHING PATTERN "*.h")
-    file(GLOB header_files "include/neuron_parquet/*.h")
-    install(FILES ${header_files}
-            DESTINATION include/neuron_parquet)
-endif()
+install(DIRECTORY lib DESTINATION include/neuron_parquet
+        FILES_MATCHING PATTERN "*.h")
+file(GLOB header_files "include/neuron_parquet/*.h")
+install(FILES ${header_files}
+        DESTINATION include/neuron_parquet)

@@ -12,6 +12,7 @@
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
+using utils::ProgressMonitor;
 
 
 void convert_circuit(const std::string & filename)  {

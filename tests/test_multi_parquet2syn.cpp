@@ -16,6 +16,7 @@
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
 
+using utils::ProgressMonitor;
 using std::vector;
 using std::string;
 
@@ -52,7 +53,7 @@ void convert_circuit(const vector<string> & filenames)  {
 
 int main(int argc, char* argv[]) {
     if(argc < 2) {
-        std::cout << "Please provide files to convert";
+        std::cout << "Please provide files to convert" << std::endl;
         return -1;
     }
 

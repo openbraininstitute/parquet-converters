@@ -8,6 +8,9 @@
 #include "parquet_writer.h"
 #include <assert.h>
 
+namespace neuron_parquet {
+namespace touches {
+
 using namespace parquet;
 
 
@@ -195,5 +198,8 @@ void TouchWriterParquet::_writeBuffer(uint length) {
     //branch_order
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_order);
-
 }
+
+
+}  // namespace touches
+}  // namespace neuron_parquet

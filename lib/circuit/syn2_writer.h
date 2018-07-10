@@ -85,5 +85,5 @@ void write_data(Syn2CircuitHdf5::Dataset& ds,
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 
 
-} }  // NS EOF
+}}  // namespace neuron_parquet::circuit EOF
 #endif // CIRCUITWRITERSYN2_H

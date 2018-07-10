@@ -7,37 +7,46 @@
  */
 #include <vector>
 #include <iostream>
+#include <stdexcept>
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
 #include <progress.hpp>
 
 
-using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
+using std::vector;
+using std::string;
+using std::cout;
 
-using namespace std;
+using neuron_parquet::Converter;
+using utils::ProgressMonitor;
 
 
-void convert_circuit(const vector<string> & filenames, const string& output_filename)  {
+void convert_circuit(const vector<string> & filenames,
+                     const string& output_filename)  {
     if(filenames.size() >= 100) {
-        cout << "Retrieving statistics on parquet files. This might take a while..." << endl;
+        cout << "Retrieving statistics on parquet files. This might take a while..."
+             << std::endl;
     }
-    CircuitMultiReaderParquet reader(filenames) ;
+    CircuitMultiReaderParquet reader(filenames);
     CircuitWriterSYN2 writer(output_filename, reader.record_count());
 
     cout << "Aggregate totals: "
          << reader.record_count() << " records ("
-         << reader.block_count() << " blocks)" << endl;
+         << reader.block_count() << " blocks)"
+         << std::endl;
 
     {
-        Converter<CircuitData> converter( reader, writer );
+        Converter<CircuitData> converter(reader, writer);
         ProgressMonitor p(reader.block_count());
 
         converter.setProgressHandler(p);
 
         converter.exportAll();
     }
+
+    std::cout << "Data copy complete. Indexing...\n";
 
     // Check for datasets with required name for SYN2
     Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
@@ -56,12 +65,13 @@ void convert_circuit(const vector<string> & filenames, const string& output_file
             }
         }
     }
-
-    cerr << endl << "Data copy complete." << endl;
+    cout << "Finished." << std::endl;
 }
 
 
-void parse_arguments(const int argc, const char* argv[], string& output_filename, vector<string>& input_names)  {
+void parse_arguments(const int argc, const char* argv[],
+                     string& output_filename,
+                     vector<string>& input_names)  {
     for(int i=1; i<argc; i++) {
         if(argv[i][0] != '-') {
             input_names.push_back(string(argv[i]));
@@ -73,7 +83,7 @@ void parse_arguments(const int argc, const char* argv[], string& output_filename
                     if( p_name[0] == 0 ) {
                         // Option value separated
                         if(++i == argc)  {
-                            throw runtime_error("Please provide an argment to -o");
+                            throw std::runtime_error("Please provide an argment to -o");
                         }
                         p_name = argv[i];
                     }
@@ -89,7 +99,7 @@ int main(int argc, const char* argv[]) {
     if(argc < 2) {
         cout << "Usage: \n"
              << "    "  << argv[0] << " [-o output_file] <file1.parquet> [file2.parquet ...]"
-             << endl;
+             << std::endl;
         return -1;
     }
 
@@ -100,7 +110,7 @@ int main(int argc, const char* argv[]) {
         parse_arguments(argc, argv, output_filename, input_names);
     }
     catch(const std::exception& e) {
-        cout << "Arguments error: " << e.what() << endl;
+        cout << "Arguments error: " << e.what() << std::endl;
         return -1;
     }
 
@@ -108,13 +118,13 @@ int main(int argc, const char* argv[]) {
      */
     convert_circuit(input_names, output_filename);
 
-    cout << "Creating SYN2 indexes..." << endl;
+    cout << "Creating SYN2 indexes..." << std::endl;
     {
         syn2::synapses_writer writer(output_filename);
         writer.create_all_index();
     }
 
-    cout << "Finished." << endl;
+    cout << "Finished." << std::endl;
 
     return 0;
 }

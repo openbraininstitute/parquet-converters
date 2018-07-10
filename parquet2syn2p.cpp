@@ -17,8 +17,10 @@
 #include <progress.hpp>
 
 
-using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
+
+using neuron_parquet::Converter;
+using utils::ProgressMonitor;
 using std::string;
 using std::cout;
 
@@ -68,7 +70,8 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
     std::cout << std::setfill('.')
               << "Process " << std::setw(4) << mpi_rank
               << " is going to write " << std::setw(12) << reader.block_count()
-              << " block(s) with an offset of " << std::setw(12) << offset << std::endl;
+              << " block(s) with an offset of " << std::setw(12) << offset
+              << std::endl;
 
     // Create writer
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
@@ -82,9 +85,7 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
         // Use progress of first process to estimate global progress
         if (mpi_rank == 0) {
             p.set_parallelism(mpi_size);
-            converter.setProgressHandler([&p](int) {
-                p += mpi_size;
-            });
+            converter.setProgressHandler(p, mpi_size);
         }
 
         converter.exportAll();

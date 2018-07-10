@@ -9,7 +9,11 @@
 #include <progress.hpp>
 
 
-using namespace neuron_parquet;
+using namespace neuron_parquet::touches;
+
+using neuron_parquet::Converter;
+using utils::ProgressMonitor;
+
 
 /// By using default buffers it is set
 ///  - 512K entries for converter (loader) (20MB)
@@ -29,7 +33,7 @@ void convert_touches(char* filename)  {
         converter.exportAll();
     }
 
-    std::cout << "\nDone." << std::endl;
+    std::cout << "Done." << std::endl;
 }
 
 int main(int argc, char* argv[]) {

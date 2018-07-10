@@ -17,6 +17,7 @@
 
 using namespace neuron_parquet;
 using namespace neuron_parquet::circuit;
+using utils::ProgressMonitor;
 using std::string;
 
 

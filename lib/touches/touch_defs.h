@@ -5,8 +5,11 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef TOUCH_DEFS_H
-#define TOUCH_DEFS_H
+#ifndef LIB_TOUCHES_TOUCH_DEFS_H_
+#define LIB_TOUCHES_TOUCH_DEFS_H_
+
+namespace neuron_parquet {
+namespace touches {
 
 enum TOUCH_LOCATION { NEURON_ID, SECTION_ID, SEGMENT_ID };
 
@@ -26,4 +29,7 @@ struct Touch {
 };
 
 
-#endif // TOUCH_DEFS_H
+}  // namespace touches
+}  // namespace neuron_parquet
+
+#endif  // LIB_TOUCHES_TOUCH_DEFS_H_

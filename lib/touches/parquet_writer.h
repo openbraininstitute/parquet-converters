@@ -13,6 +13,8 @@
 #include "../generic_writer.h"
 #include "touch_defs.h"
 
+namespace neuron_parquet {
+namespace touches {
 
 using parquet::schema::GroupNode;
 using ParquetFileOutput = ::arrow::io::FileOutputStream;
@@ -74,7 +76,10 @@ private:
 
     std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;
     std::unique_ptr<BUF_T<TRANSPOSE_LEN>> _tbuffer;
-
 };
+
+
+}  // namespace touches
+}  // namespace neuron_parquet
 
 #endif // PARQUETWRITER_H

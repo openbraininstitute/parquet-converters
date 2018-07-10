@@ -9,25 +9,27 @@
 #include <time.h>
 
 
+#define swap_int(x) bswap_32((uint32_t*)&x)
+#define swap_float(x) bswap_32((uint32_t*)&x)
+
 static inline void bswap_32(uint32_t* b) {
   /// Some GCCs fail to detect the byte swap
   *b=__builtin_bswap32(*b);
 }
 
+namespace neuron_parquet {
+namespace touches {
+
 using namespace std;
 
 
-#define swap_int(x) bswap_32((uint32_t*)&x)
-#define swap_float(x) bswap_32((uint32_t*)&x)
-
-
 TouchReader::TouchReader(const char* filename, bool different_endian, bool buffered)
-:   offset_(0),
-    endian_swap_(different_endian),
-    buffered_(buffered),
-    it_buf_index_(0),
-    buffer_record_count_(0),
-    buffer_(new Touch[buffered ? BUFFER_LEN : 1])
+    : offset_(0)
+    , endian_swap_(different_endian)
+    , buffered_(buffered)
+    , it_buf_index_(0)
+    , buffer_record_count_(0)
+    , buffer_(new Touch[buffered ? BUFFER_LEN : 1])
 {
     //test_str_size();
     touchFile_.open(filename, ifstream::binary);
@@ -158,4 +160,8 @@ void TouchReader::_load_into( Touch* buf, uint32_t length ) {
         }
     }
 }
+
+
+}  // namespace touches
+}  // namespace neuron_parquet
 
