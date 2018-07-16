@@ -21,13 +21,13 @@ using ParquetFileOutput = ::arrow::io::FileOutputStream;
 using namespace std;
 
 
-class TouchWriterParquet : public Writer<Touch>
+class TouchWriterParquet : public Writer<IndexedTouch>
 {
 public:
     TouchWriterParquet(const string);
     ~TouchWriterParquet();
 
-    virtual void write(const Touch* data, uint32_t length) override;  // offset are directly added to data ptr
+    virtual void write(const IndexedTouch* data, uint32_t length) override;  // offset are directly added to data ptr
 
 
 
@@ -35,9 +35,9 @@ private:
 
     void _newRowGroup();
 
-    inline void _writeDataSet(const Touch* data, uint length);
+    inline void _writeDataSet(const IndexedTouch* data, uint length);
 
-    inline void _transpose_buffer_part(const Touch* data, uint offset, uint length);
+    inline void _transpose_buffer_part(const IndexedTouch* data, uint offset, uint length);
 
     inline void _writeBuffer(uint length);
 
@@ -63,6 +63,7 @@ private:
     template <int buf_len>
     struct BUF_T{
         int pre_neuron_id[buf_len];
+	int pre_neuron_index[buf_len];
         int post_neuron_id[buf_len];
         int pre_section[buf_len];
         int pre_segment[buf_len];

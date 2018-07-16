@@ -25,7 +25,7 @@ void convert_touches(char* filename)  {
     TouchWriterParquet writer("output.parquet");
 
     {
-        Converter<Touch> converter( reader, writer );
+        Converter<IndexedTouch> converter(reader, writer);
         ProgressMonitor p(reader.block_count());
 
         converter.setProgressHandler(p);

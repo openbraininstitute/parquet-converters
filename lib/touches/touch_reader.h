@@ -24,10 +24,9 @@ namespace neuron_parquet {
 namespace touches {
 
 
-class TouchReader : public Reader<Touch> {
+class TouchReader : public Reader<IndexedTouch> {
  public:
     TouchReader(const char *filename,
-                bool different_endian = false,
                 bool buffered = false);
     ~TouchReader();
 
@@ -45,19 +44,23 @@ class TouchReader : public Reader<Touch> {
 
     void seek(uint64_t pos) override;
 
-    uint32_t fillBuffer(Touch* buf, uint32_t length) override;
+    uint32_t fillBuffer(IndexedTouch* buf, uint32_t length) override;
 
     // Iteration
-    Touch & begin();
-    Touch & end();
-    Touch & getNext();
-    Touch & getItem(uint32_t index);
+    IndexedTouch & begin();
+    IndexedTouch & end();
+    IndexedTouch & getNext();
+    IndexedTouch & getItem(uint32_t index);
 
     static const uint32_t BUFFER_LEN = 256;
 
+    // bytes per record
+    static constexpr uint32_t RECORD_SIZE = sizeof(Touch);
+
  private:
+    void _readHeader(const char* filename);
     void _fillBuffer();
-    void _load_into(Touch* buf, uint32_t length);
+    void _load_into(IndexedTouch* buf, uint32_t length);
 
     // File
     std::ifstream touchFile_;
@@ -69,7 +72,10 @@ class TouchReader : public Reader<Touch> {
     // Internal Buffer: to be used for iteration
     uint32_t it_buf_index_;  // Offset relative to buffer
     uint32_t buffer_record_count_;
-    std::unique_ptr<Touch[]> buffer_;
+    std::unique_ptr<IndexedTouch[]> buffer_;
+    std::unique_ptr<Touch[]> raw_buffer_;
+    std::vector<uint64_t> reset_points_;
+    std::vector<uint64_t>::iterator reset_index_;
 };
 
 

@@ -24,7 +24,7 @@ using namespace neuron_parquet::touches;
 using neuron_parquet::Converter;
 using utils::ProgressMonitor;
 
-typedef Converter<Touch> TouchConverter;
+typedef Converter<IndexedTouch> TouchConverter;
 
 
 int mpi_size, mpi_rank;
@@ -32,7 +32,7 @@ MPI_Comm comm = MPI_COMM_WORLD;
 MPI_Info info = MPI_INFO_NULL;
 
 
-enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP };
+enum class RunMode:int { QUIT_ERROR=-1, QUIT_OK, STANDARD };
 struct Args {
     Args (RunMode runmode)
     : mode(runmode)
@@ -43,7 +43,7 @@ struct Args {
 
 
 static const char *usage =
-    "usage: touch2parquet[_endian] <touch_file1 touch_file2 ...>\n"
+    "usage: touch2parquet <touch_file1 touch_file2 ...>\n"
     "       touch2parquet [-h]\n";
 
 
@@ -73,13 +73,6 @@ Args process_args(int argc, char* argv[]) {
             args.mode = RunMode::QUIT_ERROR;
             return args;
         }
-    }
-
-    //It will swap endians if we use the xxx_endian executable
-    int len = strlen(argv[0]);
-    if( len>6 && strcmp( &(argv[0][len-6]), "endian" ) == 0 ) {
-        printf("[Info] Swapping endians\n");
-        args.mode = RunMode::ENDIAN_SWAP;
     }
 
     return args;
@@ -124,7 +117,7 @@ int main( int argc, char* argv[] ) {
             if (mpi_rank == 0)
                 printf("\r[Info] Converting %-86s\n", in_filename);
 
-            TouchReader tr(in_filename, args.mode == RunMode::ENDIAN_SWAP);
+            TouchReader tr(in_filename);
             auto work_unit = static_cast<size_t>(std::ceil(tr.record_count() / double(mpi_size)));
             auto offset = work_unit * mpi_rank;
             work_unit = std::min(tr.record_count() - offset, work_unit);

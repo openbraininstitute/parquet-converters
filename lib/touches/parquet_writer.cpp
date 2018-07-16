@@ -21,6 +21,9 @@ static std::shared_ptr<GroupNode> setupSchema() {
       "pre_neuron_id", Repetition::REQUIRED, Type::INT32, LogicalType::INT_32));
 
   fields.push_back(schema::PrimitiveNode::Make(
+      "pre_neuron_index", Repetition::REQUIRED, Type::INT32, LogicalType::INT_32));
+
+  fields.push_back(schema::PrimitiveNode::Make(
       "post_neuron_id", Repetition::REQUIRED, Type::INT32, LogicalType::INT_32));
 
   // POSITION OF THE SYNAPSE //
@@ -82,7 +85,7 @@ TouchWriterParquet::~TouchWriterParquet() {
 }
 
 
-void TouchWriterParquet::write(const Touch* data, uint32_t length) {
+void TouchWriterParquet::write(const IndexedTouch* data, uint32_t length) {
 
     //Split large Data in BUFFER_SIZE chunks
     while( length > 0 ) {
@@ -100,7 +103,7 @@ void TouchWriterParquet::write(const Touch* data, uint32_t length) {
 
 
 // We need to chunk to avoid large buffers not fitting in cache
-void TouchWriterParquet::_writeDataSet(const Touch* data, uint length) {
+void TouchWriterParquet::_writeDataSet(const IndexedTouch* data, uint length) {
     uint n_chunks = length / TRANSPOSE_LEN;
     uint remaining = length % TRANSPOSE_LEN;
 
@@ -123,13 +126,14 @@ void TouchWriterParquet::_writeDataSet(const Touch* data, uint length) {
 }
 
 
-void TouchWriterParquet::_transpose_buffer_part(const Touch* data, uint offset, uint length) {
+void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint offset, uint length) {
     // Here we are transposing using the TBuffer
     // Indexes at 0, so we also advance the local ptr to the offset
     data += offset;
 
     for( uint i=0; i<length; i++ ) {
         _tbuffer->pre_neuron_id[i] = data[i].getPreNeuronID();
+        _tbuffer->pre_neuron_index[i] = data[i].pre_synapse_index;
         _tbuffer->post_neuron_id[i] = data[i].getPostNeuronID();
         _tbuffer->pre_offset[i] = data[i].pre_offset;
         _tbuffer->post_offset[i] = data[i].post_offset;
@@ -151,6 +155,7 @@ void TouchWriterParquet::_transpose_buffer_part(const Touch* data, uint offset, 
     // Append to main buffer
     uint buffer_offset = _buffer_offset + offset;
     std::copy( _tbuffer->pre_neuron_id,  _tbuffer->pre_neuron_id+length,  _buffer->pre_neuron_id+buffer_offset );
+    std::copy( _tbuffer->pre_neuron_index, _tbuffer->pre_neuron_index + length, _buffer->pre_neuron_index + buffer_offset );
     std::copy( _tbuffer->post_neuron_id, _tbuffer->post_neuron_id+length, _buffer->post_neuron_id+buffer_offset );
     std::copy( _tbuffer->pre_offset,     _tbuffer->pre_offset+length,     _buffer->pre_offset+buffer_offset );
     std::copy( _tbuffer->post_offset,    _tbuffer->post_offset+length,    _buffer->post_offset+buffer_offset );
@@ -164,7 +169,7 @@ void TouchWriterParquet::_transpose_buffer_part(const Touch* data, uint offset, 
 
 
 ///
-/// Low-level function to write directly a Touch set to the currently open row group
+/// Low-level function to write directly a IndexedTouch set to the currently open row group
 ///
 void TouchWriterParquet::_writeBuffer(uint length) {
     RowGroupWriter* rg_writer = file_writer->AppendRowGroup();
@@ -172,6 +177,8 @@ void TouchWriterParquet::_writeBuffer(uint length) {
     //pre_neuron / post_neuron [ids, section, segment]
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_neuron_id);
+    int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+    int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_neuron_index);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_neuron_id);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());

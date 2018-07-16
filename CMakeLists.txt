@@ -78,20 +78,10 @@ if (OPENMP_FOUND)
         LINK_FLAGS ${OpenMP_CXX_FLAGS} )
 endif()
 
-add_custom_target( touch2parquet_endian ALL
-                   COMMAND ln -sf touch2parquet touch2parquet_endian
-                   DEPENDS touch2parquet
-                   COMMENT "Generating touch2parquet_endian")
-
 
 if(NEURONPARQUET_USE_MPI)
   add_executable(touch2parquetp touch2parquetp.cpp)
   target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
-
-  add_custom_target( touch2parquetp_endian ALL
-                     COMMAND ln -sf touch2parquetp touch2parquetp_endian
-                     DEPENDS touch2parquetp
-                     COMMENT "Generating touch2parquetp_endian")
 endif()
 
 

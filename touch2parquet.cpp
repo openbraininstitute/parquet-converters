@@ -18,10 +18,10 @@ using namespace neuron_parquet::touches;
 using neuron_parquet::Converter;
 using utils::ProgressMonitor;
 
-typedef Converter<Touch> TouchConverter;
+typedef Converter<IndexedTouch> TouchConverter;
 
 
-enum class RunMode:int {QUIT_ERROR=-1, QUIT_OK, STANDARD, ENDIAN_SWAP};
+enum class RunMode:int {QUIT_ERROR=-1, QUIT_OK, STANDARD};
 struct Args {
     Args (RunMode runmode)
         : mode(runmode)
@@ -36,7 +36,7 @@ struct Args {
 
 
 static const char *usage =
-    "usage: touch2parquet[_endian] <touch_file1 touch_file2 ...>\n"
+    "usage: touch2parquet <touch_file1 touch_file2 ...>\n"
     "       touch2parquet [-h]\n";
 
 
@@ -69,13 +69,6 @@ Args process_args(int argc, char* argv[]) {
             args.mode = RunMode::QUIT_ERROR;
             return args;
         }
-    }
-
-    //It will swap endians if we use the xxx_endian executable
-    int len = strlen(argv[0]);
-    if( len>6 && strcmp( &(argv[0][len-6]), "endian" ) == 0 ) {
-        printf("[Info] Swapping endians\n");
-        args.mode = RunMode::ENDIAN_SWAP;
     }
 
     return args;
@@ -111,7 +104,7 @@ int main( int argc, char* argv[] ) {
         const char* in_filename = argv[i];
         progress.print_info("[Info] Converting %-86s\n", in_filename);
 
-        TouchReader tr(in_filename, args.mode == RunMode::ENDIAN_SWAP);
+        TouchReader tr(in_filename);
         string parquetFilename( argv[i] );
         std::size_t slashPos = parquetFilename.find_last_of("/\\");
         parquetFilename = parquetFilename.substr(slashPos+1);

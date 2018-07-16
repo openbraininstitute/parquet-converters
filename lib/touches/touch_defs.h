@@ -8,6 +8,8 @@
 #ifndef LIB_TOUCHES_TOUCH_DEFS_H_
 #define LIB_TOUCHES_TOUCH_DEFS_H_
 
+#include <algorithm>
+
 namespace neuron_parquet {
 namespace touches {
 
@@ -28,6 +30,21 @@ struct Touch {
     float pre_offset, post_offset;
 };
 
+struct IndexedTouch : public Touch {
+    inline IndexedTouch& operator=(const Touch& t)
+    {
+        std::copy(t.pre_synapse_ids, t.pre_synapse_ids + 3, pre_synapse_ids);
+        std::copy(t.post_synapse_ids, t.post_synapse_ids + 3, post_synapse_ids);
+        branch = t.branch;
+        distance_soma = t.distance_soma;
+        pre_offset = t.pre_offset;
+        post_offset = t.post_offset;
+
+        return *this;
+    };
+
+    int pre_synapse_index;
+};
 
 }  // namespace touches
 }  // namespace neuron_parquet
