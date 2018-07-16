@@ -10,6 +10,7 @@
 
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdarg>
@@ -193,8 +194,8 @@ class ProgressMonitor {
             progress_len = MAX_BAR_LEN;
         }
 
-        int bar_len = (progress * progress_len);
-        int rpad = progress_len - bar_len;
+        int bar_len = (std::min(1.f, progress) * progress_len);
+        int rpad = std::max(0, progress_len - bar_len);
         last_msg_len_ = progress_len + 11 + strlen(tasks_str);
 
         fprintf(stderr, "\r[%5.1f%%|%.*s>%*s] %s ",
