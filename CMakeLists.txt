@@ -104,12 +104,10 @@ endif()
 # INSTALL
 install(TARGETS touch2parquet DESTINATION bin)
 install(TARGETS parquet2syn2 DESTINATION bin)
-install(FILES ${CMAKE_BINARY_DIR}/touch2parquet_endian DESTINATION bin)
 
 if(NEURONPARQUET_USE_MPI)
     install(TARGETS touch2parquetp DESTINATION bin)
     install(TARGETS parquet2syn2p DESTINATION bin)
-    install(FILES ${CMAKE_BINARY_DIR}/touch2parquetp_endian DESTINATION bin)
 endif()
 
 
