@@ -92,7 +92,7 @@ TouchReader::_readHeader(const char* filename) {
 
     std::unique_ptr<NeuronInfoSerialized[]> neurons(new NeuronInfoSerialized[n]);
     indexFile.read((char*) neurons.get(), sizeof(NeuronInfoSerialized) * n);
-    reset_points_.reserve(n + 1);
+    reset_points_.resize(n + 1);
     reset_points_[0] = 0;
     for (uint64_t i = 0; i < n; ++i) {
         if (endian_swap_) {
