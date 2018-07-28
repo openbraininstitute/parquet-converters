@@ -13,6 +13,8 @@ add_definitions(${CMAKE_CXX_WARNING_EXTREME})
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+# Look for libraries in 'lib64' as well as in 'lib'
+set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 ##
 ## DEPENDENCIES
