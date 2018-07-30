@@ -13,6 +13,7 @@ sort_cols = ['pre_neuron_id', 'pre_neuron_index']
 base, comp = [pq.ParquetDataset(glob.glob(d)).read().to_pandas() \
                 .sort_values(sort_cols).reset_index(drop=True)
               for d in sys.argv[1:]]
+print("comparison " + ("successful" if base.equals(comp) else "failed"))
 sys.exit(0 if base.equals(comp) else 1)
 EOF
 
