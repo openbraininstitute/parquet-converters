@@ -5,5 +5,5 @@ node {
 
     spack("parquet-converters",
           "ssh://bbpcode.epfl.ch/building/ParquetConverters",
-          "%gcc ^zlib~shared")
+          "%gcc")
 }
