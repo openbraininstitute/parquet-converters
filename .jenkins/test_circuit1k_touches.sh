@@ -3,7 +3,7 @@ srun -Aproj16 -pinteractive -n4 touch2parquetp \
 
 set +x
 hash module 2> /dev/null || . /etc/profile.d/modules.sh
-module load nix/hpc/spykfunc-py3
+module load nix/hpc/spykfunc
 set -x
 
 script=$(mktemp)
