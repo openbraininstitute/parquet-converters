@@ -199,7 +199,7 @@ class ProgressMonitor {
         last_msg_len_ = progress_len + 11 + strlen(tasks_str);
 
         fprintf(stderr, "\r[%5.1f%%|%.*s>%*s] %s ",
-                progress*100, bar_len, PB_STR, rpad, "", tasks_str);
+                std::min(progress*100, 100.f), bar_len, PB_STR, rpad, "", tasks_str);
 
         output_mtx_.unlock();
     }
