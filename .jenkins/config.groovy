@@ -5,5 +5,6 @@ node {
 
     spack("parquet-converters",
           "ssh://bbpcode.epfl.ch/building/ParquetConverters",
-          "%gcc")
+          "%gcc",
+          test: "salloc -A\$SLURM_PROJECT -n2 ctest -VV")
 }

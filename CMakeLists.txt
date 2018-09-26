@@ -82,8 +82,8 @@ endif()
 
 
 if(NEURONPARQUET_USE_MPI)
-  add_executable(touch2parquetp touch2parquetp.cpp)
-  target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
+    add_executable(touch2parquetp touch2parquetp.cpp)
+    target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
 endif()
 
 
