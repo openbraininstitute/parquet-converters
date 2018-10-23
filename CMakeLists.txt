@@ -41,7 +41,7 @@ unset(ARROW_LIB CACHE)
 find_package(HDF5)
 
 if(NEURONPARQUET_USE_STATIC)
-    find_library(PARQUET_LIB NAMES libparquet.a)
+    find_library(PARQUET_LIB NAMES libparquet.a parquet)
     find_library(ARROW_LIB NAMES libarrow.a arrow)
     find_library(THRIFT_LIB NAMES libthrift.a thrift thriftd)
     find_library(SNAPPY_LIB NAMES libsnappy.a snappy)
