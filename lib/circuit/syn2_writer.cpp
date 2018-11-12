@@ -94,12 +94,16 @@ inline hid_t parquet_types_to_h5(Type::type t) {
             return H5T_STD_I16LE;
         case Type::INT32:
             return H5T_STD_I32LE;
+        case Type::INT64:
+            return H5T_STD_I64LE;
         case Type::UINT8:
             return H5T_STD_U8LE;
         case Type::UINT16:
             return H5T_STD_U16LE;
         case Type::UINT32:
             return H5T_STD_U32LE;
+        case Type::UINT64:
+            return H5T_STD_U64LE;
         case Type::FLOAT:
             return H5T_IEEE_F32LE;
         case Type::DOUBLE:
@@ -107,6 +111,7 @@ inline hid_t parquet_types_to_h5(Type::type t) {
         case Type::STRING:
             return H5T_C_S1;
         default:
+            std::cerr << "attempt to convert an unknown datatype!" << std::endl;
             return -1;
     }
 }
