@@ -74,8 +74,6 @@ class TouchReader : public Reader<IndexedTouch> {
     uint32_t buffer_record_count_;
     std::unique_ptr<IndexedTouch[]> buffer_;
     std::unique_ptr<Touch[]> raw_buffer_;
-    std::vector<uint64_t> reset_points_;
-    std::vector<uint64_t>::iterator reset_index_;
 };
 
 

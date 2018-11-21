@@ -43,7 +43,7 @@ struct IndexedTouch : public Touch {
         return *this;
     };
 
-    int pre_synapse_index;
+    long synapse_index;
 };
 
 }  // namespace touches

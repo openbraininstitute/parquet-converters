@@ -48,6 +48,7 @@ private:
 
     // Column writers
     parquet::Int32Writer* int32_writer;
+    parquet::Int64Writer* int64_writer;
     parquet::FloatWriter* float_writer;
 
     // Buffers
@@ -62,8 +63,8 @@ private:
     
     template <int buf_len>
     struct BUF_T{
+        long synapse_id[buf_len];
         int pre_neuron_id[buf_len];
-	int pre_neuron_index[buf_len];
         int post_neuron_id[buf_len];
         int pre_section[buf_len];
         int pre_segment[buf_len];

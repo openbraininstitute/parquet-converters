@@ -9,7 +9,7 @@ set -x
 script=$(mktemp)
 cat >$script <<EOF
 import glob, sys, pyarrow.parquet as pq
-sort_cols = ['pre_neuron_id', 'pre_neuron_index']
+sort_cols = ['synapse_id']
 base, comp = [pq.ParquetDataset(glob.glob(d)).read().to_pandas() \
                 .sort_values(sort_cols).reset_index(drop=True)
               for d in sys.argv[1:]]

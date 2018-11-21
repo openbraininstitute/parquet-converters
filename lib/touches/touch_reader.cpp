@@ -92,17 +92,13 @@ TouchReader::_readHeader(const char* filename) {
 
     std::unique_ptr<NeuronInfoSerialized[]> neurons(new NeuronInfoSerialized[n]);
     indexFile.read((char*) neurons.get(), sizeof(NeuronInfoSerialized) * n);
-    reset_points_.resize(n + 1);
-    reset_points_[0] = 0;
     for (uint64_t i = 0; i < n; ++i) {
         if (endian_swap_) {
             bswap(&neurons[i].neuronID);
             bswap(&neurons[i].touchesCount);
             bswap(&neurons[i].binaryOffset);
         }
-        reset_points_[i + 1] = reset_points_[i] + neurons[i].touchesCount;
     }
-    reset_index_ = reset_points_.begin() + 1;
 }
 
 IndexedTouch & TouchReader::begin() {
@@ -168,7 +164,6 @@ void TouchReader::seek(uint64_t pos)   {
     if( new_offset != offset_ ) {
         offset_ = new_offset;
         touchFile_.seekg(offset_ * RECORD_SIZE);
-        reset_index_ = upper_bound(reset_points_.begin(), reset_points_.end(), offset_);
         buffer_record_count_ = 0;
     }
     it_buf_index_ = pos - new_offset;
@@ -225,10 +220,8 @@ void TouchReader::_load_into(IndexedTouch* buffer, uint32_t length) {
     }
 
     for (uint32_t i = 0; i < length; ++i) {
-        if (i + offset_ >= *reset_index_)
-            ++reset_index_;
         buffer[i] = rbuf[i];
-        buffer[i].pre_synapse_index = i + offset_ - *(reset_index_ - 1);
+        buffer[i].synapse_index = i + offset_;
     }
 
     offset_ += length;
