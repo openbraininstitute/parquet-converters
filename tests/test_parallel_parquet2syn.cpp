@@ -27,7 +27,7 @@ MPI_Info info  = MPI_INFO_NULL;
 
 
 
-static const string syn2_filename ("circuit.syn2");
+static const string syn2_filename ("circuit_parallel.syn2");
 
 
 ///

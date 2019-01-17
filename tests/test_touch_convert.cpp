@@ -29,7 +29,6 @@ void convert_touches(char* filename)  {
         ProgressMonitor p(reader.block_count());
 
         converter.setProgressHandler(p);
-
         converter.exportAll();
     }
 
