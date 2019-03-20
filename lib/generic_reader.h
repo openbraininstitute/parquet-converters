@@ -29,9 +29,6 @@ class Reader {
 
     virtual bool is_chunked() const = 0;
 
-    // bytes per record
-    static constexpr uint32_t RECORD_SIZE = sizeof(T);
-
  protected:
     ~Reader() = default;
 };

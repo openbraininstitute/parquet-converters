@@ -34,9 +34,15 @@ if(NEURONPARQUET_USE_MPI)
 endif()
 
 add_test(
-    NAME touches_conversion
+    NAME touches_conversion_v1
     COMMAND test_touch_convert
-        ${CMAKE_CURRENT_SOURCE_DIR}/touchesData.0
+        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
+)
+
+add_test(
+    NAME touches_conversion_v2
+    COMMAND test_touch_convert
+        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
 )
 
 add_test(

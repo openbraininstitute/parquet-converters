@@ -88,7 +88,8 @@ int main( int argc, char* argv[] ) {
     // Know the total number of buffers to be processed
     uint32_t blocks;
     if (args.convert_limit > 0) {
-        blocks = TouchConverter::number_of_buffers(args.convert_limit * sizeof(Touch));
+        TouchReader tr(argv[first_file]);
+        blocks = TouchConverter::number_of_buffers(args.convert_limit * tr.record_size());
     }
     else {
         std::ifstream f1(argv[first_file], std::ios::binary | std::ios::ate);
@@ -111,7 +112,7 @@ int main( int argc, char* argv[] ) {
         parquetFilename += ".parquet";
 
         try {
-            TouchWriterParquet tw(parquetFilename);
+            TouchWriterParquet tw(parquetFilename, tr.version());
             ProgressMonitor::SubTask subp = progress.subtask();
             TouchConverter converter(tr, tw);
             converter.setProgressHandler(subp);
@@ -123,7 +124,7 @@ int main( int argc, char* argv[] ) {
             }
         }
         catch (const std::exception& e){
-            printf("\n[ERROR] Could not create output file.\n -> %s", e.what());
+            printf("\n[ERROR] Could not create output file.\n -> %s\n", e.what());
         }
     }
     progress.clear(); // - this works well but

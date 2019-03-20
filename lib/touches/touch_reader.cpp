@@ -5,10 +5,15 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#include "touch_reader.h"
 #include <time.h>
 
+#include <range/v3/all.hpp>
+
+#include "touch_reader.h"
+
 #define ARCHITECTURE_IDENTIFIER 1.001
+
+using namespace ranges;
 
 /// Some GCCs fail to detect the byte swap
 template<typename T, size_t n>
@@ -49,7 +54,7 @@ struct NeuronInfoSerialized {
 struct HeaderSerialized {
     double architectureIdentifier;
     long long numberOfNeurons;
-    char gitVersion[16];
+    char version[16];
 };
 
 TouchReader::TouchReader(const char* filename, bool buffered)
@@ -64,14 +69,13 @@ TouchReader::TouchReader(const char* filename, bool buffered)
     touchFile_.open(filename, ifstream::binary);
     touchFile_.seekg (0, ifstream::end);
     uint64_t length = touchFile_.tellg();
-    record_count_ = length / RECORD_SIZE;
+    record_count_ = length / record_size_;
     touchFile_.seekg (0);
 }
 
 TouchReader::~TouchReader() {
     touchFile_.close();
 }
-
 
 void
 TouchReader::_readHeader(const char* filename) {
@@ -89,6 +93,21 @@ TouchReader::_readHeader(const char* filename) {
     uint64_t n = header.numberOfNeurons;
     if (endian_swap_)
         bswap(&n);
+
+    version_ = V1;
+    record_size_ = sizeof(v1::Touch);
+    try {
+        std::string v(header.version);
+        std::vector<int> vs = v | view::split('.')
+                                | view::transform([](const std::string& s) { return std::stoi(s); });
+        if ((vs.size() >= 1 and vs[0] >= 5) or
+            (vs.size() >= 2 and vs[0] >= 4 and vs[1] >= 99)) {
+            version_ = V2;
+            record_size_ = sizeof(v2::Touch);
+        }
+    } catch (std::invalid_argument& e) {
+        // Earlier versions were hashes of git commits. Default to V1.
+    }
 
     std::unique_ptr<NeuronInfoSerialized[]> neurons(new NeuronInfoSerialized[n]);
     indexFile.read((char*) neurons.get(), sizeof(NeuronInfoSerialized) * n);
@@ -163,7 +182,7 @@ void TouchReader::seek(uint64_t pos)   {
 
     if( new_offset != offset_ ) {
         offset_ = new_offset;
-        touchFile_.seekg(offset_ * RECORD_SIZE);
+        touchFile_.seekg(offset_ * record_size_);
         buffer_record_count_ = 0;
     }
     it_buf_index_ = pos - new_offset;
@@ -195,18 +214,26 @@ void TouchReader::_fillBuffer() {
     buffer_record_count_ = load_n;
 }
 
-
 void TouchReader::_load_into(IndexedTouch* buffer, uint32_t length) {
-    static std::unique_ptr<Touch[]> rbuf;
+    if (version_ == V1) {
+        _load_touches<v1::Touch>(buffer, length);
+    } else {
+        _load_touches<v2::Touch>(buffer, length);
+    }
+}
+
+template<typename T>
+void TouchReader::_load_touches(IndexedTouch* buffer, uint32_t length) {
+    static std::unique_ptr<T[]> rbuf;
     static uint32_t size = 0;
     if (length > size) {
         size = length;
-        rbuf.reset(new Touch[size]);
+        rbuf.reset(new T[size]);
     }
-    touchFile_.read((char*)rbuf.get(), length * RECORD_SIZE);
+    touchFile_.read((char*)rbuf.get(), length * record_size_);
 
     if( endian_swap_ ){
-        Touch* curTouch = rbuf.get();
+        T* curTouch = rbuf.get();
         for(uint32_t i=0; i<length; i++) {
             // Given all the fields are contiguous and are 32bits long
             // we loop over them as if it was an array
@@ -220,8 +247,7 @@ void TouchReader::_load_into(IndexedTouch* buffer, uint32_t length) {
     }
 
     for (uint32_t i = 0; i < length; ++i) {
-        buffer[i] = rbuf[i];
-        buffer[i].synapse_index = i + offset_;
+        buffer[i] = IndexedTouch(rbuf[i], i + offset_);
     }
 
     offset_ += length;

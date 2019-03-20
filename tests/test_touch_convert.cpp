@@ -22,7 +22,7 @@ using utils::ProgressMonitor;
 
 void convert_touches(char* filename)  {
     TouchReader reader(filename) ;
-    TouchWriterParquet writer("output.parquet");
+    TouchWriterParquet writer("output.parquet", reader.version());
 
     {
         Converter<IndexedTouch> converter(reader, writer);

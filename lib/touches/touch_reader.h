@@ -30,8 +30,14 @@ class TouchReader : public Reader<IndexedTouch> {
                 bool buffered = false);
     ~TouchReader();
 
+    Version version() const { return version_; }
+
     bool is_chunked() const override {
         return false;
+    }
+
+    uint32_t record_size() const {
+        return record_size_;
     }
 
     uint64_t record_count() const override {
@@ -54,26 +60,28 @@ class TouchReader : public Reader<IndexedTouch> {
 
     static const uint32_t BUFFER_LEN = 256;
 
-    // bytes per record
-    static constexpr uint32_t RECORD_SIZE = sizeof(Touch);
-
  private:
     void _readHeader(const char* filename);
     void _fillBuffer();
-    void _load_into(IndexedTouch* buf, uint32_t length);
+
+    void _load_into(IndexedTouch* buffer, uint32_t length);
+
+    template<typename T>
+    void _load_touches(IndexedTouch* buffer, uint32_t length);
 
     // File
     std::ifstream touchFile_;
+    uint32_t record_size_;
     uint64_t record_count_;
     uint64_t offset_;
     bool endian_swap_;
     bool buffered_;
+    Version version_;
 
     // Internal Buffer: to be used for iteration
     uint32_t it_buf_index_;  // Offset relative to buffer
     uint32_t buffer_record_count_;
     std::unique_ptr<IndexedTouch[]> buffer_;
-    std::unique_ptr<Touch[]> raw_buffer_;
 };
 
 

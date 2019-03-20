@@ -107,8 +107,10 @@ int main( int argc, char* argv[] ) {
                  + std::to_string(mpi_rank) + ".parquet";
 
     try {
+        auto version = TouchReader(first_file.c_str()).version();
+
         // Every rank participates in the conversion of every file, different regions
-        TouchWriterParquet tw(outfn);
+        TouchWriterParquet tw(outfn, version);
 
         for (int i = args.n_opts; i < argc; i++) {
             MPI_Barrier(comm);

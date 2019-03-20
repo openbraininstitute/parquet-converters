@@ -24,7 +24,7 @@ using namespace std;
 class TouchWriterParquet : public Writer<IndexedTouch>
 {
 public:
-    TouchWriterParquet(const string);
+    TouchWriterParquet(const string, Version);
     ~TouchWriterParquet();
 
     virtual void write(const IndexedTouch* data, uint32_t length) override;  // offset are directly added to data ptr
@@ -42,6 +42,7 @@ private:
     inline void _writeBuffer(uint length);
 
     // Variables
+    Version version;
     shared_ptr<GroupNode> touchSchema;
     std::shared_ptr<ParquetFileOutput> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
@@ -60,7 +61,7 @@ private:
     static const uint TRANSPOSE_LEN = 1024;
 
     uint _buffer_offset;
-    
+
     template <int buf_len>
     struct BUF_T{
         long synapse_id[buf_len];
@@ -74,6 +75,10 @@ private:
         float post_offset[buf_len];
         float distance_soma[buf_len];
         int branch_order[buf_len];
+        float pre_position[3][buf_len];
+        float post_position[3][buf_len];
+        float spine_length[buf_len];
+        int branch_type[buf_len];
     };
 
     std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;

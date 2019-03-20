@@ -10,7 +10,7 @@ include(ReleaseDebugAutoFlags)
 
 add_definitions(${CMAKE_CXX_WARNING_EXTREME})
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Look for libraries in 'lib64' as well as in 'lib'
@@ -21,8 +21,11 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 ##
 find_package(OpenMP)
 find_package(Boost COMPONENTS filesystem regex REQUIRED)
+find_package(Range-v3)
 
 find_library(SYN2_LIB "syn2")
+find_package(HighFive)
+
 if(NEURONPARQUET_USE_MPI)
     find_package(MPI REQUIRED)
     add_definitions("-DNEURONPARQUET_USE_MPI")
@@ -61,7 +64,11 @@ endif()
 ## includes
 find_path(PARQUET_INCLUDE_DIR "parquet")
 find_path(ARROW_INCLUDE_DIR "arrow")
-include_directories(${Boost_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+
+include_directories(${Boost_INCLUDE_DIR}
+                    ${PARQUET_INCLUDE_DIR}
+                    ${ARROW_INCLUDE_DIR}
+                    ${HIGHFIVE_INCLUDE_DIRS})
 
 # Build core lib
 add_subdirectory(lib)

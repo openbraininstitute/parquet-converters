@@ -14,7 +14,7 @@ namespace touches {
 using namespace parquet;
 
 
-static std::shared_ptr<GroupNode> setupSchema() {
+static std::shared_ptr<GroupNode> setupSchema(Version version) {
   schema::NodeVector fields;
 
   fields.push_back(schema::PrimitiveNode::Make(
@@ -48,6 +48,28 @@ static std::shared_ptr<GroupNode> setupSchema() {
   fields.push_back(schema::PrimitiveNode::Make(
       "branch_order", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
 
+  if (version >= V2) {
+      fields.push_back(schema::GroupNode::Make(
+          "pre_position", Repetition::REQUIRED, {
+              schema::PrimitiveNode::Make("x", Repetition::REQUIRED, Type::FLOAT),
+              schema::PrimitiveNode::Make("y", Repetition::REQUIRED, Type::FLOAT),
+              schema::PrimitiveNode::Make("z", Repetition::REQUIRED, Type::FLOAT)
+          }));
+
+      fields.push_back(schema::GroupNode::Make(
+          "post_position", Repetition::REQUIRED, {
+              schema::PrimitiveNode::Make("x", Repetition::REQUIRED, Type::FLOAT),
+              schema::PrimitiveNode::Make("y", Repetition::REQUIRED, Type::FLOAT),
+              schema::PrimitiveNode::Make("z", Repetition::REQUIRED, Type::FLOAT)
+          }));
+
+      fields.push_back(schema::PrimitiveNode::Make(
+          "spine_length", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+
+      fields.push_back(schema::PrimitiveNode::Make(
+          "branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
+  }
+
   // Create a GroupNode named 'schema' using the primitive nodes defined above
   // This GroupNode is the root node of the schema tree
   return std::static_pointer_cast<schema::GroupNode>(
@@ -55,17 +77,18 @@ static std::shared_ptr<GroupNode> setupSchema() {
 }
 
 
-TouchWriterParquet::TouchWriterParquet(const string filename)
- : _buffer_offset(0)
+TouchWriterParquet::TouchWriterParquet(const string filename, const Version v)
+    : version(v)
+    , _buffer_offset(0)
 {
     // Create a ParquetFileWriter instance
     PARQUET_THROW_NOT_OK(ParquetFileOutput::Open(filename.c_str(), &out_file));
-    touchSchema = setupSchema();
+    touchSchema = setupSchema(version);
 
     WriterProperties::Builder prop_builder;
     prop_builder.compression(Compression::SNAPPY);
     prop_builder.disable_dictionary();
-    
+
     file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
 
     // Allocate contiguous buffers for FULL output and TRANSPOSED block
@@ -143,13 +166,31 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
         _tbuffer->pre_segment[i] = data[i].pre_synapse_ids[SEGMENT_ID];
         _tbuffer->post_section[i] = data[i].post_synapse_ids[SECTION_ID];
         _tbuffer->post_segment[i] = data[i].post_synapse_ids[SEGMENT_ID];
+
         if( _tbuffer->pre_section[i]>0x7fff ) {
-            printf("Problematic pre_section %d\n", _tbuffer->pre_section[i]);
+            printf("Problematic pre_section %d of %d → %d\n",
+                   _tbuffer->pre_section[i],
+                   _tbuffer->pre_neuron_id[i],
+                   _tbuffer->post_neuron_id[i]);
             throw runtime_error("Invalid pre_section. Please check endianess");
         }
-        if( _tbuffer->pre_segment[i]>0x7fff ) printf("Problematic pre_segment %d\n", _tbuffer->pre_segment[i]);
-        if( _tbuffer->post_section[i]>0x7fff ) printf("Problematic post_section %d\n", _tbuffer->post_section[i]);
-        if( _tbuffer->post_segment[i]>0x7fff ) printf("Problematic post_segment %d\n", _tbuffer->post_segment[i]);
+        if( _tbuffer->pre_segment[i]>0x7fff )
+            printf("Problematic pre_segment %d\n", _tbuffer->pre_segment[i]);
+        if( _tbuffer->post_section[i]>0x7fff )
+            printf("Problematic post_section %d\n", _tbuffer->post_section[i]);
+        if( _tbuffer->post_segment[i]>0x7fff )
+            printf("Problematic post_segment %d\n", _tbuffer->post_segment[i]);
+
+        if (version >= V2) {
+            _tbuffer->pre_position[0][i] = data[i].pre_position[0];
+            _tbuffer->pre_position[1][i] = data[i].pre_position[1];
+            _tbuffer->pre_position[2][i] = data[i].pre_position[2];
+            _tbuffer->post_position[0][i] = data[i].post_position[0];
+            _tbuffer->post_position[1][i] = data[i].post_position[1];
+            _tbuffer->post_position[2][i] = data[i].post_position[2];
+            _tbuffer->spine_length[i] = data[i].spine_length;
+            _tbuffer->branch_type[i] = data[i].branch_type;
+        }
     }
 
     // Append to main buffer
@@ -165,6 +206,23 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
     std::copy( _tbuffer->pre_segment,    _tbuffer->pre_segment+length,    _buffer->pre_segment+buffer_offset );
     std::copy( _tbuffer->post_section,   _tbuffer->post_section+length,   _buffer->post_section+buffer_offset );
     std::copy( _tbuffer->post_segment,   _tbuffer->post_segment+length,   _buffer->post_segment+buffer_offset );
+
+    if (version >= V2) {
+        for (int i = 0; i < 3; ++i) {
+            std::copy(_tbuffer->pre_position[i],
+                      _tbuffer->pre_position[i] + length,
+                      _buffer->pre_position[i] + buffer_offset);
+            std::copy(_tbuffer->post_position[i],
+                      _tbuffer->post_position[i] + length,
+                      _buffer->post_position[i] + buffer_offset);
+        }
+        std::copy(_tbuffer->spine_length,
+                  _tbuffer->spine_length + length,
+                  _buffer->spine_length + buffer_offset);
+        std::copy(_tbuffer->branch_type,
+                  _tbuffer->branch_type + length,
+                  _buffer->branch_type + buffer_offset);
+    }
 }
 
 
@@ -205,6 +263,24 @@ void TouchWriterParquet::_writeBuffer(uint length) {
     //branch_order
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
     int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_order);
+
+    if (version >= V2) {
+        for (int i = 0; i < 3; ++i) {
+            float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+            float_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_position[i]);
+        }
+
+        for (int i = 0; i < 3; ++i) {
+            float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+            float_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_position[i]);
+        }
+
+        float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+        float_writer->WriteBatch(length, nullptr, nullptr, _buffer->spine_length);
+
+        int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+        int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_type);
+    }
 }
 
 
