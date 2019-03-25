@@ -6,9 +6,13 @@
  *
  */
 #include "syn2_writer.h"
+
 #include <functional>
 #include <thread>
 #include <iostream>
+#include <unordered_set>
+
+#include <range/v3/view/join.hpp>
 
 //#define NEURON_LOGGING true
 
@@ -16,10 +20,14 @@ namespace neuron_parquet {
 namespace circuit {
 
 using namespace arrow;
+using namespace ranges;
 using namespace std;
 
 
 const string CircuitWriterSYN2::DEFAULT_POPULATION_NAME(DEFAULT_SYN2_POPULATION_NAME);
+
+
+const std::vector<std::string> CircuitWriterSYN2::nested_cols{"x", "y", "z"};
 
 
 CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
@@ -45,6 +53,25 @@ CircuitWriterSYN2::CircuitWriterSYN2(const string & filepath,
 #endif
 
 
+void throw_invalid_column(const std::string& col_name,
+                          const std::unordered_set<std::string>& names,
+                          const std::vector<std::string>& notfound) {
+    std::string msg = "wrong nesting for column " + col_name;
+    msg += ": ";
+    if (names.size() > 0) {
+        msg += "unrecognized subcolumn(s) ";
+        msg += view::join(names, ", ");
+    }
+    if (names.size() > 0 and notfound.size() > 0)
+        msg += " and ";
+    if (notfound.size() > 0) {
+        msg += "missing subcolumn(s) ";
+        msg += view::join(notfound, ", ");
+    }
+    throw std::runtime_error(msg);
+}
+
+
 // ================================================================================================
 ///
 /// \brief CircuitWriterSYN2::write Handles incoming data and
@@ -60,11 +87,45 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 
     for(int i=0; i<n_cols; i++) {
         shared_ptr<Column> col(row_group->column(i));
-        const string& col_name = col->name();
+        auto col_name = col->name();
+        auto col_type = parquet_types_to_h5(col->type()->id());
+        std::size_t col_width = 1;
 
-        if( !syn2_file_.has_dataset(col_name) ){
-            Type::type t (col->type()->id());
-            syn2_file_.create_dataset(col_name, parquet_types_to_h5(t));
+        // We're encountering a nested datatype -> try to see if we can
+        if (col->type()->id() == Type::STRUCT) {
+            std::unordered_set<hid_t> types;
+            std::unordered_set<std::string> names;
+
+            auto dataset = dynamic_cast<StructType*>(col->type().get());
+
+            for (const auto& field: dataset->children()) {
+                names.insert(field->name());
+                types.insert(parquet_types_to_h5(field->type()->id()));
+            }
+
+            std::vector<std::string> notfound;
+            bool valid = (names.size() == nested_cols.size());
+            for (const auto c: nested_cols) {
+                auto match = names.find(c);
+                if (match == names.end()) {
+                    valid = false;
+                    notfound.push_back(c);
+                } else {
+                    names.erase(match);
+                }
+            }
+            if (not valid) {
+                throw_invalid_column(col_name, names, notfound);
+            }
+
+            if (types.size() == 1) {
+                col_type = *(types.begin());
+            }
+            col_width = 3;
+        }
+
+        if (!syn2_file_.has_dataset(col_name)) {
+            syn2_file_.create_dataset(col_name, col_type, 0, col_width);
         }
 
         write_data(syn2_file_[col_name], output_file_offset_, col);
@@ -110,6 +171,8 @@ inline hid_t parquet_types_to_h5(Type::type t) {
             return H5T_IEEE_F64LE;
         case Type::STRING:
             return H5T_C_S1;
+        case Type::STRUCT:
+            return -2;
         default:
             std::cerr << "attempt to convert an unknown datatype!" << std::endl;
             return -1;
@@ -119,23 +182,31 @@ inline hid_t parquet_types_to_h5(Type::type t) {
 
 // ================================================================================================
 
-void write_data(Syn2CircuitHdf5::Dataset& dataset,
-                uint64_t offset,
-                const shared_ptr<const Column>& col_data) {
+void CircuitWriterSYN2::write_data(Syn2CircuitHdf5::Dataset& dataset,
+                                   uint64_t offset,
+                                   const shared_ptr<const Column>& col_data) {
 
     #ifdef NEURON_LOGGING
     cerr << "Writing data... " <<  col_data->length() << " records." << endl;
     #endif
 
-    // get chunks and retrieve the raw data from the buffer
-    for( const shared_ptr<Array> & chunk : col_data->data()->chunks() ) {
-        uint64_t buf_len = chunk->length();
+    if (col_data->type()->id() != Type::STRUCT) {
+        // get chunks and retrieve the raw data from the buffer
+        for (const shared_ptr<Array> & chunk : col_data->data()->chunks()) {
+            auto buffer = static_cast<PrimitiveArray*>(chunk.get())->values();
+            dataset.write(buffer->data(), chunk->length(), offset);
+            offset += chunk->length();
+        }
+    } else {
+        for (const shared_ptr<Array> & chunk : col_data->data()->chunks()) {
+            auto array = dynamic_cast<StructArray*>(chunk.get());
 
-        // 1 is the position containing values for PrimitiveArrays (otherwise we need a static pointer cast)
-        shared_ptr<Buffer> buffer = chunk->data()->buffers[1];
-
-        dataset.write(buffer->data(), buf_len, offset);
-        offset += buf_len;
+            for (std::size_t i = 0; i < nested_cols.size(); ++i) {
+                const auto& n = nested_cols[i];
+                auto buffer = dynamic_cast<PrimitiveArray*>(array->GetFieldByName(n).get())->values();
+                dataset.write(buffer->data(), i, chunk->length(), offset);
+            }
+        }
     }
 }
 

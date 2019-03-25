@@ -39,7 +39,7 @@ public:
     ~Syn2CircuitHdf5() {}
 
 
-    void create_dataset(const string& name, hid_t h5type, uint64_t length=0);
+    void create_dataset(const string& name, hid_t h5type, uint64_t length=0, uint64_t width=1);
 
     inline void link_external_dataset(const string& circuit_syn2_path, const string& dataset_name, const string& link_name) {
         H5::Group properties_group = population_group_.getGroup("properties");
@@ -76,7 +76,7 @@ public:
     class Dataset {
     public:
         Dataset(hid_t h5_loc, const string& name, hid_t h5type, uint64_t length,
-                bool parallel=false);
+                uint64_t width=1, bool parallel=false);
         Dataset() {}
         ~Dataset();
 
@@ -87,10 +87,17 @@ public:
         Dataset& operator=(Dataset&&) = default;
         Dataset(Dataset&&) = default;
 
-        void write(const void* buffer, const hsize_t buf_len, const hsize_t h5offset);
+        void write(const void* buffer,
+                   const hsize_t length,
+                   const hsize_t h5offset);
+        void write(const void* buffer,
+                   const hsize_t column,
+                   const hsize_t length,
+                   const hsize_t h5offset);
 
     protected:
-        hid_t ds, dspace, plist, dtype;
+        hid_t ds, plist, dspace, dtype;
+        uint64_t width;
         // Keep control after moves if this is a valid object
         // unique_ptr's work, they init as "false" and become "false" after moved.
         std::unique_ptr<bool> valid_;

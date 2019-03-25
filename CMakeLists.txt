@@ -68,7 +68,7 @@ find_path(ARROW_INCLUDE_DIR "arrow")
 include_directories(${Boost_INCLUDE_DIR}
                     ${PARQUET_INCLUDE_DIR}
                     ${ARROW_INCLUDE_DIR}
-                    ${HIGHFIVE_INCLUDE_DIRS})
+                    ${HIGHFIVE_INCLUDE_DIR})
 
 # Build core lib
 add_subdirectory(lib)

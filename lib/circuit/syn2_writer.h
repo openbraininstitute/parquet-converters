@@ -70,6 +70,12 @@ public:
     static const string DEFAULT_POPULATION_NAME;
 
 private:
+    static const std::vector<std::string> nested_cols;
+
+    static void write_data(Syn2CircuitHdf5::Dataset& ds,
+                           uint64_t r_offset,
+                           const std::shared_ptr<const arrow::Column>& r_col_data);
+
     Syn2CircuitHdf5 syn2_file_;
 
     const uint64_t total_records_;
@@ -77,10 +83,6 @@ private:
     uint64_t output_file_offset_;
 };
 
-
-void write_data(Syn2CircuitHdf5::Dataset& ds,
-                uint64_t r_offset,
-                const std::shared_ptr<const arrow::Column>& r_col_data);
 
 inline hid_t parquet_types_to_h5(arrow::Type::type t);
 

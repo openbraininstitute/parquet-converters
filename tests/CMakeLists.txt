@@ -40,10 +40,32 @@ add_test(
 )
 
 add_test(
+    NAME parquet_conversion_v1
+    COMMAND parquet2syn2 output.parquet
+)
+
+add_test(
     NAME touches_conversion_v2
     COMMAND test_touch_convert
         ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
 )
+
+add_test(
+    NAME parquet_conversion_v2
+    COMMAND parquet2syn2 output.parquet
+)
+
+set_tests_properties(touches_conversion_v1 PROPERTIES
+                     FIXTURES_SETUP touches_v1)
+set_tests_properties(parquet_conversion_v1 PROPERTIES
+                     FIXTURES_REQUIRED touches_v1)
+set_tests_properties(touches_conversion_v2 PROPERTIES
+                     FIXTURES_SETUP touches_v2)
+set_tests_properties(parquet_conversion_v2 PROPERTIES
+                     FIXTURES_REQUIRED touches_v2)
+
+set_tests_properties(touches_conversion_v1 parquet_conversion_v1 PROPERTIES RUN_SERIAL TRUE)
+set_tests_properties(touches_conversion_v2 parquet_conversion_v2 PROPERTIES RUN_SERIAL TRUE)
 
 add_test(
     NAME multifile_parquet2syn
