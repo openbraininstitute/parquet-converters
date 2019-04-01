@@ -8,14 +8,15 @@
 #ifndef LIB_TOUCHES_TOUCH_READER_H_
 #define LIB_TOUCHES_TOUCH_READER_H_
 
-#include <fstream>
-#include <istream>
-#include <functional>
-#include <memory>
-#include <vector>
-#include <numeric>
-#include <mutex>
 #include <cstring>
+#include <fstream>
+#include <functional>
+#include <istream>
+#include <memory>
+#include <mutex>
+#include <numeric>
+#include <unordered_map>
+#include <vector>
 
 #include "../generic_reader.h"
 #include "./touch_defs.h"
@@ -82,6 +83,10 @@ class TouchReader : public Reader<IndexedTouch> {
     uint32_t it_buf_index_;  // Offset relative to buffer
     uint32_t buffer_record_count_;
     std::unique_ptr<IndexedTouch[]> buffer_;
+
+    // Used to assign unique IDs to synapses / touches
+    // neuron id → shift from binary to logical offset
+    std::unordered_map<int, int64_t> shifts_;
 };
 
 

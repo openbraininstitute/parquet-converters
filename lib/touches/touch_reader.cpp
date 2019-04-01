@@ -46,9 +46,9 @@ using namespace std;
 
 // TouchDetector index file definitions
 struct NeuronInfoSerialized {
-    int neuronID;
-    uint32_t touchesCount;
-    long long binaryOffset;
+    int id;
+    uint32_t count;
+    long long offset;
 };
 
 struct HeaderSerialized {
@@ -109,14 +109,26 @@ TouchReader::_readHeader(const char* filename) {
         // Earlier versions were hashes of git commits. Default to V1.
     }
 
-    std::unique_ptr<NeuronInfoSerialized[]> neurons(new NeuronInfoSerialized[n]);
-    indexFile.read((char*) neurons.get(), sizeof(NeuronInfoSerialized) * n);
-    for (uint64_t i = 0; i < n; ++i) {
-        if (endian_swap_) {
-            bswap(&neurons[i].neuronID);
-            bswap(&neurons[i].touchesCount);
-            bswap(&neurons[i].binaryOffset);
+    std::vector<NeuronInfoSerialized> neurons(n);
+    indexFile.read((char*) neurons.data(), sizeof(NeuronInfoSerialized) * n);
+    if (endian_swap_) {
+        for (uint64_t i = 0; i < n; ++i) {
+            bswap(&neurons[i].id);
+            bswap(&neurons[i].count);
+            bswap(&neurons[i].offset);
         }
+    }
+
+    std::sort(std::begin(neurons),
+              std::end(neurons),
+              [](const auto& n1, const auto& n2) {
+                  return n1.id < n2.id;
+              });
+
+    int64_t logical_offset = 0;
+    for (const auto& n: neurons) {
+        shifts_.emplace(n.id, logical_offset - (n.offset / record_size_));
+        logical_offset += n.count;
     }
 }
 
@@ -247,7 +259,9 @@ void TouchReader::_load_touches(IndexedTouch* buffer, uint32_t length) {
     }
 
     for (uint32_t i = 0; i < length; ++i) {
-        buffer[i] = IndexedTouch(rbuf[i], i + offset_);
+        int64_t shift = shifts_[rbuf[i].pre_synapse_ids[NEURON_ID]];
+        int64_t touch_id = shift + i + offset_;
+        buffer[i] = IndexedTouch(rbuf[i], touch_id);
     }
 
     offset_ += length;
