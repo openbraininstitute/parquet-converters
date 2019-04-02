@@ -15,7 +15,6 @@
 #include <memory>
 #include <mutex>
 #include <numeric>
-#include <unordered_map>
 #include <vector>
 
 #include "../generic_reader.h"
@@ -84,9 +83,10 @@ class TouchReader : public Reader<IndexedTouch> {
     uint32_t buffer_record_count_;
     std::unique_ptr<IndexedTouch[]> buffer_;
 
-    // Used to assign unique IDs to synapses / touches
-    // neuron id → shift from binary to logical offset
-    std::unordered_map<int, int64_t> shifts_;
+    // Store the offset that touches need to be shifted to construct the
+    // unique synapse id.
+    std::vector<int64_t> shifts_;
+    std::size_t first_;
 };
 
 

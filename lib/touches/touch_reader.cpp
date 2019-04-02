@@ -119,16 +119,16 @@ TouchReader::_readHeader(const char* filename) {
         }
     }
 
-    std::sort(std::begin(neurons),
-              std::end(neurons),
-              [](const auto& n1, const auto& n2) {
-                  return n1.id < n2.id;
-              });
+    auto mm = std::minmax_element(std::begin(neurons),
+                                  std::end(neurons),
+                                  [](const auto& n1, const auto& n2) {
+                                      return n1.id < n2.id;
+                                  });
 
-    int64_t logical_offset = 0;
+    first_ = mm.first->id;
+    shifts_.resize(mm.second->id - first_ + 1);
     for (const auto& n: neurons) {
-        shifts_.emplace(n.id, logical_offset - (n.offset / record_size_));
-        logical_offset += n.count;
+        shifts_[n.id - first_] = n.offset / record_size_;
     }
 }
 
@@ -258,9 +258,16 @@ void TouchReader::_load_touches(IndexedTouch* buffer, uint32_t length) {
         }
     }
 
-    for (uint32_t i = 0; i < length; ++i) {
-        int64_t shift = shifts_[rbuf[i].pre_synapse_ids[NEURON_ID]];
-        int64_t touch_id = shift + i + offset_;
+    for (uint64_t i = 0; i < length; ++i) {
+        int64_t gid = rbuf[i].pre_synapse_ids[NEURON_ID];
+        int64_t index = i + offset_ - shifts_[gid - first_];
+        if (index >= 1 << 24) {
+            std::ostringstream o;
+            o << "gid " << gid << " has more than 2^24 touches, "
+              << "can't assign unique synapse indices";
+            throw std::runtime_error(o.str());
+        }
+        int64_t touch_id = (gid << 24) + index;
         buffer[i] = IndexedTouch(rbuf[i], touch_id);
     }
 
