@@ -49,19 +49,18 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
       "branch_order", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
 
   if (version >= V2) {
-      fields.push_back(schema::GroupNode::Make(
-          "pre_position", Repetition::REQUIRED, {
-              schema::PrimitiveNode::Make("x", Repetition::REQUIRED, Type::FLOAT),
-              schema::PrimitiveNode::Make("y", Repetition::REQUIRED, Type::FLOAT),
-              schema::PrimitiveNode::Make("z", Repetition::REQUIRED, Type::FLOAT)
-          }));
-
-      fields.push_back(schema::GroupNode::Make(
-          "post_position", Repetition::REQUIRED, {
-              schema::PrimitiveNode::Make("x", Repetition::REQUIRED, Type::FLOAT),
-              schema::PrimitiveNode::Make("y", Repetition::REQUIRED, Type::FLOAT),
-              schema::PrimitiveNode::Make("z", Repetition::REQUIRED, Type::FLOAT)
-          }));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_z", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_z", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
 
       fields.push_back(schema::PrimitiveNode::Make(
           "spine_length", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
