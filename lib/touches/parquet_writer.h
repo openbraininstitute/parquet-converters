@@ -75,6 +75,8 @@ private:
         float post_offset[buf_len];
         float distance_soma[buf_len];
         int branch_order[buf_len];
+        float pre_section_fraction[buf_len];
+        float post_section_fraction[buf_len];
         float pre_position[3][buf_len];
         float post_position[3][buf_len];
         float spine_length[buf_len];

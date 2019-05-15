@@ -49,7 +49,12 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
       "branch_order", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
 
   if (version >= V2) {
+      fields.push_back(schema:: PrimitiveNode::Make(
+           "pre_section_fraction", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE ) );
+      fields.push_back(schema:: PrimitiveNode::Make(
+           "post_section_fraction", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE ) );
       fields.push_back(schema::PrimitiveNode::Make(
+
           "pre_position_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
           "pre_position_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
@@ -181,6 +186,9 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
             printf("Problematic post_segment %d\n", _tbuffer->post_segment[i]);
 
         if (version >= V2) {
+            _tbuffer->pre_section_fraction[i] = data[i].pre_section_fraction;
+            _tbuffer->post_section_fraction[i] = data[i].post_section_fraction;
+
             _tbuffer->pre_position[0][i] = data[i].pre_position[0];
             _tbuffer->pre_position[1][i] = data[i].pre_position[1];
             _tbuffer->pre_position[2][i] = data[i].pre_position[2];
@@ -207,6 +215,12 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
     std::copy( _tbuffer->post_segment,   _tbuffer->post_segment+length,   _buffer->post_segment+buffer_offset );
 
     if (version >= V2) {
+        std::copy(_tbuffer->pre_section_fraction,
+                  _tbuffer->pre_section_fraction + length,
+                  _buffer->pre_section_fraction + buffer_offset);
+        std::copy(_tbuffer->post_section_fraction,
+                  _tbuffer->post_section_fraction + length,
+                  _buffer->post_section_fraction + buffer_offset);
         for (int i = 0; i < 3; ++i) {
             std::copy(_tbuffer->pre_position[i],
                       _tbuffer->pre_position[i] + length,
@@ -264,6 +278,11 @@ void TouchWriterParquet::_writeBuffer(uint length) {
     int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_order);
 
     if (version >= V2) {
+        float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+        float_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_section_fraction);
+        float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+        float_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_section_fraction);
+
         for (int i = 0; i < 3; ++i) {
             float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
             float_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_position[i]);

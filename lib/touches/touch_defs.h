@@ -29,6 +29,8 @@ namespace v1 {
 
 namespace v2 {
     struct Touch : public v1::Touch {
+        float pre_section_fraction;
+        float post_section_fraction;
         float pre_position[3];
         float post_position[3];
         float spine_length = -1;
