@@ -10,7 +10,12 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#ifdef NEURONPARQUET_USE_MPI
 #include <mpi.h>
+#endif
+
+#include "CLI/CLI.hpp"
+
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
@@ -24,10 +29,14 @@ using utils::ProgressMonitor;
 using std::string;
 using std::cout;
 
+enum class Output : int { SYN2, SONATA, Hybrid };
+
 
 int mpi_size, mpi_rank;
-MPI_Comm comm  = MPI_COMM_WORLD;
-MPI_Info info  = MPI_INFO_NULL;
+#ifdef NEURONPARQUET_USE_MPI
+MPI_Comm comm = MPI_COMM_WORLD;
+MPI_Info info = MPI_INFO_NULL;
+#endif
 
 
 
@@ -40,6 +49,7 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
 
     CircuitMultiReaderParquet reader(filenames);
 
+#ifdef NEURONPARQUET_USE_MPI
     // Count the records and
     // 1. Sum
     // 2. Calculate offsets
@@ -73,13 +83,21 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
               << " block(s) with an offset of " << std::setw(12) << offset
               << std::endl;
 
-    // Create writer
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
+#else
+    cout << "Aggregate totals: "
+         << reader.record_count() << " records ("
+         << reader.block_count() << " blocks)"
+         << std::endl;
+
+    CircuitWriterSYN2 writer(syn2_filename, reader.record_count());
+#endif
 
 
     //Create converter and progress monitor
     {
-        Converter<CircuitData> converter( reader, writer );
+        Converter<CircuitData> converter(reader, writer);
+#ifdef NEURONPARQUET_USE_MPI
         ProgressMonitor p(global_block_sum, mpi_rank==0);
 
         // Use progress of first process to estimate global progress
@@ -87,11 +105,18 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
             p.set_parallelism(mpi_size);
             converter.setProgressHandler(p, mpi_size);
         }
+#else
+        ProgressMonitor p(reader.block_count());
+
+        converter.setProgressHandler(p);
+#endif
 
         converter.exportAll();
     }
 
+#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
+#endif
 
     // Check for datasets with required name for SYN2
     Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
@@ -115,57 +140,48 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
 }
 
 
-void parse_arguments(const int argc, char* argv[], string& output_filename, std::vector<string>& input_names)  {
-    for(int i=1; i<argc; i++) {
-        if(argv[i][0] != '-') {
-            input_names.push_back(string(argv[i]));
-        }
-        else{
-            switch( argv[i][1] ) {
-                case 'o': {
-                    const char* p_name = argv[i]+2;
-                    if( p_name[0] == 0 ) {
-                        // Option value separated
-                        if(++i == argc)  {
-                            throw std::runtime_error("Please provide an argment to -o");
-                        }
-                        p_name = argv[i];
-                    }
-                    output_filename = p_name;
-                }
-            }
-        }
-    }
-
-}
-
-
 int main(int argc, char* argv[]) {
+#ifdef NEURONPARQUET_USE_MPI
     // Initialize MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_size(comm, &mpi_size);
     MPI_Comm_rank(comm, &mpi_rank);
+#else
+    mpi_size = 1;
+    mpi_rank = 0;
+#endif
 
+    Output format = Output::Hybrid;
+    std::vector<std::pair<std::string, Output>> map{
+        {"syn2", Output::SYN2},
+        {"sonata", Output::SONATA},
+        {"hybrid", Output::Hybrid}
+    };
     string output_filename("circuit.syn2");
-    std::vector<string>
-            all_input_names;
+    std::vector<string> all_input_names;
 
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
+    CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
+    app.add_option("-o", output_filename, "Specify the output filename");
+    app.add_option("-f,--format", format, "Format of the output file contents")
+        ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
+    app.add_option("files", all_input_names, "Files to convert")
+        ->expected(-1);
 
-    try  {
-        parse_arguments(argc, argv, output_filename, all_input_names);
-        if(all_input_names.size() == 0) {
-            throw std::runtime_error("Please provide at least one file to convert");
+    try {
+        app.parse(argc, argv);
+    } catch(const CLI::ParseError& e) {
+        if (mpi_rank == 0) {
+            app.exit(e);
         }
-    }
-    catch(const std::exception& e) {
-        std::cout << "Arguments error: " << e.what() << std::endl
-                  << "Usage: parquet2syn2p [-o outfile] file..." << std::endl;
+#ifdef NEURONPARQUET_USE_MPI
         MPI_Finalize();
-        return -1;
+#endif
+        return 1;
     }
 
+#ifdef NEURONPARQUET_USE_MPI
     int total_files = all_input_names.size();
     int my_n_files = total_files / mpi_size;
     int remaining = total_files % mpi_size;
@@ -176,7 +192,7 @@ int main(int argc, char* argv[]) {
     int my_offset = total_files / mpi_size * mpi_rank;
     my_offset += ( mpi_rank > remaining )? remaining : mpi_rank;
 
-    std::vector<string> my_input_names(all_input_names.begin()+my_offset, all_input_names.begin() + my_offset + my_n_files);
+    std::vector<string> input_names(all_input_names.begin()+my_offset, all_input_names.begin() + my_offset + my_n_files);
     cout << std::setfill('.')
          << "Process " << std::setw(4) << mpi_rank
          << " is going to read files " << std::setw(8) << my_offset
@@ -184,15 +200,21 @@ int main(int argc, char* argv[]) {
 
     MPI_Barrier(comm);
 
-    if (mpi_rank == 0)
+    if (mpi_rank == 0) {
         std::cout << "Writing to " << output_filename << std::endl;
+    }
 
     MPI_Barrier(comm);
+#else
+    std::cout << "Writing to " << output_filename << std::endl;
+    const auto input_names = all_input_names;
+#endif
 
-    // Bulk conversion with MPI
-    convert_circuit(my_input_names, output_filename);
+    convert_circuit(input_names, output_filename);
 
+#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
+#endif
 
     if(mpi_rank == 0) {
         cout << std::endl
@@ -200,20 +222,33 @@ int main(int argc, char* argv[]) {
              << "Creating SYN2 indexes..." << std::endl;
     }
 
+#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
+#endif
 
     {
+#ifdef NEURONPARQUET_USE_MPI
         syn2::synapses_writer writer(output_filename, syn2::synapses_writer::use_mpi_flag);
+#else
+        syn2::synapses_writer writer(output_filename);
+#endif
         writer.create_all_index();
+        if (format == Output::SONATA or format == Output::Hybrid) {
+            writer.compose_sonata(format == Output::SONATA);
+        }
     }
 
+#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
+#endif
 
     if(mpi_rank == 0) {
         cout << "Finished." << std::endl;
     }
 
+#ifdef NEURONPARQUET_USE_MPI
     MPI_Finalize();
+#endif
 
     return 0;
 }

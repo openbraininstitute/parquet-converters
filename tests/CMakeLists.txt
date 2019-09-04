@@ -26,34 +26,56 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet2syn_mpi
-        COMMAND ${mpi_launcher} -n 2 ../parquet2syn2p
+        COMMAND ${mpi_launcher} -n 2 ../parquet2hdf5
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
     )
+
+    add_test(
+        NAME touches_conversion_v1
+        COMMAND test_touch_convert
+            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
+    )
+
+    add_test(
+        NAME parquet_conversion_v1
+        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 output.parquet
+    )
+
+    add_test(
+        NAME touches_conversion_v2
+        COMMAND test_touch_convert
+            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
+    )
+
+    add_test(
+        NAME parquet_conversion_v2
+        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 output.parquet
+    )
+else()
+    add_test(
+        NAME touches_conversion_v1
+        COMMAND test_touch_convert
+            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
+    )
+
+    add_test(
+        NAME parquet_conversion_v1
+        COMMAND parquet2hdf5 output.parquet
+    )
+
+    add_test(
+        NAME touches_conversion_v2
+        COMMAND test_touch_convert
+            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
+    )
+
+    add_test(
+        NAME parquet_conversion_v2
+        COMMAND parquet2hdf5 output.parquet
+    )
 endif()
-
-add_test(
-    NAME touches_conversion_v1
-    COMMAND test_touch_convert
-        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
-)
-
-add_test(
-    NAME parquet_conversion_v1
-    COMMAND parquet2syn2 output.parquet
-)
-
-add_test(
-    NAME touches_conversion_v2
-    COMMAND test_touch_convert
-        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
-)
-
-add_test(
-    NAME parquet_conversion_v2
-    COMMAND parquet2syn2 output.parquet
-)
 
 set_tests_properties(touches_conversion_v1 PROPERTIES
                      FIXTURES_SETUP touches_v1)

@@ -19,21 +19,18 @@ set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 ##
 ## DEPENDENCIES
 ##
-find_package(OpenMP)
-find_package(Boost COMPONENTS filesystem regex REQUIRED)
-find_package(Range-v3)
+find_package(Boost COMPONENTS filesystem REQUIRED)
+find_package(Range-v3 REQUIRED)
 
-find_library(SYN2_LIB "syn2")
-find_package(HighFive)
+find_package(SynapseTool REQUIRED)
+find_package(HighFive REQUIRED)
 
 if(NEURONPARQUET_USE_MPI)
     find_package(MPI REQUIRED)
     add_definitions("-DNEURONPARQUET_USE_MPI")
-    include_directories(${MPI_INCLUDE_PATH})
 
     # Some distributions have phdf5 within mpi
     set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH};$ENV{MPI_LIB})
-
 endif()
 
 # Can change according to options
@@ -65,7 +62,9 @@ endif()
 find_path(PARQUET_INCLUDE_DIR "parquet")
 find_path(ARROW_INCLUDE_DIR "arrow")
 
-include_directories(${Boost_INCLUDE_DIR}
+add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cli11)
+
+include_directories(SYSTEM
                     ${PARQUET_INCLUDE_DIR}
                     ${ARROW_INCLUDE_DIR}
                     ${HIGHFIVE_INCLUDE_DIR})
@@ -78,28 +77,25 @@ include_directories("include")
 
 # MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp)
-target_link_libraries(touch2parquet TouchParquet)
-
-if (OPENMP_FOUND)
-    set_target_properties( touch2parquet PROPERTIES
-        COMPILE_FLAGS ${OpenMP_CXX_FLAGS}
-        LINK_FLAGS ${OpenMP_CXX_FLAGS} )
-endif()
+target_link_libraries(touch2parquet
+                      TouchParquet
+                      Boost::filesystem)
 
 
 if(NEURONPARQUET_USE_MPI)
     add_executable(touch2parquetp touch2parquetp.cpp)
-    target_link_libraries(touch2parquetp ${MPI_LIBRARIES} TouchParquet)
+    target_link_libraries(touch2parquetp
+                          ${MPI_LIBRARIES}
+                          TouchParquet
+                          Boost::filesystem)
 endif()
 
 
-add_executable(parquet2syn2 parquet2syn2.cpp)
-target_link_libraries(parquet2syn2 CircuitParquet)
-
-if(NEURONPARQUET_USE_MPI)
-    add_executable(parquet2syn2p parquet2syn2p.cpp)
-    target_link_libraries(parquet2syn2p ${MPI_LIBRARIES} CircuitParquet)
-endif()
+add_executable(parquet2hdf5 parquet2hdf5.cpp)
+target_link_libraries(parquet2hdf5
+                      CircuitParquet
+                      CLI11::CLI11
+                      ${HDF5_LIBRARIES})
 
 
 # TESTS
@@ -111,11 +107,10 @@ endif()
 
 # INSTALL
 install(TARGETS touch2parquet DESTINATION bin)
-install(TARGETS parquet2syn2 DESTINATION bin)
+install(TARGETS parquet2hdf5 DESTINATION bin)
 
 if(NEURONPARQUET_USE_MPI)
     install(TARGETS touch2parquetp DESTINATION bin)
-    install(TARGETS parquet2syn2p DESTINATION bin)
 endif()
 
 

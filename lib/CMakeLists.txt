@@ -9,8 +9,17 @@ set(CIRCUIT_SRCS
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 
-target_link_libraries(TouchParquet ${PARQUET_LIB_DEPS} ${ZSTD_LIB})
-target_link_libraries(CircuitParquet ${HDF5_LIBRARIES} ${PARQUET_LIB_DEPS} ${SYN2_LIB} ${ZSTD_LIB})
+target_link_libraries(TouchParquet
+                      ${PARQUET_LIB_DEPS}
+                      ${ZSTD_LIB}
+                      range-v3)
+target_link_libraries(CircuitParquet
+                      ${HDF5_LIBRARIES}
+                      ${PARQUET_LIB_DEPS}
+                      ${ZSTD_LIB}
+                      SynapseTool::syn2
+                      HighFive
+                      range-v3)
 
 if(NEURONPARQUET_INSTALL_DEVEL)
     install(TARGETS TouchParquet CircuitParquet
