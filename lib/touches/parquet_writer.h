@@ -60,6 +60,9 @@ private:
     /// We transpose in small blocks for cache efficiency
     static const uint TRANSPOSE_LEN = 1024;
 
+    static const std::size_t BRANCH_MASK = 0xF;
+    static const std::size_t BRANCH_SHIFT = 4;
+
     uint _buffer_offset;
 
     template <int buf_len>
@@ -80,7 +83,8 @@ private:
         float pre_position[3][buf_len];
         float post_position[3][buf_len];
         float spine_length[buf_len];
-        int branch_type[buf_len];
+        int pre_branch_type[buf_len];
+        int post_branch_type[buf_len];
     };
 
     std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;

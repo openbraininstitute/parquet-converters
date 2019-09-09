@@ -71,7 +71,9 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
           "spine_length", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
 
       fields.push_back(schema::PrimitiveNode::Make(
-          "branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
+          "pre_branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
   }
 
   // Create a GroupNode named 'schema' using the primitive nodes defined above
@@ -196,7 +198,8 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
             _tbuffer->post_position[1][i] = data[i].post_position[1];
             _tbuffer->post_position[2][i] = data[i].post_position[2];
             _tbuffer->spine_length[i] = data[i].spine_length;
-            _tbuffer->branch_type[i] = data[i].branch_type;
+            _tbuffer->pre_branch_type[i] = (data[i].branch_type >> BRANCH_SHIFT) & BRANCH_MASK;
+            _tbuffer->post_branch_type[i] = data[i].branch_type & BRANCH_MASK;
         }
     }
 
@@ -232,9 +235,12 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
         std::copy(_tbuffer->spine_length,
                   _tbuffer->spine_length + length,
                   _buffer->spine_length + buffer_offset);
-        std::copy(_tbuffer->branch_type,
-                  _tbuffer->branch_type + length,
-                  _buffer->branch_type + buffer_offset);
+        std::copy(_tbuffer->pre_branch_type,
+                  _tbuffer->pre_branch_type + length,
+                  _buffer->pre_branch_type + buffer_offset);
+        std::copy(_tbuffer->post_branch_type,
+                  _tbuffer->post_branch_type + length,
+                  _buffer->post_branch_type + buffer_offset);
     }
 }
 
@@ -297,7 +303,10 @@ void TouchWriterParquet::_writeBuffer(uint length) {
         float_writer->WriteBatch(length, nullptr, nullptr, _buffer->spine_length);
 
         int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
-        int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->branch_type);
+        int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_branch_type);
+
+        int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
+        int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_branch_type);
     }
 }
 
