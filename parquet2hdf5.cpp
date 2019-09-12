@@ -43,7 +43,7 @@ MPI_Info info = MPI_INFO_NULL;
 ///
 /// \brief convert_circuit: Converts parquet files to SYN2
 ///
-void convert_circuit(const std::vector<string>& filenames, const string& syn2_filename)  {
+void convert_circuit(const std::vector<string>& filenames, const string& syn2_filename, const string& population)  {
 
     // Each reader and each writer in a separate MPI process
 
@@ -83,14 +83,14 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
               << " block(s) with an offset of " << std::setw(12) << offset
               << std::endl;
 
-    CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset);
+    CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset, population);
 #else
     cout << "Aggregate totals: "
          << reader.record_count() << " records ("
          << reader.block_count() << " blocks)"
          << std::endl;
 
-    CircuitWriterSYN2 writer(syn2_filename, reader.record_count());
+    CircuitWriterSYN2 writer(syn2_filename, reader.record_count(), population);
 #endif
 
 
@@ -158,12 +158,14 @@ int main(int argc, char* argv[]) {
         {"hybrid", Output::Hybrid}
     };
     string output_filename("circuit.syn2");
+    string output_population("default");
     std::vector<string> all_input_names;
 
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
     CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
     app.add_option("-o", output_filename, "Specify the output filename");
+    app.add_option("-p,--population", output_population, "Specify the output population to use");
     app.add_option("-f,--format", format, "Format of the output file contents")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
     app.add_option("files", all_input_names, "Files to convert")
@@ -210,7 +212,7 @@ int main(int argc, char* argv[]) {
     const auto input_names = all_input_names;
 #endif
 
-    convert_circuit(input_names, output_filename);
+    convert_circuit(input_names, output_filename, output_population);
 
 #ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
@@ -232,6 +234,7 @@ int main(int argc, char* argv[]) {
 #else
         syn2::synapses_writer writer(output_filename);
 #endif
+        writer.select_population(output_population);
         writer.create_all_index();
         if (format == Output::SONATA or format == Output::Hybrid) {
             writer.compose_sonata(format == Output::SONATA);
