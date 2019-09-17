@@ -169,7 +169,8 @@ int main(int argc, char* argv[]) {
     app.add_option("-f,--format", format, "Format of the output file contents")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
     app.add_option("files", all_input_names, "Files to convert")
-        ->expected(-1);
+        ->required()
+        ->check(CLI::ExistingFile);
 
     try {
         app.parse(argc, argv);

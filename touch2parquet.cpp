@@ -2,16 +2,23 @@
  * Copyright (C) 2018 Blue Brain Project
  * All rights reserved. Do not distribute without further notice.
  *
- * @author Fernando Pereira <fernando.pereira@epfl.ch>
+ * @author Matthias Wolf <matthias.wolf@epfl.ch>
  *
  */
-#include <stdio.h>
 #include <unistd.h>
-#include <string.h>
+#include <cmath>
+#include <boost/filesystem.hpp>
+#include <cstdio>
+#include <cstring>
+#include <mpi.h>
+
+#include "CLI/CLI.hpp"
 
 #include <neuron_parquet/touches.h>
 #include <progress.hpp>
 
+// Stand-in until c++ std::filesystem is supported
+namespace fs = boost::filesystem;
 
 using namespace neuron_parquet::touches;
 
@@ -21,115 +28,122 @@ using utils::ProgressMonitor;
 typedef Converter<IndexedTouch> TouchConverter;
 
 
-enum class RunMode:int {QUIT_ERROR=-1, QUIT_OK, STANDARD};
-struct Args {
-    Args (RunMode runmode)
-        : mode(runmode)
-        , convert_limit(0)
-        , n_opts(0)
-    {}
-
-    RunMode mode;
-    int convert_limit;
-    int n_opts;
-};
-
-
-static const char *usage =
-    "usage: touch2parquet <touch_file1 touch_file2 ...>\n"
-    "       touch2parquet [-h]\n";
-
-
-Args process_args(int argc, char* argv[]) {
-    if( argc < 2) {
-        printf("%s", usage);
-        return Args(RunMode::QUIT_ERROR);
-    }
-
-    Args args(RunMode::STANDARD);
-
-    //Handle options
-    int cur_opt = 1;
-    for (; cur_opt < argc && argv[cur_opt][0] == '-'; cur_opt++ ) {
-        switch( argv[cur_opt][1] ) {
-            case 'h':
-                printf("%s", usage);
-                return Args(RunMode::QUIT_OK);
-            case 'n':
-                args.convert_limit = atoi(argv[cur_opt]+2);
-                break;
-        }
-    }
-    args.n_opts = cur_opt;
-
-
-    for( int i=cur_opt ; i<argc ; i++ ) {
-        if(access(argv[i] , F_OK) == -1) {
-            fprintf(stderr, "File '%s' doesn't exist, or no permission\n", argv[i]);
-            args.mode = RunMode::QUIT_ERROR;
-            return args;
-        }
-    }
-
-    return args;
-}
-
-
+int mpi_size, mpi_rank;
+#ifdef NEURONPARQUET_USE_MPI
+MPI_Comm comm = MPI_COMM_WORLD;
+#endif
 
 int main( int argc, char* argv[] ) {
-    Args args = process_args(argc, argv);
-    if( args.mode < RunMode::STANDARD ) {
-        return static_cast<int>(args.mode);
+
+#ifdef NEURONPARQUET_USE_MPI
+    //Initialize MPI
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(comm, &mpi_size);
+    MPI_Comm_rank(comm, &mpi_rank);
+#else
+    mpi_size=1;
+    mpi_rank=0;
+#endif
+
+    //Parsing command line
+    std::vector<std::string> all_input_names;
+    std::string output_filename;
+    int convert_limit;
+    CLI::App app{"Convert TouchDetector output to Parquet synapse files"};
+    app.add_option("-o", output_filename, "Specify the output filename");
+    app.add_option("-n", convert_limit, "Maximum number of records to export");
+    app.add_option("files", all_input_names, "Files to convert")
+       ->required()
+       ->check(CLI::ExistingFile);
+
+    try {
+      app.parse(argc, argv);
+    } catch(const CLI::ParseError& e) {
+      if (mpi_rank == 0) {
+        app.exit(e);
+      }
+#ifdef NEURONPARQUET_USE_MPI
+      MPI_Finalize();
+#endif
+      return 1;
     }
 
-    int first_file = args.n_opts;
-    int number_of_files = argc - first_file;
+    std::string first_file(all_input_names[0]);
+    int number_of_files = all_input_names.size();
 
-    // Know the total number of buffers to be processed
-    uint32_t blocks;
-    if (args.convert_limit > 0) {
-        TouchReader tr(argv[first_file]);
-        blocks = TouchConverter::number_of_buffers(args.convert_limit * tr.record_size());
+    // Progress with an estimate number of blocks
+    size_t nblocks = 1;
+    if (mpi_rank == 0) {
+      if (convert_limit >0) {
+        TouchReader tr(first_file.c_str());
+        nblocks = TouchConverter::number_of_buffers(convert_limit * tr.record_size());
+      }
+      else {
+        std::ifstream f1(first_file, std::ios::binary | std::ios::ate);
+        nblocks = TouchConverter::number_of_buffers(f1.tellg());
+        f1.close();
+      }
     }
-    else {
-        std::ifstream f1(argv[first_file], std::ios::binary | std::ios::ate);
-        blocks = TouchConverter::number_of_buffers(f1.tellg());
+    ProgressMonitor progress(number_of_files * nblocks, mpi_rank==0);
+    progress.set_parallelism(mpi_size);
+
+    if (output_filename.empty()) {
+      output_filename = first_file;
     }
+    auto outfn = fs::path(output_filename).stem().string() + "."
+                 + std::to_string(mpi_rank) + ".parquet";
 
-    // Craete the progres monitor with an estimate on the number of blocks
-    ProgressMonitor progress(number_of_files * blocks, true);
-    progress.set_parallelism(0);
+    try {
+        auto version = TouchReader(first_file.c_str()).version();
 
-    #pragma omp parallel for
-    for (int i=args.n_opts; i<argc; i++) {
-        const char* in_filename = argv[i];
-        progress.print_info("[Info] Converting %-86s\n", in_filename);
+        // Every rank participates in the conversion of every file, different regions
+        TouchWriterParquet tw(outfn, version);
 
-        TouchReader tr(in_filename);
-        string parquetFilename( argv[i] );
-        std::size_t slashPos = parquetFilename.find_last_of("/\\");
-        parquetFilename = parquetFilename.substr(slashPos+1);
-        parquetFilename += ".parquet";
+        for (int i = 0; i < number_of_files; i++) {
+#ifdef NEURONPARQUET_USE_MPI
+            MPI_Barrier(comm);
+#endif
+            const char* in_filename = all_input_names[i].c_str();
 
-        try {
-            TouchWriterParquet tw(parquetFilename, tr.version());
-            ProgressMonitor::SubTask subp = progress.subtask();
-            TouchConverter converter(tr, tw);
-            converter.setProgressHandler(subp);
+            if (mpi_rank == 0)
+                printf("\r[Info] Converting %-86s\n", in_filename);
 
-            if( args.convert_limit > 0 )
-                converter.exportN((unsigned) args.convert_limit);
-            else {
-                converter.exportAll();
+            TouchReader tr(in_filename);
+            auto work_unit = static_cast<size_t>(std::ceil(tr.record_count() / double(mpi_size)));
+            if (convert_limit > 0) {
+                work_unit = static_cast<size_t>(std::ceil(convert_limit/double(mpi_size)));
             }
-        }
-        catch (const std::exception& e){
-            printf("\n[ERROR] Could not create output file.\n -> %s\n", e.what());
+            auto offset = work_unit * mpi_rank;
+            work_unit = std::min(tr.record_count() - offset, work_unit);
+
+            TouchConverter converter(tr, tw);
+            if (mpi_rank == 0) {
+                // Progress handlers is just a function that triggers incrementing the progressbar
+                converter.setProgressHandler(progress, mpi_size);
+            }
+
+            converter.exportN(work_unit, offset);
         }
     }
-    progress.clear(); // - this works well but
-    printf("Done exporting\n");
+    catch (const std::exception& e){
+#ifdef NEURONPARQUET_USE_MPI
+        printf("\n[ERROR] Could not create output file for rank %d.\n -> %s\n", mpi_rank, e.what());
+        MPI_Finalize();
+        return 1;
+#else
+        printf("\n[ERROR] Could not create output file \n -> %s\n", mpi_rank, e.what());
+        return 1;
+#endif
+    }
 
+#ifdef NEURONPARQUET_USE_MPI
+    MPI_Barrier(comm);
+    MPI_Finalize();
+#endif
+
+    if (mpi_rank == 0)
+        printf("\nDone exporting\n");
     return 0;
 }
+
 

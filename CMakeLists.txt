@@ -78,18 +78,9 @@ include_directories("include")
 # MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet
-                      TouchParquet
-                      Boost::filesystem)
-
-
-if(NEURONPARQUET_USE_MPI)
-    add_executable(touch2parquetp touch2parquetp.cpp)
-    target_link_libraries(touch2parquetp
-                          ${MPI_LIBRARIES}
                           TouchParquet
-                          Boost::filesystem)
-endif()
-
+                          Boost::filesystem
+                          CLI11::CLI11)
 
 add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5
@@ -108,10 +99,6 @@ endif()
 # INSTALL
 install(TARGETS touch2parquet DESTINATION bin)
 install(TARGETS parquet2hdf5 DESTINATION bin)
-
-if(NEURONPARQUET_USE_MPI)
-    install(TARGETS touch2parquetp DESTINATION bin)
-endif()
 
 
 # lib install
