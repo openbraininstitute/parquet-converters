@@ -128,7 +128,12 @@ TouchReader::_readHeader(const char* filename) {
     first_ = mm.first->id;
     shifts_.resize(mm.second->id - first_ + 1);
     for (const auto& n: neurons) {
-        shifts_[n.id - first_] = n.offset / record_size_;
+        auto pos = n.id - first_;
+        if (shifts_[pos] > 0 and n.offset == 0 and n.count == 0) {
+            std::cout << "[WARNING] Skipping empty entry for neuron ID " << n.id << std::endl;
+        } else {
+            shifts_[pos] = n.offset / record_size_;
+        }
     }
 }
 
