@@ -161,11 +161,18 @@ int main(int argc, char* argv[]) {
     string output_population("default");
     std::vector<string> all_input_names;
 
+    std::vector<std::string> source_population;
+    std::vector<std::string> target_population;
+
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
     CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
     app.add_option("-o", output_filename, "Specify the output filename");
     app.add_option("-p,--population", output_population, "Specify the output population to use");
+    app.add_option("--from", source_population, "Node source population file and population name")
+        ->expected(2);
+    app.add_option("--to", target_population, "Node target population file and population name")
+        ->expected(2);
     app.add_option("-f,--format", format, "Format of the output file contents")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
     app.add_option("files", all_input_names, "Files to convert")
@@ -238,7 +245,11 @@ int main(int argc, char* argv[]) {
         writer.select_population(output_population);
         writer.create_all_index();
         if (format == Output::SONATA or format == Output::Hybrid) {
-            writer.compose_sonata(format == Output::SONATA);
+            writer.compose_sonata(
+                format == Output::SONATA,
+                source_population.empty() ? "unknown" : source_population[1],
+                target_population.empty() ? "unknown" : target_population[1]
+            );
         }
     }
 
