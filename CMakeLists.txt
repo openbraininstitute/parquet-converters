@@ -24,6 +24,7 @@ find_package(Range-v3 REQUIRED)
 
 find_package(SynapseTool REQUIRED)
 find_package(HighFive REQUIRED)
+find_package(sonata REQUIRED)
 
 if(NEURONPARQUET_USE_MPI)
     find_package(MPI REQUIRED)
@@ -86,7 +87,8 @@ add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5
                       CircuitParquet
                       CLI11::CLI11
-                      ${HDF5_LIBRARIES})
+                      SynapseTool::syn2
+                      sonata::sonata_shared)
 
 
 # TESTS

@@ -16,6 +16,7 @@
 
 #include "CLI/CLI.hpp"
 
+#include <bbp/sonata/nodes.h>
 #include <syn2/synapses_writer.hpp>
 
 #include <neuron_parquet/circuit.h>
@@ -164,6 +165,9 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> source_population;
     std::vector<std::string> target_population;
 
+    size_t count_pre = 0;
+    size_t count_post = 0;
+
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
     CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
@@ -189,6 +193,20 @@ int main(int argc, char* argv[]) {
         MPI_Finalize();
 #endif
         return 1;
+    }
+
+    if (not source_population.empty()) {
+        count_pre =
+            bbp::sonata::NodeStorage(source_population[0])
+            .openPopulation(source_population[1])
+            ->size();
+    }
+
+    if (not target_population.empty()) {
+        count_post =
+            bbp::sonata::NodeStorage(target_population[0])
+            .openPopulation(target_population[1])
+            ->size();
     }
 
 #ifdef NEURONPARQUET_USE_MPI
@@ -243,7 +261,7 @@ int main(int argc, char* argv[]) {
         syn2::synapses_writer writer(output_filename);
 #endif
         writer.select_population(output_population);
-        writer.create_all_index();
+        writer.create_all_index(count_pre, count_post);
         if (format == Output::SONATA or format == Output::Hybrid) {
             writer.compose_sonata(
                 format == Output::SONATA,
