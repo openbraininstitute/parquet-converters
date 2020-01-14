@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
         {"sonata", Output::SONATA},
         {"hybrid", Output::Hybrid}
     };
-    string output_filename("circuit.syn2");
+    string output_filename;
     string output_population("default");
     std::vector<string> all_input_names;
 
@@ -193,6 +193,12 @@ int main(int argc, char* argv[]) {
         MPI_Finalize();
 #endif
         return 1;
+    }
+
+    if (output_filename.empty()) {
+        output_filename = (format == Output::SONATA)
+                          ? "circuit.sonata"
+                          : "circuit.syn2";
     }
 
     if (not source_population.empty()) {
@@ -247,7 +253,7 @@ int main(int argc, char* argv[]) {
     if(mpi_rank == 0) {
         cout << std::endl
              << "Data conversion complete. " << std::endl
-             << "Creating SYN2 indexes..." << std::endl;
+             << "Creating indices..." << std::endl;
     }
 
 #ifdef NEURONPARQUET_USE_MPI
@@ -276,7 +282,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     if(mpi_rank == 0) {
-        cout << "Finished." << std::endl;
+        cout << "Finished writing " << output_filename << std::endl;
     }
 
 #ifdef NEURONPARQUET_USE_MPI
