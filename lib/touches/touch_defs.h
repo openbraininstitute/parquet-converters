@@ -15,7 +15,7 @@ namespace neuron_parquet {
 namespace touches {
 
 enum Location { NEURON_ID, SECTION_ID, SEGMENT_ID };
-enum Version { V1, V2 };
+enum Version { V1, V2, V3 };
 
 namespace v1 {
     struct Touch {
@@ -44,7 +44,23 @@ namespace v2 {
     };
 }
 
-struct IndexedTouch : public v2::Touch {
+namespace v3 {
+    struct Touch : public v2::Touch {
+        float pre_position_center[3];
+        float post_position_surface[3];
+
+        Touch() = default;
+        Touch(const Touch&) = default;
+        Touch(const v1::Touch& t)
+            : v2::Touch(t)
+        {};
+        Touch(const v2::Touch& t)
+            : v2::Touch(t)
+        {};
+    };
+}
+
+struct IndexedTouch : public v3::Touch {
     int getPreNeuronID() const {
         return pre_synapse_ids[NEURON_ID];
     }
@@ -56,12 +72,17 @@ struct IndexedTouch : public v2::Touch {
     IndexedTouch(const IndexedTouch&) = default;
 
     IndexedTouch(const v1::Touch& t, long index)
-        : v2::Touch(t)
+        : v3::Touch(t)
         , synapse_index(index)
     {};
 
     IndexedTouch(const v2::Touch& t, long index)
-        : v2::Touch(t)
+        : v3::Touch(t)
+        , synapse_index(index)
+    {};
+
+    IndexedTouch(const v3::Touch& t, long index)
+        : v3::Touch(t)
         , synapse_index(index)
     {};
 

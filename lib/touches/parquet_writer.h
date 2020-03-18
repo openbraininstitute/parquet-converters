@@ -85,6 +85,8 @@ private:
         float spine_length[buf_len];
         int pre_branch_type[buf_len];
         int post_branch_type[buf_len];
+        float pre_position_center[3][buf_len];
+        float post_position_surface[3][buf_len];
     };
 
     std::unique_ptr<BUF_T<BUFFER_LEN>> _buffer;

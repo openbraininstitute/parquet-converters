@@ -77,6 +77,12 @@ else()
     )
 endif()
 
+add_test(
+    NAME touches_conversion_v3
+    COMMAND test_touch_convert
+        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v3/touchesData.0
+)
+
 set_tests_properties(touches_conversion_v1 PROPERTIES
                      FIXTURES_SETUP touches_v1)
 set_tests_properties(parquet_conversion_v1 PROPERTIES

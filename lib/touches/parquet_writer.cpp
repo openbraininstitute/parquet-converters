@@ -53,8 +53,8 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
            "pre_section_fraction", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE ) );
       fields.push_back(schema:: PrimitiveNode::Make(
            "post_section_fraction", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE ) );
-      fields.push_back(schema::PrimitiveNode::Make(
 
+      fields.push_back(schema::PrimitiveNode::Make(
           "pre_position_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
           "pre_position_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
@@ -74,6 +74,21 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
           "pre_branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
       fields.push_back(schema::PrimitiveNode::Make(
           "post_branch_type", Repetition::REQUIRED, Type::INT32, LogicalType::INT_8));
+  }
+
+  if (version >= V3) {
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_center_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_center_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "pre_position_center_z", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_surface_x", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_surface_y", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
+      fields.push_back(schema::PrimitiveNode::Make(
+          "post_position_surface_z", Repetition::REQUIRED, Type::FLOAT, LogicalType::NONE));
   }
 
   // Create a GroupNode named 'schema' using the primitive nodes defined above
@@ -201,6 +216,15 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
             _tbuffer->pre_branch_type[i] = (data[i].branch_type >> BRANCH_SHIFT) & BRANCH_MASK;
             _tbuffer->post_branch_type[i] = data[i].branch_type & BRANCH_MASK;
         }
+
+        if (version >= V3) {
+            _tbuffer->pre_position_center[0][i] = data[i].pre_position_center[0];
+            _tbuffer->pre_position_center[1][i] = data[i].pre_position_center[1];
+            _tbuffer->pre_position_center[2][i] = data[i].pre_position_center[2];
+            _tbuffer->post_position_surface[0][i] = data[i].post_position_surface[0];
+            _tbuffer->post_position_surface[1][i] = data[i].post_position_surface[1];
+            _tbuffer->post_position_surface[2][i] = data[i].post_position_surface[2];
+        }
     }
 
     // Append to main buffer
@@ -241,6 +265,17 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
         std::copy(_tbuffer->post_branch_type,
                   _tbuffer->post_branch_type + length,
                   _buffer->post_branch_type + buffer_offset);
+    }
+
+    if (version >= V3) {
+        for (int i = 0; i < 3; ++i) {
+            std::copy(_tbuffer->pre_position_center[i],
+                      _tbuffer->pre_position_center[i] + length,
+                      _buffer->pre_position_center[i] + buffer_offset);
+            std::copy(_tbuffer->post_position_surface[i],
+                      _tbuffer->post_position_surface[i] + length,
+                      _buffer->post_position_surface[i] + buffer_offset);
+        }
     }
 }
 
@@ -307,6 +342,18 @@ void TouchWriterParquet::_writeBuffer(uint length) {
 
         int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());
         int32_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_branch_type);
+    }
+
+    if (version >= V3) {
+        for (int i = 0; i < 3; ++i) {
+            float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+            float_writer->WriteBatch(length, nullptr, nullptr, _buffer->pre_position_center[i]);
+        }
+
+        for (int i = 0; i < 3; ++i) {
+            float_writer = static_cast<FloatWriter*>(rg_writer->NextColumn());
+            float_writer->WriteBatch(length, nullptr, nullptr, _buffer->post_position_surface[i]);
+        }
     }
 }
 

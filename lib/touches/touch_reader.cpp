@@ -100,8 +100,12 @@ TouchReader::_readHeader(const char* filename) {
         std::string v(header.version);
         std::vector<int> vs = v | view::split('.')
                                 | view::transform([](const std::string& s) { return std::stoi(s); });
-        if ((vs.size() >= 1 and vs[0] >= 5) or
-            (vs.size() >= 2 and vs[0] >= 4 and vs[1] >= 99)) {
+        if (vs.size() >= 1 and vs[0] >= 6) {
+            version_ = V3;
+            record_size_ = sizeof(v3::Touch);
+        } else if (
+                (vs.size() >= 1 and vs[0] >= 5) or
+                (vs.size() >= 2 and vs[0] >= 4 and vs[1] >= 99)) {
             version_ = V2;
             record_size_ = sizeof(v2::Touch);
         }
@@ -234,8 +238,10 @@ void TouchReader::_fillBuffer() {
 void TouchReader::_load_into(IndexedTouch* buffer, uint32_t length) {
     if (version_ == V1) {
         _load_touches<v1::Touch>(buffer, length);
-    } else {
+    } else if (version_ == V2) {
         _load_touches<v2::Touch>(buffer, length);
+    } else {
+        _load_touches<v3::Touch>(buffer, length);
     }
 }
 
