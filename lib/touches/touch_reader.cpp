@@ -100,7 +100,8 @@ TouchReader::_readHeader(const char* filename) {
         std::string v(header.version);
         std::vector<int> vs = v | view::split('.')
                                 | view::transform([](const std::string& s) { return std::stoi(s); });
-        if (vs.size() >= 1 and vs[0] >= 6) {
+        if ((vs.size() >= 1 and vs[0] >= 6) or
+            (vs.size() >= 2 and vs[0] >= 5 and vs[1] >= 4)) {
             version_ = V3;
             record_size_ = sizeof(v3::Touch);
         } else if (
