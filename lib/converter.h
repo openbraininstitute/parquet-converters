@@ -52,6 +52,7 @@ class Converter {
             // Create a buffer of records.
             buffer_ = new T[(n_records_ > BUFFER_LEN)? BUFFER_LEN : n_records_];
         }
+        writer_.setup(reader_.schema());
     }
 
 
@@ -66,6 +67,10 @@ class Converter {
      * @return
      */
     int exportN(uint64_t n, uint64_t offset = 0) {
+        if (n == 0) {
+            return n;
+        }
+
         if (n + offset > n_records_) {
             n = n_records_ - offset;
             std::cerr << "Warning: Requested export blocks more than available. "
@@ -87,12 +92,16 @@ class Converter {
             writer_.write(buffer_, remaining);
             progress_handler_();
         }
-
         return n;
     }
 
 
     int exportAll() {
+        int size = reader_.record_count();
+        if (size == 0) {
+            return size;
+        }
+
         reader_.seek(0);
         uint32_t n;
 
@@ -100,7 +109,7 @@ class Converter {
             writer_.write(buffer_, n);
             progress_handler_();
         }
-        return reader_.record_count();
+        return size;
     }
 
 

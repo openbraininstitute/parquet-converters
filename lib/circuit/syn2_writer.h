@@ -59,6 +59,8 @@ public:
 
     ~CircuitWriterSYN2() {}
 
+    virtual void setup(const CircuitData::Schema* schema) override;
+
     virtual void write(const CircuitData* data, uint length) override;
 
     const std::vector<string> dataset_names();
@@ -84,7 +86,12 @@ private:
 };
 
 
-inline hid_t parquet_types_to_h5(arrow::Type::type t);
+/// \brief Map from Parquet datatypes to HDF5 ones
+///
+/// Will use the information from `LogicalType` first to determine
+/// customary signed and unsigned integers before falling back to the
+/// plain `Type` for generic integer and floating point numbers.
+inline hid_t parquet_types_to_h5(parquet::Type::type, parquet::LogicalType::type);
 
 
 }}  // namespace neuron_parquet::circuit EOF

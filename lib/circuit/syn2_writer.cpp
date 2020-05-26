@@ -72,6 +72,21 @@ void throw_invalid_column(const std::string& col_name,
 }
 
 
+void CircuitWriterSYN2::setup(const CircuitData::Schema* schema) {
+    for (int i = 0; i < schema->num_columns(); ++i) {
+        const auto& col = schema->Column(i);
+        const auto col_name = col->name();
+        const auto col_type = parquet_types_to_h5(col->physical_type(), col->logical_type());
+        if (col_type < 0) {
+            throw std::runtime_error("column " + col_name + " cannot be converted");
+        }
+        if (!syn2_file_.has_dataset(col_name)) {
+            syn2_file_.create_dataset(col_name, col_type, 0, 1);
+        }
+    }
+}
+
+
 // ================================================================================================
 ///
 /// \brief CircuitWriterSYN2::write Handles incoming data and
@@ -88,46 +103,6 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
     for(int i=0; i<n_cols; i++) {
         shared_ptr<Column> col(row_group->column(i));
         auto col_name = col->name();
-        auto col_type = parquet_types_to_h5(col->type()->id());
-        std::size_t col_width = 1;
-
-        // We're encountering a nested datatype -> try to see if we can
-        if (col->type()->id() == Type::STRUCT) {
-            std::unordered_set<hid_t> types;
-            std::unordered_set<std::string> names;
-
-            auto dataset = dynamic_cast<StructType*>(col->type().get());
-
-            for (const auto& field: dataset->children()) {
-                names.insert(field->name());
-                types.insert(parquet_types_to_h5(field->type()->id()));
-            }
-
-            std::vector<std::string> notfound;
-            bool valid = (names.size() == nested_cols.size());
-            for (const auto c: nested_cols) {
-                auto match = names.find(c);
-                if (match == names.end()) {
-                    valid = false;
-                    notfound.push_back(c);
-                } else {
-                    names.erase(match);
-                }
-            }
-            if (not valid) {
-                throw_invalid_column(col_name, names, notfound);
-            }
-
-            if (types.size() == 1) {
-                col_type = *(types.begin());
-            }
-            col_width = 3;
-        }
-
-        if (!syn2_file_.has_dataset(col_name)) {
-            syn2_file_.create_dataset(col_name, col_type, 0, col_width);
-        }
-
         write_data(syn2_file_[col_name], output_file_offset_, col);
     }
 
@@ -145,38 +120,41 @@ const std::vector<string> CircuitWriterSYN2::dataset_names() {
 }
 
 
-// ================================================================================================
-
-inline hid_t parquet_types_to_h5(Type::type t) {
-    switch( t ) {
-        case Type::INT8:
-            return H5T_STD_I8LE;
-        case Type::INT16:
-            return H5T_STD_I16LE;
-        case Type::INT32:
-            return H5T_STD_I32LE;
-        case Type::INT64:
-            return H5T_STD_I64LE;
-        case Type::UINT8:
+inline hid_t parquet_types_to_h5(parquet::Type::type t, parquet::LogicalType::type l) {
+    switch (l) {
+        case parquet::LogicalType::UINT_8:
             return H5T_STD_U8LE;
-        case Type::UINT16:
+        case parquet::LogicalType::UINT_16:
             return H5T_STD_U16LE;
-        case Type::UINT32:
+        case parquet::LogicalType::UINT_32:
             return H5T_STD_U32LE;
-        case Type::UINT64:
+        case parquet::LogicalType::UINT_64:
             return H5T_STD_U64LE;
-        case Type::FLOAT:
-            return H5T_IEEE_F32LE;
-        case Type::DOUBLE:
-            return H5T_IEEE_F64LE;
-        case Type::STRING:
-            return H5T_C_S1;
-        case Type::STRUCT:
-            return -2;
+        case parquet::LogicalType::INT_8:
+            return H5T_STD_I8LE;
+        case parquet::LogicalType::INT_16:
+            return H5T_STD_I16LE;
+        case parquet::LogicalType::INT_32:
+            return H5T_STD_I32LE;
+        case parquet::LogicalType::INT_64:
+            return H5T_STD_I64LE;
         default:
-            std::cerr << "attempt to convert an unknown datatype!" << std::endl;
-            return -1;
+            break;
     }
+    switch (t) {
+        case parquet::Type::INT32:
+            return H5T_STD_I32LE;
+        case parquet::Type::INT64:
+            return H5T_STD_I64LE;
+        case parquet::Type::FLOAT:
+            return H5T_IEEE_F32LE;
+        case parquet::Type::DOUBLE:
+            return H5T_IEEE_F64LE;
+        default:
+            break;
+    }
+    std::cerr << "attempt to convert an unknown datatype!" << std::endl;
+    return -1;
 }
 
 

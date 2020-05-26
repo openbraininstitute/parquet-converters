@@ -29,6 +29,7 @@ public:
 
     virtual void write(const IndexedTouch* data, uint32_t length) override;  // offset are directly added to data ptr
 
+    virtual void setup(const void* schema) override {};
 
 
 private:

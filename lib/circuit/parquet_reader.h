@@ -45,6 +45,10 @@ class CircuitReaderParquet : public Reader<CircuitData> {
 
     uint32_t fillBuffer(CircuitData* buf, uint length) override;
 
+    virtual const CircuitData::Schema* schema() const override {
+        return parquet_metadata_->schema();
+    }
+
  private:
     const std::string filename_;
     std::unique_ptr<parquet::ParquetFileReader> reader_;
@@ -91,6 +95,7 @@ class CircuitMultiReaderParquet : public Reader<CircuitData> {
 
     uint32_t fillBuffer(CircuitData* buf, uint length) override;
 
+    virtual const CircuitData::Schema* schema() const override;
 
  private:
     std::vector<std::shared_ptr<CircuitReaderParquet>> circuit_readers_;

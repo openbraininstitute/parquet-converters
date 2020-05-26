@@ -9,6 +9,7 @@
 #define LIB_CIRCUIT_CIRCUIT_DEFS_H_
 
 #include <arrow/table.h>
+#include <parquet/schema.h>
 
 namespace neuron_parquet {
 namespace circuit {
@@ -20,6 +21,7 @@ namespace circuit {
 // know it's not buffer and act accordingly
 
 struct CircuitData {
+    using Schema = parquet::SchemaDescriptor;
     std::shared_ptr<arrow::Table> row_group;
 };
 

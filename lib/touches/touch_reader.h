@@ -60,6 +60,8 @@ class TouchReader : public Reader<IndexedTouch> {
 
     static const uint32_t BUFFER_LEN = 256;
 
+    virtual const void* schema() const override { return nullptr; };
+
  private:
     void _readHeader(const char* filename);
     void _fillBuffer();

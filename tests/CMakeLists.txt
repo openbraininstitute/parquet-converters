@@ -26,7 +26,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet2syn_mpi
-        COMMAND ${mpi_launcher} -n 2 ../parquet2hdf5
+        COMMAND ${mpi_launcher} -n 4 ../parquet2hdf5
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet

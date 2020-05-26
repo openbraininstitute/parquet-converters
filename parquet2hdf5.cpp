@@ -39,27 +39,112 @@ MPI_Comm comm = MPI_COMM_WORLD;
 MPI_Info info = MPI_INFO_NULL;
 #endif
 
+///
+/// \brief link_ids Links the neuron ids to the right names
+///
+///
+void link_ids(Syn2CircuitHdf5& syn2circuit) {
+    // SYN2 required fields might have a different name
+    if(!syn2circuit.has_dataset("connected_neurons_pre")) {
+        std::unordered_map<string, string> mapping {
+            { string("pre_neuron_id"),  string("connected_neurons_pre")  },
+            { string("post_neuron_id"), string("connected_neurons_post") },
+            { string("pre_gid"),  string("connected_neurons_pre")  },
+            { string("post_gid"), string("connected_neurons_post") },
+        };
 
+        for(auto map_pair : mapping) {
+            if(syn2circuit.has_dataset(map_pair.first)) {
+                syn2circuit.link_dataset(map_pair.second, map_pair.first);
+            }
+        }
+    }
+}
 
 ///
-/// \brief convert_circuit: Converts parquet files to SYN2
+/// \brief convert_circuit Converts parquet files to SYN2, single-threaded
+///
 ///
 void convert_circuit(const std::vector<string>& filenames, const string& syn2_filename, const string& population)  {
-
-    // Each reader and each writer in a separate MPI process
-
+    std::cout << "Writing to " << syn2_filename << std::endl;
     CircuitMultiReaderParquet reader(filenames);
 
-#ifdef NEURONPARQUET_USE_MPI
+    cout << "Aggregate totals: "
+         << reader.record_count() << " records ("
+         << reader.block_count() << " blocks)"
+         << std::endl;
+
+    CircuitWriterSYN2 writer(syn2_filename, reader.record_count(), population);
+
+    //Create converter and progress monitor
+    {
+        Converter<CircuitData> converter(reader, writer);
+        ProgressMonitor p(reader.block_count());
+        converter.setProgressHandler(p);
+        converter.exportAll();
+    }
+
+    // Check for datasets with required name for SYN2
+    link_ids(writer.syn2_file());
+}
+
+
+///
+/// \brief convert_circuit_mpi: Converts parquet files to SYN2 using mpi
+///
+///
+void convert_circuit_mpi(const std::vector<string>& filenames, const string& syn2_filename, const string& population)  {
+
+    // Each reader and each writer in a separate MPI process
+    int total_files = filenames.size();
+    int my_n_files = total_files / mpi_size;
+    int remaining = total_files % mpi_size;
+    if( mpi_rank < remaining ) {
+        my_n_files++;
+    }
+
+    int my_offset = total_files / mpi_size * mpi_rank;
+    my_offset += (mpi_rank > remaining) ? remaining : mpi_rank;
+
+    std::vector<string> input_names(filenames.begin() + my_offset, filenames.begin() + my_offset + my_n_files);
+    if (mpi_rank < filenames.size()) {
+        cout << std::setfill('.')
+             << "Process " << std::setw(4) << mpi_rank
+             << " is going to read files " << std::setw(8) << my_offset
+             << " to " << std::setw(8) << my_offset + my_n_files - 1 << std::endl;
+    } else {
+        cout << std::setfill('.')
+             << "Process " << std::setw(4) << mpi_rank
+             << " is not going to read files." << std::endl;
+    }
+
+    if (input_names.empty()) {
+        // We need this to grab the schema of the input files. All ranks
+        // need to have the schema to keep the state of the output HDF5
+        // file in sync, otherwise the execution will hang when closing the
+        // output HDF5 file.
+        input_names.push_back(filenames.back());
+    }
+
+    MPI_Barrier(comm);
+
+    if (mpi_rank == 0) {
+        std::cout << "Writing to " << syn2_filename << std::endl;
+    }
+
+    MPI_Barrier(comm);
+
+    CircuitMultiReaderParquet reader(input_names);
+
     // Count the records and
     // 1. Sum
     // 2. Calculate offsets
 
-    uint64_t record_count = reader.record_count();
+    uint64_t record_count = mpi_rank < filenames.size() ? reader.record_count() : 0;
     uint64_t global_record_sum;
     MPI_Allreduce(&record_count, &global_record_sum, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
 
-    uint32_t block_count = reader.block_count();
+    uint32_t block_count = mpi_rank < filenames.size() ? reader.block_count() : 0;
     uint32_t global_block_sum;
     MPI_Allreduce(&block_count, &global_block_sum, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
 
@@ -78,66 +163,41 @@ void convert_circuit(const std::vector<string>& filenames, const string& syn2_fi
     uint64_t offset;
     MPI_Scatter(offsets, 1, MPI_UINT64_T, &offset, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 
-    std::cout << std::setfill('.')
-              << "Process " << std::setw(4) << mpi_rank
-              << " is going to write " << std::setw(12) << reader.block_count()
-              << " block(s) with an offset of " << std::setw(12) << offset
-              << std::endl;
+    if (mpi_rank < filenames.size()) {
+        std::cout << std::setfill('.')
+                  << "Process " << std::setw(4) << mpi_rank
+                  << " is going to write " << std::setw(12) << reader.block_count()
+                  << " block(s) with an offset of " << std::setw(12) << offset
+                  << std::endl;
+    } else {
+        std::cout << std::setfill('.')
+                  << "Process " << std::setw(4) << mpi_rank
+                  << " is not going to write anything."
+                  << std::endl;
+    }
 
     CircuitWriterSYN2 writer(syn2_filename, global_record_sum, {comm, info}, offset, population);
-#else
-    cout << "Aggregate totals: "
-         << reader.record_count() << " records ("
-         << reader.block_count() << " blocks)"
-         << std::endl;
-
-    CircuitWriterSYN2 writer(syn2_filename, reader.record_count(), population);
-#endif
-
 
     //Create converter and progress monitor
     {
         Converter<CircuitData> converter(reader, writer);
-#ifdef NEURONPARQUET_USE_MPI
         ProgressMonitor p(global_block_sum, mpi_rank==0);
-
         // Use progress of first process to estimate global progress
         if (mpi_rank == 0) {
             p.set_parallelism(mpi_size);
             converter.setProgressHandler(p, mpi_size);
         }
-#else
-        ProgressMonitor p(reader.block_count());
-
-        converter.setProgressHandler(p);
-#endif
-
-        converter.exportAll();
-    }
-
-#ifdef NEURONPARQUET_USE_MPI
-    MPI_Barrier(comm);
-#endif
-
-    // Check for datasets with required name for SYN2
-    Syn2CircuitHdf5& syn2circuit = writer.syn2_file();
-
-    // SYN2 required fields might have a different name
-    if(!syn2circuit.has_dataset("connected_neurons_pre")) {
-        std::unordered_map<string, string> mapping {
-            { string("pre_neuron_id"),  string("connected_neurons_pre")  },
-            { string("post_neuron_id"), string("connected_neurons_post") },
-            { string("pre_gid"),  string("connected_neurons_pre")  },
-            { string("post_gid"), string("connected_neurons_post") },
-        };
-
-        for(auto map_pair : mapping) {
-            if(syn2circuit.has_dataset(map_pair.first)) {
-                syn2circuit.link_dataset(map_pair.second, map_pair.first);
-            }
+        if (mpi_rank < filenames.size()) {
+            // See above: avoid converting data if we just opened the last
+            // file to access the schema.
+            converter.exportAll();
         }
     }
 
+    MPI_Barrier(comm);
+
+    // Check for datasets with required name for SYN2
+    link_ids(writer.syn2_file());
 }
 
 
@@ -160,7 +220,7 @@ int main(int argc, char* argv[]) {
     };
     string output_filename;
     string output_population("default");
-    std::vector<string> all_input_names;
+    std::vector<string> input_names;
 
     std::vector<std::string> source_population;
     std::vector<std::string> target_population;
@@ -179,7 +239,7 @@ int main(int argc, char* argv[]) {
         ->expected(2);
     app.add_option("-f,--format", format, "Format of the output file contents")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
-    app.add_option("files", all_input_names, "Files to convert")
+    app.add_option("files", input_names, "Files to convert")
         ->required()
         ->check(CLI::ExistingFile);
 
@@ -216,38 +276,14 @@ int main(int argc, char* argv[]) {
     }
 
 #ifdef NEURONPARQUET_USE_MPI
-    int total_files = all_input_names.size();
-    int my_n_files = total_files / mpi_size;
-    int remaining = total_files % mpi_size;
-    if( mpi_rank < remaining ) {
-        my_n_files++;
-    }
-
-    int my_offset = total_files / mpi_size * mpi_rank;
-    my_offset += ( mpi_rank > remaining )? remaining : mpi_rank;
-
-    std::vector<string> input_names(all_input_names.begin()+my_offset, all_input_names.begin() + my_offset + my_n_files);
-    cout << std::setfill('.')
-         << "Process " << std::setw(4) << mpi_rank
-         << " is going to read files " << std::setw(8) << my_offset
-         << " to " << std::setw(8) << my_offset + my_n_files << std::endl;
-
-    MPI_Barrier(comm);
-
-    if (mpi_rank == 0) {
-        std::cout << "Writing to " << output_filename << std::endl;
-    }
-
-    MPI_Barrier(comm);
-#else
-    std::cout << "Writing to " << output_filename << std::endl;
-    const auto input_names = all_input_names;
+    if (mpi_size > 1) {
+        convert_circuit_mpi(input_names, output_filename, output_population);
+        MPI_Barrier(comm);
+    } else {
 #endif
-
     convert_circuit(input_names, output_filename, output_population);
-
 #ifdef NEURONPARQUET_USE_MPI
-    MPI_Barrier(comm);
+    }
 #endif
 
     if(mpi_rank == 0) {
@@ -256,12 +292,9 @@ int main(int argc, char* argv[]) {
              << "Creating indices..." << std::endl;
     }
 
-#ifdef NEURONPARQUET_USE_MPI
-    MPI_Barrier(comm);
-#endif
-
     {
 #ifdef NEURONPARQUET_USE_MPI
+        MPI_Barrier(comm);
         syn2::synapses_writer writer(output_filename, syn2::synapses_writer::use_mpi_flag);
 #else
         syn2::synapses_writer writer(output_filename);
@@ -275,11 +308,10 @@ int main(int argc, char* argv[]) {
                 target_population.empty() ? "unknown" : target_population[1]
             );
         }
-    }
-
 #ifdef NEURONPARQUET_USE_MPI
-    MPI_Barrier(comm);
+        MPI_Barrier(comm);
 #endif
+    }
 
     if(mpi_rank == 0) {
         cout << "Finished writing " << output_filename << std::endl;

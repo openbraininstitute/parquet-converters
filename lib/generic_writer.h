@@ -13,6 +13,7 @@
 template <typename T>
 class Writer {
  public:
+    virtual void setup(const typename T::Schema* schema) = 0;
     virtual void write(const T* data, uint32_t length) = 0;
 
     // bytes per record

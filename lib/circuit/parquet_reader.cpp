@@ -72,6 +72,10 @@ CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<string> & file
    record_count_(0),
    cur_file_(0)
 {
+    if (filenames.empty()) {
+        throw std::runtime_error("need at least one file to read");
+    }
+
     circuit_readers_.reserve(filenames.size());
     rowgroup_offsets_.reserve(filenames.size());
     rowgroup_offsets_.push_back(0);
@@ -106,7 +110,17 @@ uint32_t CircuitMultiReaderParquet::fillBuffer(CircuitData *buf, uint length) {
 }
 
 
+const CircuitData::Schema* CircuitMultiReaderParquet::schema() const {
+    return circuit_readers_[cur_file_]->schema();
+}
+
+
 void CircuitMultiReaderParquet::seek(uint64_t pos) {
+    if (block_count() == 0 && pos == 0) {
+        // We have no data to read, seek should be no-op
+        return;
+    }
+
     if( pos >= rowgroup_count_ ){
         throw std::runtime_error("Cant seek over file length");
     }
