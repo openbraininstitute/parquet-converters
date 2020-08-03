@@ -10,13 +10,13 @@ add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 
 target_link_libraries(TouchParquet
-                      ${PARQUET_LIB_DEPS}
-                      ${ZSTD_LIB}
+                      arrow_shared
+                      parquet_shared
                       range-v3)
 target_link_libraries(CircuitParquet
                       ${HDF5_LIBRARIES}
-                      ${PARQUET_LIB_DEPS}
-                      ${ZSTD_LIB}
+                      arrow_shared
+                      parquet_shared
                       SynapseTool::syn2
                       HighFive
                       range-v3)

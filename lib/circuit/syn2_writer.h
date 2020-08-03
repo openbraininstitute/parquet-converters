@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef CIRCUITWRITERSYN2_H
-#define CIRCUITWRITERSYN2_H
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -15,6 +14,9 @@
 #include <mpi.h>
 #endif
 #include <hdf5.h>
+
+#include <arrow/api.h>
+#include <parquet/types.h>
 
 #include "../generic_writer.h"
 #include "circuit_defs.h"
@@ -76,7 +78,7 @@ private:
 
     static void write_data(Syn2CircuitHdf5::Dataset& ds,
                            uint64_t r_offset,
-                           const std::shared_ptr<const arrow::Column>& r_col_data);
+                           const std::shared_ptr<const arrow::ChunkedArray>& r_col_data);
 
     Syn2CircuitHdf5 syn2_file_;
 
@@ -88,11 +90,10 @@ private:
 
 /// \brief Map from Parquet datatypes to HDF5 ones
 ///
-/// Will use the information from `LogicalType` first to determine
+/// Will use the information from `ConvertedType` first to determine
 /// customary signed and unsigned integers before falling back to the
 /// plain `Type` for generic integer and floating point numbers.
-inline hid_t parquet_types_to_h5(parquet::Type::type, parquet::LogicalType::type);
+inline hid_t parquet_types_to_h5(parquet::Type::type, parquet::ConvertedType::type);
 
 
 }}  // namespace neuron_parquet::circuit EOF
-#endif // CIRCUITWRITERSYN2_H

@@ -59,9 +59,8 @@ else()
 endif()
 
 
-## includes
-find_path(PARQUET_INCLUDE_DIR "parquet")
-find_path(ARROW_INCLUDE_DIR "arrow")
+find_package(HDF5 REQUIRED)
+find_package(arrow REQUIRED COMPONENTS parquet)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cli11)
 
@@ -79,9 +78,9 @@ include_directories("include")
 # MAIN EXECUTABLES
 add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet
-                          TouchParquet
-                          Boost::filesystem
-                          CLI11::CLI11)
+                      TouchParquet
+                      Boost::filesystem
+                      CLI11::CLI11)
 
 add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5

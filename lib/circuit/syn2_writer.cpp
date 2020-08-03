@@ -76,7 +76,7 @@ void CircuitWriterSYN2::setup(const CircuitData::Schema* schema) {
     for (int i = 0; i < schema->num_columns(); ++i) {
         const auto& col = schema->Column(i);
         const auto col_name = col->name();
-        const auto col_type = parquet_types_to_h5(col->physical_type(), col->logical_type());
+        const auto col_type = parquet_types_to_h5(col->physical_type(), col->converted_type());
         if (col_type < 0) {
             throw std::runtime_error("column " + col_name + " cannot be converted");
         }
@@ -99,11 +99,11 @@ void CircuitWriterSYN2::write(const CircuitData * data, uint length) {
 
     shared_ptr<Table> row_group(data->row_group);
     int n_cols = row_group->num_columns();
+    auto names = row_group->ColumnNames();
 
     for(int i=0; i<n_cols; i++) {
-        shared_ptr<Column> col(row_group->column(i));
-        auto col_name = col->name();
-        write_data(syn2_file_[col_name], output_file_offset_, col);
+        auto col = row_group->column(i);
+        write_data(syn2_file_[names[i]], output_file_offset_, col);
     }
 
     output_file_offset_ += row_group->num_rows();
@@ -120,23 +120,23 @@ const std::vector<string> CircuitWriterSYN2::dataset_names() {
 }
 
 
-inline hid_t parquet_types_to_h5(parquet::Type::type t, parquet::LogicalType::type l) {
+inline hid_t parquet_types_to_h5(parquet::Type::type t, parquet::ConvertedType::type l) {
     switch (l) {
-        case parquet::LogicalType::UINT_8:
+        case parquet::ConvertedType::UINT_8:
             return H5T_STD_U8LE;
-        case parquet::LogicalType::UINT_16:
+        case parquet::ConvertedType::UINT_16:
             return H5T_STD_U16LE;
-        case parquet::LogicalType::UINT_32:
+        case parquet::ConvertedType::UINT_32:
             return H5T_STD_U32LE;
-        case parquet::LogicalType::UINT_64:
+        case parquet::ConvertedType::UINT_64:
             return H5T_STD_U64LE;
-        case parquet::LogicalType::INT_8:
+        case parquet::ConvertedType::INT_8:
             return H5T_STD_I8LE;
-        case parquet::LogicalType::INT_16:
+        case parquet::ConvertedType::INT_16:
             return H5T_STD_I16LE;
-        case parquet::LogicalType::INT_32:
+        case parquet::ConvertedType::INT_32:
             return H5T_STD_I32LE;
-        case parquet::LogicalType::INT_64:
+        case parquet::ConvertedType::INT_64:
             return H5T_STD_I64LE;
         default:
             break;
@@ -162,7 +162,7 @@ inline hid_t parquet_types_to_h5(parquet::Type::type t, parquet::LogicalType::ty
 
 void CircuitWriterSYN2::write_data(Syn2CircuitHdf5::Dataset& dataset,
                                    uint64_t offset,
-                                   const shared_ptr<const Column>& col_data) {
+                                   const shared_ptr<const ChunkedArray>& col_data) {
 
     #ifdef NEURON_LOGGING
     cerr << "Writing data... " <<  col_data->length() << " records." << endl;
@@ -170,13 +170,13 @@ void CircuitWriterSYN2::write_data(Syn2CircuitHdf5::Dataset& dataset,
 
     if (col_data->type()->id() != Type::STRUCT) {
         // get chunks and retrieve the raw data from the buffer
-        for (const shared_ptr<Array> & chunk : col_data->data()->chunks()) {
+        for (const shared_ptr<Array> & chunk : col_data->chunks()) {
             auto buffer = static_cast<PrimitiveArray*>(chunk.get())->values();
             dataset.write(buffer->data(), chunk->length(), offset);
             offset += chunk->length();
         }
     } else {
-        for (const shared_ptr<Array> & chunk : col_data->data()->chunks()) {
+        for (const shared_ptr<Array> & chunk : col_data->chunks()) {
             auto array = dynamic_cast<StructArray*>(chunk.get());
 
             for (std::size_t i = 0; i < nested_cols.size(); ++i) {

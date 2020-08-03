@@ -41,7 +41,7 @@ void CircuitReaderParquet::init_data_reader() {
         reader_ = parquet::ParquetFileReader::OpenFile(filename_, false);
     }
     // NOTE that reader is unique. We must give it up to the other reader
-    data_reader_.reset(new parquet::arrow::FileReader(arrow::default_memory_pool(), std::move(reader_)));
+    parquet::arrow::FileReader::Make(arrow::default_memory_pool(), std::move(reader_), &data_reader_);
     cur_row_group_ = 0;
 }
 
