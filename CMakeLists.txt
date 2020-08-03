@@ -84,6 +84,7 @@ target_link_libraries(touch2parquet
 
 add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5
+                      Boost::filesystem
                       CircuitParquet
                       CLI11::CLI11
                       SynapseTool::syn2
