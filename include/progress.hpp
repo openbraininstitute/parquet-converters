@@ -67,7 +67,9 @@ class ProgressMonitor {
 
     inline ProgressMonitor& operator +=(size_t blocks_done) {
         done_ += blocks_done;   // atomic
-        redraw();               // thread-safe non-preemtive
+        if (show_bar_) {
+            redraw();           // thread-safe non-preemtive
+        }
         return *this;
     }
 
@@ -143,10 +145,10 @@ class ProgressMonitor {
     inline void _show() {
         static const char* PB_STR = "=================================================="
                                     "==================================================";
-        size_t done = done_.load();
-        int n_tasks = n_tasks_.load();
-        float progress = (total_ == 0)? 1. : float(done) / total_;
-        unsigned cols = window_cols() - 1;
+        const size_t done = done_.load();
+        const int n_tasks = n_tasks_.load();
+        const float progress = (total_ == 0)? 1. : float(done) / total_;
+        const unsigned cols = window_cols() - 1;
 
         char tasks_str[30];
         snprintf(tasks_str, 30, "(%ld + %d / %ld)", done, n_tasks, total_);
@@ -156,7 +158,7 @@ class ProgressMonitor {
             progress_len = MAX_BAR_LEN;
         }
 
-        auto bar_len = int(std::round(std::min(1.f, progress) * progress_len));
+        const auto bar_len = int(std::round(std::min(1.f, progress) * progress_len));
         int rpad = std::max(0, progress_len - bar_len);
         last_msg_len_ = progress_len + 11 + strlen(tasks_str);
 
