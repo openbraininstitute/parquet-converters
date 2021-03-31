@@ -1,4 +1,4 @@
-srun -Aproj16 -pinteractive -n4 touch2parquet \
+srun touch2parquet \
     $DATADIR/cellular/circuit-1k/touches/binary/touchesData*
 
 set +x

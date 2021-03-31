@@ -8,7 +8,7 @@ h5import \
     -outfile fake.h5
 
 mode=functional
-srun -Aproj16 -pinteractive -n1 \
+srun \
     parquet2hdf5 \
         --format syn2 \
         --from fake.h5 fake \
