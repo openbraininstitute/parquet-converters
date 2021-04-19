@@ -5,8 +5,13 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#include "parquet_writer.h"
 #include <assert.h>
+
+#include <arrow/util/key_value_metadata.h>
+
+#include "parquet_writer.h"
+
+#include "lib/version.h"
 
 namespace neuron_parquet {
 namespace touches {
@@ -98,19 +103,28 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
 }
 
 
-TouchWriterParquet::TouchWriterParquet(const string filename, const Version v)
+TouchWriterParquet::TouchWriterParquet(const string filename, const Version v, const std::string& version_string)
     : version(v)
     , _buffer_offset(0)
 {
     // Create a ParquetFileWriter instance
-    PARQUET_THROW_NOT_OK(ParquetFileOutput::Open(filename.c_str(), &out_file));
+    PARQUET_ASSIGN_OR_THROW(
+        out_file,
+        ::arrow::io::FileOutputStream::Open(filename.c_str()));
     touchSchema = setupSchema(version);
+
+    auto metadata = std::make_shared<::arrow::KeyValueMetadata>(
+        std::unordered_map<std::string, std::string>{
+            {"touchdetector_version", version_string},
+            {"touch2parquet_version", neuron_parquet::VERSION}
+        }
+    );
 
     WriterProperties::Builder prop_builder;
     prop_builder.compression(Compression::SNAPPY);
     prop_builder.disable_dictionary();
 
-    file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build());
+    file_writer = ParquetFileWriter::Open(out_file, touchSchema, prop_builder.build(), metadata);
 
     // Allocate contiguous buffers for FULL output and TRANSPOSED block
     // Too big to put in stack

@@ -24,7 +24,7 @@ using namespace std;
 class TouchWriterParquet : public Writer<IndexedTouch>
 {
 public:
-    TouchWriterParquet(const string, Version);
+    TouchWriterParquet(const string, Version, const std::string&);
     ~TouchWriterParquet();
 
     virtual void write(const IndexedTouch* data, uint32_t length) override;  // offset are directly added to data ptr
@@ -45,7 +45,7 @@ private:
     // Variables
     Version version;
     shared_ptr<GroupNode> touchSchema;
-    std::shared_ptr<ParquetFileOutput> out_file;
+    std::shared_ptr<::arrow::io::FileOutputStream> out_file;
     shared_ptr<parquet::ParquetFileWriter> file_writer;
 
     // Column writers

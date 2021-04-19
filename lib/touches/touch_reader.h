@@ -31,6 +31,7 @@ class TouchReader : public Reader<IndexedTouch> {
     ~TouchReader();
 
     Version version() const { return version_; }
+    std::string version_string() const { return version_string_; }
 
     bool is_chunked() const override {
         return false;
@@ -79,6 +80,7 @@ class TouchReader : public Reader<IndexedTouch> {
     bool endian_swap_;
     bool buffered_;
     Version version_;
+    std::string version_string_;
 
     // Internal Buffer: to be used for iteration
     uint32_t it_buf_index_;  // Offset relative to buffer

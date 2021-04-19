@@ -9,7 +9,7 @@ variables:
   extends: .spack_test
   variables:
     bb5_constraint: cpu
-    bb5_ntasks: 3
+    bb5_ntasks: 4
     bb5_cpus_per_task: 1
 
 circuit1k_output:

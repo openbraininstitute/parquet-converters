@@ -1,3 +1,5 @@
+configure_file(version.h.in version.h @ONLY)
+
 set(TOUCH_SRCS
     "touches/touch_reader.cpp"
     "touches/parquet_writer.cpp")
@@ -9,6 +11,7 @@ set(CIRCUIT_SRCS
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 
+target_include_directories(TouchParquet PRIVATE "${PROJECT_BINARY_DIR}")
 target_link_libraries(TouchParquet
                       arrow_shared
                       parquet_shared

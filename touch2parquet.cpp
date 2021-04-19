@@ -48,7 +48,7 @@ int main( int argc, char* argv[] ) {
     //Parsing command line
     std::vector<std::string> all_input_names;
     std::string output_filename;
-    int convert_limit;
+    long convert_limit = -1;
     CLI::App app{"Convert TouchDetector output to Parquet synapse files"};
     app.add_option("-o", output_filename, "Specify the output filename");
     app.add_option("-n", convert_limit, "Maximum number of records to export");
@@ -94,10 +94,12 @@ int main( int argc, char* argv[] ) {
                  + std::to_string(mpi_rank) + ".parquet";
 
     try {
-        auto version = TouchReader(first_file.c_str()).version();
+        const auto trv = TouchReader(first_file.c_str());
+        const auto version = trv.version();
+        const auto version_string = trv.version_string();
 
         // Every rank participates in the conversion of every file, different regions
-        TouchWriterParquet tw(outfn, version);
+        TouchWriterParquet tw(outfn, version, version_string);
 
         for (int i = 0; i < number_of_files; i++) {
 #ifdef NEURONPARQUET_USE_MPI
