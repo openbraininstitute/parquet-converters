@@ -11,11 +11,7 @@
 namespace neuron_parquet {
 namespace circuit {
 
-using std::string;
-using std::vector;
-using std::shared_ptr;
-
-CircuitReaderParquet::CircuitReaderParquet(const string & filename)
+CircuitReaderParquet::CircuitReaderParquet(const std::string & filename)
   :
     filename_(filename),
     reader_(parquet::ParquetFileReader::OpenFile(filename, false)),
@@ -66,7 +62,7 @@ uint32_t CircuitReaderParquet::fillBuffer(CircuitData* buf, uint32_t length) {
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<std::string>& filenames, const std::string& metadata_filename)
+CircuitMultiReaderParquet::CircuitMultiReaderParquet(const std::vector<std::string>& filenames, const std::string& metadata_filename)
  :
    rowgroup_count_(0),
    record_count_(0),
@@ -87,7 +83,7 @@ CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<std::string>& 
     rowgroup_offsets_.push_back(0);
 
     for(auto name : filenames) {
-        shared_ptr<CircuitReaderParquet> reader(new CircuitReaderParquet(name));
+        std::shared_ptr<CircuitReaderParquet> reader(new CircuitReaderParquet(name));
         circuit_readers_.push_back(reader);
         rowgroup_count_ += reader->rowgroup_count_;
         record_count_ += reader->record_count_;
