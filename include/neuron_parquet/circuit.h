@@ -1,11 +1,7 @@
-#ifndef PARQUET_CIRCUIT_H
-#define PARQUET_CIRCUIT_H
+#pragma once
 
 #include "lib/circuit/circuit_defs.h"
 #include "lib/circuit/parquet_reader.h"
-#include "lib/circuit/syn2hdf5.h"
-#include "lib/circuit/syn2_writer.h"
+#include "lib/circuit/sonata_file.h"
+#include "lib/circuit/sonata_writer.h"
 #include "lib/converter.h"
-
-
-#endif // PARQUET_CIRCUIT_H

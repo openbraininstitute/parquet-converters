@@ -62,6 +62,7 @@ class TouchReader : public Reader<IndexedTouch> {
     static const uint32_t BUFFER_LEN = 256;
 
     virtual const void* schema() const override { return nullptr; };
+    virtual const std::shared_ptr<const void> metadata() const override { return std::shared_ptr<const void>(); };
 
  private:
     void _readHeader(const char* filename);

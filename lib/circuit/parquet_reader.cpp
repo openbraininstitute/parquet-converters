@@ -5,8 +5,8 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#include "parquet_reader.h"
 #include <stdexcept>
+#include "parquet_reader.h"
 
 namespace neuron_parquet {
 namespace circuit {
@@ -66,7 +66,7 @@ uint32_t CircuitReaderParquet::fillBuffer(CircuitData* buf, uint32_t length) {
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<string> & filenames)
+CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<std::string>& filenames, const std::string& metadata_filename)
  :
    rowgroup_count_(0),
    record_count_(0),
@@ -74,6 +74,12 @@ CircuitMultiReaderParquet::CircuitMultiReaderParquet(const vector<string> & file
 {
     if (filenames.empty()) {
         throw std::runtime_error("need at least one file to read");
+    }
+
+    if (metadata_filename.empty()) {
+        metadata_reader_.reset(new CircuitReaderParquet(filenames[0]));
+    } else {
+        metadata_reader_.reset(new CircuitReaderParquet(metadata_filename));
     }
 
     circuit_readers_.reserve(filenames.size());
@@ -111,7 +117,12 @@ uint32_t CircuitMultiReaderParquet::fillBuffer(CircuitData *buf, uint length) {
 
 
 const CircuitData::Schema* CircuitMultiReaderParquet::schema() const {
-    return circuit_readers_[cur_file_]->schema();
+    return metadata_reader_->schema();
+}
+
+
+const std::shared_ptr<const CircuitData::Metadata> CircuitMultiReaderParquet::metadata() const {
+    return metadata_reader_->metadata();
 }
 
 

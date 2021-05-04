@@ -23,6 +23,3 @@ circuit2k_output:
 
 circuit2k_touches:
   extends: .pc_test
-
-index_truncation:
-  extends: .pc_test

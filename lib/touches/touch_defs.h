@@ -20,6 +20,7 @@ enum Version { V1, V2, V3 };
 namespace v1 {
     struct Touch {
         using Schema = void;
+        using Metadata = void;
 
         int pre_synapse_ids[3];
         int post_synapse_ids[3];

@@ -49,7 +49,6 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(HDF5 REQUIRED)
 find_package(HighFive REQUIRED)
 find_package(Range-v3 REQUIRED)
-find_package(sonata REQUIRED)
 find_package(SynapseTool REQUIRED)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cli11)
@@ -72,8 +71,7 @@ target_link_libraries(parquet2hdf5
                       Boost::filesystem
                       CircuitParquet
                       CLI11::CLI11
-                      SynapseTool::syn2
-                      sonata::sonata_shared)
+                      SynapseTool::syn2)
 
 
 # TESTS

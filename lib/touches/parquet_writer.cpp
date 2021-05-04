@@ -26,26 +26,26 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
       "synapse_id", Repetition::REQUIRED, Type::INT64, ConvertedType::INT_64));
 
   fields.push_back(schema::PrimitiveNode::Make(
-      "pre_neuron_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_32));
+      "source_node_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_32));
 
   fields.push_back(schema::PrimitiveNode::Make(
-      "post_neuron_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_32));
+      "target_node_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_32));
 
   // POSITION OF THE SYNAPSE //
   fields.push_back(schema:: PrimitiveNode::Make(
-       "pre_section", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
+       "efferent_section_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
   fields.push_back(schema:: PrimitiveNode::Make(
-       "pre_segment", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
+       "efferent_segment_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
   fields.push_back(schema:: PrimitiveNode::Make(
-       "post_section", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
+       "afferent_section_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
   fields.push_back(schema:: PrimitiveNode::Make(
-       "post_segment", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
+       "afferent_segment_id", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_16 ) );
 
   fields.push_back(schema::PrimitiveNode::Make(
-      "pre_offset", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+      "efferent_segment_offset", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
 
   fields.push_back(schema::PrimitiveNode::Make(
-      "post_offset", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+      "afferent_segment_offset", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
 
   fields.push_back(schema::PrimitiveNode::Make(
       "distance_soma", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
@@ -55,45 +55,45 @@ static std::shared_ptr<GroupNode> setupSchema(Version version) {
 
   if (version >= V2) {
       fields.push_back(schema:: PrimitiveNode::Make(
-           "pre_section_fraction", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE ) );
+           "efferent_section_pos", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE ) );
       fields.push_back(schema:: PrimitiveNode::Make(
-           "post_section_fraction", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE ) );
+           "afferent_section_pos", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE ) );
 
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_surface_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_surface_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_surface_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_center_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_center_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_center_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
 
       fields.push_back(schema::PrimitiveNode::Make(
           "spine_length", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
 
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_branch_type", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_8));
+          "efferent_section_type", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_8));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_branch_type", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_8));
+          "afferent_section_type", Repetition::REQUIRED, Type::INT32, ConvertedType::INT_8));
   }
 
   if (version >= V3) {
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_center_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_center_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_center_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_center_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "pre_position_center_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "efferent_center_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_surface_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_surface_x", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_surface_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_surface_y", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
       fields.push_back(schema::PrimitiveNode::Make(
-          "post_position_surface_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
+          "afferent_surface_z", Repetition::REQUIRED, Type::FLOAT, ConvertedType::NONE));
   }
 
   // Create a GroupNode named 'schema' using the primitive nodes defined above

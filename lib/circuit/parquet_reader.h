@@ -49,6 +49,10 @@ class CircuitReaderParquet : public Reader<CircuitData> {
         return parquet_metadata_->schema();
     }
 
+    virtual const std::shared_ptr<const CircuitData::Metadata> metadata() const override {
+        return parquet_metadata_->key_value_metadata();
+    }
+
  private:
     const std::string filename_;
     std::unique_ptr<parquet::ParquetFileReader> reader_;
@@ -75,7 +79,7 @@ class CircuitReaderParquet : public Reader<CircuitData> {
  */
 class CircuitMultiReaderParquet : public Reader<CircuitData> {
  public:
-    explicit CircuitMultiReaderParquet(const std::vector<std::string> & filenames);
+    explicit CircuitMultiReaderParquet(const std::vector<std::string> & filenames, const std::string& metadata_filename = "");
 
     ~CircuitMultiReaderParquet() {}
 
@@ -97,8 +101,10 @@ class CircuitMultiReaderParquet : public Reader<CircuitData> {
 
     virtual const CircuitData::Schema* schema() const override;
 
+    virtual const std::shared_ptr<const CircuitData::Metadata> metadata() const override;
  private:
     std::vector<std::shared_ptr<CircuitReaderParquet>> circuit_readers_;
+    std::shared_ptr<CircuitReaderParquet> metadata_reader_;
     uint32_t rowgroup_count_;
     uint64_t record_count_;
     std::vector<uint32_t> rowgroup_offsets_;

@@ -5,8 +5,8 @@ set(TOUCH_SRCS
     "touches/parquet_writer.cpp")
 set(CIRCUIT_SRCS
     "circuit/parquet_reader.cpp"
-    "circuit/syn2_writer.cpp"
-    "circuit/syn2hdf5.cpp")
+    "circuit/sonata_writer.cpp"
+    "circuit/sonata_file.cpp")
 
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
@@ -16,6 +16,7 @@ target_link_libraries(TouchParquet
                       arrow_shared
                       parquet_shared
                       range-v3)
+target_include_directories(CircuitParquet PRIVATE "${PROJECT_BINARY_DIR}")
 target_link_libraries(CircuitParquet
                       ${HDF5_LIBRARIES}
                       arrow_shared

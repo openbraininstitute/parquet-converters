@@ -1,12 +1,6 @@
 add_executable(test_touch_convert test_touch_convert.cpp)
 target_link_libraries(test_touch_convert TouchParquet)
 
-add_executable(test_circuit_convert test_parquet2syn.cpp)
-target_link_libraries(test_circuit_convert CircuitParquet)
-
-add_executable(test_multi_parquet2syn test_multi_parquet2syn.cpp)
-target_link_libraries(test_multi_parquet2syn CircuitParquet)
-
 if(NEURONPARQUET_USE_MPI)
     find_program(mpi_launcher
         NAMES srun mpirun ${MPIEXEC_EXECUTABLE}
@@ -15,21 +9,12 @@ if(NEURONPARQUET_USE_MPI)
         PATH_SUFFIXES bin
         DOC "Executable for running MPI programs.")
 
-    add_executable(test_circuit_convert_parallel test_parallel_parquet2syn.cpp)
-    target_link_libraries(test_circuit_convert_parallel CircuitParquet ${MPI_LIBRARIES})
-
     add_test(
-        NAME circuit_conversion
-        COMMAND ${mpi_launcher} -n 1 test_circuit_convert_parallel
-            ${CMAKE_CURRENT_SOURCE_DIR}/testCircuit.parquet
-    )
-
-    add_test(
-        NAME parquet2syn_mpi
+        NAME parquet2hdf5_mpi
         COMMAND ${mpi_launcher} -n 4 ../parquet2hdf5
-            ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
-            ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
-            ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
+            ${CMAKE_CURRENT_SOURCE_DIR}/parquets
+            edges_n4.h5
+            All
     )
 
     add_test(
@@ -40,7 +25,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet_conversion_v1
-        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 output.parquet
+        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 . edges_v1.h5 All
     )
 
     add_test(
@@ -51,7 +36,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet_conversion_v2
-        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 output.parquet
+        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 . edges_v2.h5 All
     )
 else()
     add_test(
@@ -94,12 +79,3 @@ set_tests_properties(parquet_conversion_v2 PROPERTIES
 
 set_tests_properties(touches_conversion_v1 parquet_conversion_v1 PROPERTIES RUN_SERIAL TRUE)
 set_tests_properties(touches_conversion_v2 parquet_conversion_v2 PROPERTIES RUN_SERIAL TRUE)
-
-add_test(
-    NAME multifile_parquet2syn
-    COMMAND ${maybe_mpi} test_multi_parquet2syn
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part0.parquet
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part1.parquet
-        ${CMAKE_CURRENT_SOURCE_DIR}/parquets/part2.parquet
-)
-

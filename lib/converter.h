@@ -52,7 +52,7 @@ class Converter {
             // Create a buffer of records.
             buffer_ = new T[(n_records_ > BUFFER_LEN)? BUFFER_LEN : n_records_];
         }
-        writer_.setup(reader_.schema());
+        writer_.setup(reader_.schema(), reader_.metadata());
     }
 
 

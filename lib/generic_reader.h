@@ -30,6 +30,7 @@ class Reader {
     virtual bool is_chunked() const = 0;
 
     virtual const typename T::Schema* schema() const = 0;
+    virtual const std::shared_ptr<const typename T::Metadata> metadata() const = 0;
 
  protected:
     ~Reader() = default;
