@@ -88,9 +88,9 @@ void SonataWriter::setup(const CircuitData::Schema* schema, std::shared_ptr<cons
         if (p.first == "ARROW:schema" || p.first.rfind("org.apache.spark", 0) != std::string::npos) {
             continue;
         } else if (p.first == "source_population_name") {
-            sonata_file_.create_dataset_attribute("source_node_id", "population_name", p.second);
+            sonata_file_.create_dataset_attribute("source_node_id", "node_population", p.second);
         } else if (p.first == "target_population_name") {
-            sonata_file_.create_dataset_attribute("target_node_id", "population_name", p.second);
+            sonata_file_.create_dataset_attribute("target_node_id", "node_population", p.second);
         } else if (p.first == "source_population_size") {
             source_size_ = std::stoul(p.second);
         } else if (p.first == "target_population_size") {
