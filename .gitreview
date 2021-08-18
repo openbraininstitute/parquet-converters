@@ -1,5 +1,0 @@
-[gerrit]
-host=bbpcode.epfl.ch
-project=building/ParquetConverters
-defaultbranch=master
-port=22
