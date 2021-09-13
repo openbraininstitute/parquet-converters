@@ -26,6 +26,9 @@ using namespace ranges;
 using namespace std;
 
 
+static const unordered_set<string> COLUMNS_TO_SKIP{"synapse_id"};
+
+
 SonataWriter::SonataWriter(const string & filepath,
                                      uint64_t n_records,
                                      const string& population_name)
@@ -72,6 +75,10 @@ void SonataWriter::setup(const CircuitData::Schema* schema, std::shared_ptr<cons
     for (int i = 0; i < schema->num_columns(); ++i) {
         const auto& col = schema->Column(i);
         const auto col_name = col->name();
+        if (COLUMNS_TO_SKIP.count(col_name) > 0) {
+            continue;
+        }
+
         const auto col_type = parquet_types_to_h5(col->physical_type(), col->converted_type());
         if (col_type < 0) {
             throw std::runtime_error("column " + col_name + " cannot be converted");
@@ -119,6 +126,9 @@ void SonataWriter::write(const CircuitData * data, uint length) {
 
     for(int i=0; i<n_cols; i++) {
         auto col = row_group->column(i);
+        if (COLUMNS_TO_SKIP.count(names[i]) > 0) {
+            continue;
+        }
         write_data(sonata_file_[names[i]], output_file_offset_, col);
     }
 
