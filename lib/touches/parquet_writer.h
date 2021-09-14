@@ -61,8 +61,13 @@ private:
     /// We transpose in small blocks for cache efficiency
     static const uint TRANSPOSE_LEN = 1024;
 
+    // TouchDetector compresses the branch types into a single byte (0 =
+    // soma). We need to unpack them by shifting & masking, and then
+    // introduce an offset to match the MorphIO convention (0 = invalid,
+    // 1 = soma, …)
     static const std::size_t BRANCH_MASK = 0xF;
     static const std::size_t BRANCH_SHIFT = 4;
+    static const std::size_t BRANCH_OFFSET = 1;
 
     uint _buffer_offset;
 

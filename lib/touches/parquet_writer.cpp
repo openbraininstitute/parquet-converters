@@ -227,8 +227,8 @@ void TouchWriterParquet::_transpose_buffer_part(const IndexedTouch* data, uint o
             _tbuffer->post_position[1][i] = data[i].post_position[1];
             _tbuffer->post_position[2][i] = data[i].post_position[2];
             _tbuffer->spine_length[i] = data[i].spine_length;
-            _tbuffer->pre_branch_type[i] = (data[i].branch_type >> BRANCH_SHIFT) & BRANCH_MASK;
-            _tbuffer->post_branch_type[i] = data[i].branch_type & BRANCH_MASK;
+            _tbuffer->pre_branch_type[i] = ((data[i].branch_type >> BRANCH_SHIFT) & BRANCH_MASK) + BRANCH_OFFSET;
+            _tbuffer->post_branch_type[i] = (data[i].branch_type & BRANCH_MASK) + BRANCH_OFFSET;
         }
 
         if (version >= V3) {
