@@ -7,9 +7,9 @@
  */
 #include <unistd.h>
 #include <cmath>
-#include <boost/filesystem.hpp>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <mpi.h>
 
 #include "CLI/CLI.hpp"
@@ -19,8 +19,7 @@
 
 #include "lib/version.h"
 
-// Stand-in until c++ std::filesystem is supported
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 using namespace neuron_parquet::touches;
 

@@ -6,6 +6,7 @@
  *
  */
 #include <stdexcept>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -15,8 +16,6 @@
 #endif
 
 #include "CLI/CLI.hpp"
-
-#include <boost/filesystem.hpp>
 
 #include <neuron_parquet/circuit.h>
 #include <progress.hpp>
@@ -28,7 +27,7 @@ using namespace neuron_parquet::circuit;
 using neuron_parquet::Converter;
 using utils::ProgressMonitor;
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 
 int mpi_size, mpi_rank;

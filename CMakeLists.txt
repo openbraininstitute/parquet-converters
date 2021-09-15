@@ -45,7 +45,6 @@ endif()
 find_package(Arrow REQUIRED)
 get_filename_component(MY_SEARCH_DIR ${Arrow_CONFIG} DIRECTORY)
 find_package(Parquet REQUIRED HINTS ${MY_SEARCH_DIR})
-find_package(Boost COMPONENTS filesystem REQUIRED)
 find_package(HDF5 REQUIRED)
 find_package(HighFive REQUIRED)
 find_package(Range-v3 REQUIRED)
@@ -63,12 +62,10 @@ include_directories("include")
 add_executable(touch2parquet touch2parquet.cpp)
 target_link_libraries(touch2parquet
                       TouchParquet
-                      Boost::filesystem
                       CLI11::CLI11)
 
 add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5
-                      Boost::filesystem
                       CircuitParquet
                       CLI11::CLI11
                       SynapseTool::syn2)
