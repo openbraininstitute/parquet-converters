@@ -11,12 +11,12 @@ set(CIRCUIT_SRCS
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 add_library(CircuitParquet STATIC ${CIRCUIT_SRCS})
 
-target_include_directories(TouchParquet PRIVATE "${PROJECT_BINARY_DIR}")
+target_include_directories(TouchParquet PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(TouchParquet
                       arrow_shared
                       parquet_shared
                       range-v3)
-target_include_directories(CircuitParquet PRIVATE "${PROJECT_BINARY_DIR}")
+target_include_directories(CircuitParquet PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(CircuitParquet
                       ${HDF5_LIBRARIES}
                       arrow_shared

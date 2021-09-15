@@ -17,6 +17,8 @@
 #include <neuron_parquet/touches.h>
 #include <progress.hpp>
 
+#include "lib/version.h"
+
 // Stand-in until c++ std::filesystem is supported
 namespace fs = boost::filesystem;
 
@@ -50,6 +52,7 @@ int main( int argc, char* argv[] ) {
     std::string output_filename;
     long convert_limit = -1;
     CLI::App app{"Convert TouchDetector output to Parquet synapse files"};
+    app.set_version_flag("-v,--version", neuron_parquet::VERSION);
     app.add_option("-o", output_filename, "Specify the output filename");
     app.add_option("-n", convert_limit, "Maximum number of records to export");
     app.add_option("files", all_input_names, "Files to convert")

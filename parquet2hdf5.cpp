@@ -21,6 +21,7 @@
 #include <neuron_parquet/circuit.h>
 #include <progress.hpp>
 
+#include "lib/version.h"
 
 using namespace neuron_parquet::circuit;
 
@@ -227,6 +228,7 @@ int main(int argc, char* argv[]) {
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
     CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
+    app.set_version_flag("-v,--version", neuron_parquet::VERSION);
     app.add_option("input_directory", input_directory, "Directory containing Parquet files to convert")
         ->check(CLI::ExistingDirectory)
         ->required();
