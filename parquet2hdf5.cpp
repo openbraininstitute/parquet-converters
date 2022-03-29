@@ -283,6 +283,16 @@ int main(int argc, char* argv[]) {
     }
     std::sort(input_files.begin(), input_files.end());
 
+    if (mpi_rank == 0) {
+        auto parent = fs::path(output_filename).parent_path();
+        if (!parent.empty()) {
+            fs::create_directories(parent);
+        }
+    }
+#ifdef NEURONPARQUET_USE_MPI
+    MPI_Barrier(comm);
+#endif
+
 #ifdef NEURONPARQUET_USE_MPI
     if (mpi_size > 1) {
         convert_circuit_mpi(input_files, metadata_file, output_filename, output_population);

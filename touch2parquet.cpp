@@ -90,10 +90,19 @@ int main( int argc, char* argv[] ) {
     progress.set_parallelism(mpi_size);
 
     if (output_filename.empty()) {
-      output_filename = first_file;
+      output_filename = fs::path(first_file).filename();
     }
-    auto outfn = fs::path(output_filename).stem().string() + "."
-                 + std::to_string(mpi_rank) + ".parquet";
+    auto outfn = fs::path(output_filename).replace_extension(std::to_string(mpi_rank) + ".parquet");
+
+    if (mpi_rank == 0) {
+        auto parent = fs::path(outfn).parent_path();
+        if (!parent.empty()) {
+            fs::create_directories(parent);
+        }
+    }
+#ifdef NEURONPARQUET_USE_MPI
+    MPI_Barrier(comm);
+#endif
 
     try {
         const auto trv = TouchReader(first_file.c_str());
