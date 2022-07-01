@@ -66,6 +66,10 @@ void SonataFile::create_dataset_attribute(const std::string& dataset, const std:
     attr.write(value);
 }
 
+void SonataFile::create_library(const std::string& name, const std::vector<std::string>& data) {
+    properties_group_.createDataSet("@library/" + name, data);
+}
+
 void SonataFile::write_indices(size_t source_size, size_t target_size, bool parallel) {
     auto indices_group = population_group_.createGroup("indices");
     auto source_index = indices_group.createGroup("source_to_target");

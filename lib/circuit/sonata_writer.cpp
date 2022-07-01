@@ -12,6 +12,7 @@
 #include <iostream>
 #include <unordered_set>
 
+#include <nlohmann/json.hpp>
 #include <range/v3/view/join.hpp>
 
 #include "lib/version.h"
@@ -91,9 +92,8 @@ void SonataWriter::setup(const CircuitData::Schema* schema, std::shared_ptr<cons
     std::unordered_map<std::string, std::string> kv;
     metadata->ToUnorderedMap(&kv);
     for (const auto& p: kv) {
-        // rfind is poor man's `starts_with`
-        if (p.first == "ARROW:schema" || p.first.rfind("org.apache.spark", 0) != std::string::npos) {
-            continue;
+        if (p.first == "ARROW:schema") {
+            // ignore arrow metadata
         } else if (p.first == "source_population_name") {
             sonata_file_.create_dataset_attribute("source_node_id", "node_population", p.second);
         } else if (p.first == "target_population_name") {
@@ -102,6 +102,20 @@ void SonataWriter::setup(const CircuitData::Schema* schema, std::shared_ptr<cons
             source_size_ = std::stoul(p.second);
         } else if (p.first == "target_population_size") {
             target_size_ = std::stoul(p.second);
+        } else if (p.first == "org.apache.spark.sql.parquet.row.metadata") {
+            auto j = nlohmann::json::parse(p.second);
+            for (const auto& field: j["fields"]) {
+                const auto metadata = field["metadata"];
+                const auto name = field["name"];
+                if (metadata.contains("enumeration_values")) {
+                    std::vector<std::string> enum_values = metadata["enumeration_values"];
+                    sonata_file_.create_library(name, enum_values);
+                }
+            }
+        } else if (p.first.rfind("org.apache", 0) != std::string::npos) {
+            // rfind is poor man's `starts_with`
+        } else if (p.first == "parquet2hdf5_version") {
+            // we set this below; ideally we would keep this, too, under a different name
         } else {
             sonata_file_.create_attribute(p.first, p.second);
         }

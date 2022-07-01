@@ -41,6 +41,12 @@ public:
 
     void create_dataset(const std::string& name, hid_t h5type, uint64_t length=0, uint64_t width=1);
 
+    /**
+     * \brief Creates a library dataset under \c @library named \a name, with \a data as
+     * contents.
+     */
+    void create_library(const std::string& name, const std::vector<std::string>& data);
+
     inline const std::unordered_map<std::string, Dataset>& datasets() {
         return datasets_;
     }

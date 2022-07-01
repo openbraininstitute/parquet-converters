@@ -22,6 +22,7 @@ target_link_libraries(CircuitParquet
                       arrow_shared
                       parquet_shared
                       SynapseTool::syn2
+                      nlohmann_json::nlohmann_json
                       HighFive
                       range-v3)
 

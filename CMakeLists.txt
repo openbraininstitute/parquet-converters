@@ -47,6 +47,7 @@ get_filename_component(MY_SEARCH_DIR ${Arrow_CONFIG} DIRECTORY)
 find_package(Parquet REQUIRED HINTS ${MY_SEARCH_DIR})
 find_package(HDF5 REQUIRED)
 find_package(HighFive REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(Range-v3 REQUIRED)
 find_package(SynapseTool REQUIRED)
 
