@@ -74,28 +74,44 @@ void SonataFile::write_indices(size_t source_size, size_t target_size, bool para
     auto indices_group = population_group_.createGroup("indices");
     auto source_index = indices_group.createGroup("source_to_target");
     auto target_index = indices_group.createGroup("target_to_source");
-    auto fun = &edge::create_index;
 #ifdef NEURONPARQUET_USE_MPI
     if (parallel) {
-        fun = &edge::create_index_mpi;
-    }
+        edge::create_index_mpi(
+            population_group_.getDataSet("source_node_id"),
+            source_index,
+            "node_id_to_ranges",
+            "range_to_edge_id",
+            true,
+            source_size
+        );
+        edge::create_index_mpi(
+            population_group_.getDataSet("target_node_id"),
+            target_index,
+            "node_id_to_ranges",
+            "range_to_edge_id",
+            true,
+            target_size
+        );
+    } else
 #endif
-    fun(
-        population_group_.getDataSet("source_node_id"),
-        source_index,
-        "node_id_to_ranges",
-        "range_to_edge_id",
-        true,
-        source_size
-    );
-    fun(
-        population_group_.getDataSet("target_node_id"),
-        target_index,
-        "node_id_to_ranges",
-        "range_to_edge_id",
-        true,
-        target_size
-    );
+    {
+        edge::create_index(
+            population_group_.getDataSet("source_node_id"),
+            source_index,
+            "node_id_to_ranges",
+            "range_to_edge_id",
+            true,
+            source_size
+        );
+        edge::create_index(
+            population_group_.getDataSet("target_node_id"),
+            target_index,
+            "node_id_to_ranges",
+            "range_to_edge_id",
+            true,
+            target_size
+        );
+    }
 }
 
 SonataFile::Dataset::Dataset(hid_t h5_loc,

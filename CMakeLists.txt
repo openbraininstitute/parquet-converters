@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(neuron_parquet VERSION 0.8.0)
+project(neuron_parquet VERSION 0.8.1)
 
 option(NEURONPARQUET_USE_STATIC "Use static libraries for dependencies" ON)
 option(NEURONPARQUET_USE_MPI "Enable MPI" OFF)

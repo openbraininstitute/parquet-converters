@@ -44,7 +44,8 @@ MPI_Info info = MPI_INFO_NULL;
 void convert_circuit(const std::vector<std::string>& filenames,
                      const std::string& metadata_path,
                      const std::string& sonata_path,
-                     const std::string& population)  {
+                     const std::string& population,
+                     const bool create_index)  {
     std::cout << "Writing to " << sonata_path << std::endl;
     CircuitMultiReaderParquet reader(filenames, metadata_path);
 
@@ -64,14 +65,16 @@ void convert_circuit(const std::vector<std::string>& filenames,
     }
 
     std::cout << std::endl
-              << "Data conversion complete. " << std::endl
-              << "Creating indices..." << std::endl;
+              << "Data conversion complete. " << std::endl;
 
-    try {
-        writer.write_indices();
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to write indices: " << e.what() << std::endl;
-        exit(1);
+    if (create_index) {
+        std::cout << "Creating indices..." << std::endl;
+        try {
+            writer.write_indices();
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR: Failed to write indices: " << e.what() << std::endl;
+            exit(1);
+        }
     }
 
     std::cout << "Finished writing " << sonata_path << std::endl;
@@ -85,7 +88,8 @@ void convert_circuit(const std::vector<std::string>& filenames,
 void convert_circuit_mpi(const std::vector<std::string>& filenames,
                          const std::string& metadata_path,
                          const std::string& sonata_path,
-                         const std::string& population) {
+                         const std::string& population,
+                         const bool create_index) {
 
     // Each reader and each writer in a separate MPI process
     int total_files = filenames.size();
@@ -190,18 +194,23 @@ void convert_circuit_mpi(const std::vector<std::string>& filenames,
 
     if(mpi_rank == 0) {
         std::cout << std::endl
-                  << "Data conversion complete. " << std::endl
-                  << "Creating indices..." << std::endl;
+                  << "Data conversion complete. " << std::endl;
     }
 
     MPI_Barrier(comm);
-    try {
-        writer.write_indices(true);
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR on rank " << mpi_rank << ": Failed to write indices: " << e.what() << std::endl;
-        throw e;
+
+    if (create_index) {
+        if(mpi_rank == 0) {
+            std::cout << "Creating indices..." << std::endl;
+        }
+        try {
+            writer.write_indices(true);
+        } catch (const std::exception& e) {
+            std::cerr << "ERROR on rank " << mpi_rank << ": Failed to write indices: " << e.what() << std::endl;
+            throw e;
+        }
+        MPI_Barrier(comm);
     }
-    MPI_Barrier(comm);
 
     if(mpi_rank == 0) {
         std::cout << "Finished writing " << sonata_path << std::endl;
@@ -223,11 +232,13 @@ int main(int argc, char* argv[]) {
     std::string output_filename;
     std::string output_population;
     std::string input_directory;
+    bool create_index = true;
 
     // Every node makes his job in reading the args and
     // compute the sub array of files to process
-    CLI::App app{"Convert Parquet synapse files into HDF5 formats"};
+    CLI::App app{"Convert Parquet synapse files into the SONATA format"};
     app.set_version_flag("-v,--version", neuron_parquet::VERSION);
+    app.add_flag("--index,!--no-index", create_index, "Create a SONATA index");
     app.add_option("input_directory", input_directory, "Directory containing Parquet files to convert")
         ->check(CLI::ExistingDirectory)
         ->required();
@@ -295,11 +306,11 @@ int main(int argc, char* argv[]) {
 
 #ifdef NEURONPARQUET_USE_MPI
     if (mpi_size > 1) {
-        convert_circuit_mpi(input_files, metadata_file, output_filename, output_population);
+        convert_circuit_mpi(input_files, metadata_file, output_filename, output_population, create_index);
         MPI_Barrier(comm);
     } else {
 #endif
-    convert_circuit(input_files, metadata_file, output_filename, output_population);
+    convert_circuit(input_files, metadata_file, output_filename, output_population, create_index);
 #ifdef NEURONPARQUET_USE_MPI
     }
     MPI_Finalize();
