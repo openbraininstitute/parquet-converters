@@ -5,8 +5,8 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#include <neuron_parquet/touches.h>
-#include <progress.hpp>
+#include "touches.h"
+#include "progress.hpp"
 
 
 using namespace neuron_parquet::touches;

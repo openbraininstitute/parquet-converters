@@ -5,11 +5,6 @@ option(NEURONPARQUET_USE_STATIC "Use static libraries for dependencies" ON)
 option(NEURONPARQUET_USE_MPI "Enable MPI" OFF)
 option(NEURONPARQUET_TESTS "Build tests" ON)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
-include(ReleaseDebugAutoFlags)
-
-add_definitions(${CMAKE_CXX_WARNING_EXTREME})
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -30,10 +25,6 @@ if(ECODE)
     set(NEURONPARQUET_VERSION ${CMAKE_PROJECT_VERSION})
 endif()
 
-##
-## DEPENDENCIES
-##
-
 if(NEURONPARQUET_USE_MPI)
     find_package(MPI REQUIRED)
     add_definitions("-DNEURONPARQUET_USE_MPI")
@@ -52,43 +43,9 @@ find_package(Range-v3 REQUIRED)
 find_package(SynapseTool REQUIRED)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cli11)
+add_subdirectory(src)
 
-# Build core lib
-add_subdirectory(lib)
-
-include_directories("include")
-
-
-# MAIN EXECUTABLES
-add_executable(touch2parquet touch2parquet.cpp)
-target_link_libraries(touch2parquet
-                      TouchParquet
-                      CLI11::CLI11)
-
-add_executable(parquet2hdf5 parquet2hdf5.cpp)
-target_link_libraries(parquet2hdf5
-                      CircuitParquet
-                      CLI11::CLI11
-                      SynapseTool::syn2)
-
-
-# TESTS
 if (NEURONPARQUET_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
-
-
-# INSTALL
-install(TARGETS touch2parquet DESTINATION bin)
-install(TARGETS parquet2hdf5 DESTINATION bin)
-
-
-# lib install
-# In case the devel lib is installed to the system these header files must be copied over,
-# including those under the lib sym-link
-install(DIRECTORY lib DESTINATION include/neuron_parquet
-        FILES_MATCHING PATTERN "*.h")
-file(GLOB header_files "include/neuron_parquet/*.h")
-install(FILES ${header_files}
-        DESTINATION include/neuron_parquet)

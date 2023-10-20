@@ -17,10 +17,9 @@
 
 #include "CLI/CLI.hpp"
 
-#include <neuron_parquet/circuit.h>
-#include <progress.hpp>
-
-#include "lib/version.h"
+#include "circuit.h"
+#include "progress.hpp"
+#include "version.h"
 
 using namespace neuron_parquet::circuit;
 
@@ -58,7 +57,9 @@ void convert_circuit(const std::vector<std::string>& filenames,
 
     //Create converter and progress monitor
     {
-        Converter<CircuitData> converter(reader, writer);
+        // Use a large buffer size: most data format is 4 bytes, read large blocks of
+        // ~16MB each.
+        Converter<CircuitData> converter(reader, writer, 4 * 1024 * 1024);
         ProgressMonitor p(reader.block_count());
         converter.setProgressHandler(p);
         converter.exportAll();
@@ -81,6 +82,7 @@ void convert_circuit(const std::vector<std::string>& filenames,
 }
 
 
+#ifdef NEURONPARQUET_USE_MPI
 ///
 /// \brief convert_circuit_mpi: Converts parquet files to SYN2 using mpi
 ///
@@ -216,6 +218,7 @@ void convert_circuit_mpi(const std::vector<std::string>& filenames,
         std::cout << "Finished writing " << sonata_path << std::endl;
     }
 }
+#endif // NEURONPARQUET_USE_MPI
 
 
 int main(int argc, char* argv[]) {

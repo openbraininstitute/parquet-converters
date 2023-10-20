@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_CIRCUIT_PARQUET_READER_H_
-#define LIB_CIRCUIT_PARQUET_READER_H_
+#pragma once
 
 #include <parquet/api/reader.h>
 #include <parquet/arrow/reader.h>
@@ -116,5 +115,3 @@ class CircuitMultiReaderParquet : public Reader<CircuitData> {
 
 }  // namespace circuit
 }  // namespace neuron_parquet
-
-#endif  // LIB_CIRCUIT_PARQUET_READER_H_

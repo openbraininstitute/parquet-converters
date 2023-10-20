@@ -15,7 +15,7 @@
 #include <nlohmann/json.hpp>
 #include <range/v3/view/join.hpp>
 
-#include "lib/version.h"
+#include "version.h"
 
 //#define NEURON_LOGGING true
 

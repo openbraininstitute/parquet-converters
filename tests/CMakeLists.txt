@@ -11,7 +11,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet2hdf5_mpi
-        COMMAND ${mpi_launcher} -n 4 ../parquet2hdf5
+        COMMAND ${mpi_launcher} -n 4 $<TARGET_FILE:parquet2hdf5>
             ${CMAKE_CURRENT_SOURCE_DIR}/parquets
             edges_n4.h5
             All
@@ -25,7 +25,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet_conversion_v1
-        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 . edges_v1.h5 All
+        COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v1.h5 All
     )
 
     add_test(
@@ -36,7 +36,7 @@ if(NEURONPARQUET_USE_MPI)
 
     add_test(
         NAME parquet_conversion_v2
-        COMMAND ${mpi_launcher} -n 1 ../parquet2hdf5 . edges_v2.h5 All
+        COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v2.h5 All
     )
 else()
     add_test(
@@ -47,7 +47,7 @@ else()
 
     add_test(
         NAME parquet_conversion_v1
-        COMMAND parquet2hdf5 output.parquet
+        COMMAND $<TARGET_FILE:parquet2hdf5> . edges_v1.h5 All
     )
 
     add_test(
@@ -58,7 +58,7 @@ else()
 
     add_test(
         NAME parquet_conversion_v2
-        COMMAND parquet2hdf5 output.parquet
+        COMMAND $<TARGET_FILE:parquet2hdf5> . edges_v2 All
     )
 endif()
 

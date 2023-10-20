@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_CIRCUIT_CIRCUIT_DEFS_H_
-#define LIB_CIRCUIT_CIRCUIT_DEFS_H_
+#pragma once
 
 #include <arrow/table.h>
 #include <parquet/schema.h>
@@ -29,5 +28,3 @@ struct CircuitData {
 
 }  // namespace circuit
 }  // namespace neuron_parquet
-
-#endif  // LIB_CIRCUIT_CIRCUIT_DEFS_H_

@@ -10,8 +10,7 @@
 #include <arrow/util/key_value_metadata.h>
 
 #include "parquet_writer.h"
-
-#include "lib/version.h"
+#include "version.h"
 
 namespace neuron_parquet {
 namespace touches {

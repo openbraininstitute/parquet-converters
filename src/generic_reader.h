@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_GENERIC_READER_H_
-#define LIB_GENERIC_READER_H_
+#pragma once
 
 #include <cstdint>
 
@@ -35,5 +34,3 @@ class Reader {
  protected:
     ~Reader() = default;
 };
-
-#endif  // LIB_GENERIC_READER_H_

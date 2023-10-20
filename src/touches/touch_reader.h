@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_TOUCHES_TOUCH_READER_H_
-#define LIB_TOUCHES_TOUCH_READER_H_
+#pragma once
 
 #include <cstring>
 #include <fstream>
@@ -97,5 +96,3 @@ class TouchReader : public Reader<IndexedTouch> {
 
 }  // namespace touches
 }  // namespace neuron_parquet
-
-#endif  // LIB_TOUCHES_TOUCH_READER_H_

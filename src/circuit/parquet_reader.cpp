@@ -8,13 +8,25 @@
 #include <stdexcept>
 #include "parquet_reader.h"
 
+namespace {
+
+std::unique_ptr<parquet::ParquetFileReader> create_reader(const std::string& filename) {
+    auto props = parquet::default_reader_properties();
+    // TODO Find out which buffer size may reduce FS reads
+    // props.enable_buffered_stream();
+    // props.set_buffer_size(16 * 1024 * 1024);
+    return parquet::ParquetFileReader::OpenFile(filename, false, props);
+}
+
+}
+
 namespace neuron_parquet {
 namespace circuit {
 
 CircuitReaderParquet::CircuitReaderParquet(const std::string & filename)
   :
     filename_(filename),
-    reader_(parquet::ParquetFileReader::OpenFile(filename, false)),
+    reader_(create_reader(filename)),
     parquet_metadata_(reader_->metadata()),
     column_count_(parquet_metadata_->num_columns()),
     rowgroup_count_(parquet_metadata_->num_row_groups()),

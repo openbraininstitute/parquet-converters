@@ -14,10 +14,9 @@
 
 #include "CLI/CLI.hpp"
 
-#include <neuron_parquet/touches.h>
-#include <progress.hpp>
-
-#include "lib/version.h"
+#include "progress.hpp"
+#include "touches.h"
+#include "version.h"
 
 namespace fs = std::filesystem;
 

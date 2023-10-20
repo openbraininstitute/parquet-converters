@@ -6,8 +6,9 @@
  *
  */
 #include <iostream>
-#include <neuron_parquet/circuit.h>
-#include <progress.hpp>
+
+#include "circuit.h"
+#include "progress.hpp"
 
 
 using namespace neuron_parquet;

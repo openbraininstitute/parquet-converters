@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_TOUCHES_TOUCH_DEFS_H_
-#define LIB_TOUCHES_TOUCH_DEFS_H_
+#pragma once
 
 #include <algorithm>
 #include <iostream>
@@ -94,5 +93,3 @@ struct IndexedTouch : public v3::Touch {
 
 }  // namespace touches
 }  // namespace neuron_parquet
-
-#endif  // LIB_TOUCHES_TOUCH_DEFS_H_

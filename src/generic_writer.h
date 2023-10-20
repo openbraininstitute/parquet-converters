@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_GENERIC_WRITER_H_
-#define LIB_GENERIC_WRITER_H_
+#pragma once
 
 #include <cstdint>
 
@@ -23,5 +22,3 @@ class Writer {
     // prevent polymorphic desctruction
     ~Writer() = default;
 };
-
-#endif  // LIB_GENERIC_WRITER_H_

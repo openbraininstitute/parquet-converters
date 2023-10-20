@@ -5,15 +5,14 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef LIB_CONVERTER_H_
-#define LIB_CONVERTER_H_
+#pragma once
 
 #include <iostream>
 #include <functional>
 
-#include <progress.hpp>
-#include "./generic_reader.h"
-#include "./generic_writer.h"
+#include "progress.hpp"
+#include "generic_reader.h"
+#include "generic_writer.h"
 
 namespace neuron_parquet {
 
@@ -146,5 +145,3 @@ class Converter {
 
 
 }  // namespace neuron_parquet
-
-#endif  // LIB_CONVERTER_H_

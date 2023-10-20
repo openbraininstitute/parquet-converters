@@ -5,8 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
-#ifndef PARQUETWRITER_H
-#define PARQUETWRITER_H
+#pragma once
 
 #include <parquet/api/writer.h>
 #include <arrow/io/file.h>
@@ -102,5 +101,3 @@ private:
 
 }  // namespace touches
 }  // namespace neuron_parquet
-
-#endif // PARQUETWRITER_H
