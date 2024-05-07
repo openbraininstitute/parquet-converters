@@ -11,9 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#ifdef NEURONPARQUET_USE_MPI
 #include <mpi.h>
-#endif
 
 #include "CLI/CLI.hpp"
 
@@ -30,59 +28,9 @@ namespace fs = std::filesystem;
 
 
 int mpi_size, mpi_rank;
-#ifdef NEURONPARQUET_USE_MPI
 MPI_Comm comm = MPI_COMM_WORLD;
 MPI_Info info = MPI_INFO_NULL;
-#endif
 
-
-///
-/// \brief convert_circuit Converts parquet files to SYN2, single-threaded
-///
-///
-void convert_circuit(const std::vector<std::string>& filenames,
-                     const std::string& metadata_path,
-                     const std::string& sonata_path,
-                     const std::string& population,
-                     const bool create_index)  {
-    std::cout << "Writing to " << sonata_path << std::endl;
-    CircuitMultiReaderParquet reader(filenames, metadata_path);
-
-    std::cout << "Aggregate totals: "
-              << reader.record_count() << " records ("
-              << reader.block_count() << " blocks)"
-              << std::endl;
-
-    SonataWriter writer(sonata_path, reader.record_count(), population);
-
-    //Create converter and progress monitor
-    {
-        // Use a large buffer size: most data format is 4 bytes, read large blocks of
-        // ~16MB each.
-        Converter<CircuitData> converter(reader, writer, 4 * 1024 * 1024);
-        ProgressMonitor p(reader.block_count());
-        converter.setProgressHandler(p);
-        converter.exportAll();
-    }
-
-    std::cout << std::endl
-              << "Data conversion complete. " << std::endl;
-
-    if (create_index) {
-        std::cout << "Creating indices..." << std::endl;
-        try {
-            writer.write_indices();
-        } catch (const std::exception& e) {
-            std::cerr << "ERROR: Failed to write indices: " << e.what() << std::endl;
-            exit(1);
-        }
-    }
-
-    std::cout << "Finished writing " << sonata_path << std::endl;
-}
-
-
-#ifdef NEURONPARQUET_USE_MPI
 ///
 /// \brief convert_circuit_mpi: Converts parquet files to SYN2 using mpi
 ///
@@ -218,19 +166,13 @@ void convert_circuit_mpi(const std::vector<std::string>& filenames,
         std::cout << "Finished writing " << sonata_path << std::endl;
     }
 }
-#endif // NEURONPARQUET_USE_MPI
 
 
 int main(int argc, char* argv[]) {
-#ifdef NEURONPARQUET_USE_MPI
     // Initialize MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_size(comm, &mpi_size);
     MPI_Comm_rank(comm, &mpi_rank);
-#else
-    mpi_size = 1;
-    mpi_rank = 0;
-#endif
 
     std::string output_filename;
     std::string output_population;
@@ -256,9 +198,7 @@ int main(int argc, char* argv[]) {
         if (mpi_rank == 0) {
             app.exit(e);
         }
-#ifdef NEURONPARQUET_USE_MPI
         MPI_Finalize();
-#endif
         return 1;
     }
 
@@ -289,9 +229,7 @@ int main(int argc, char* argv[]) {
                       << input_directory
                       << "' did not contain any Parquet files"
                       << std::endl;
-#ifdef NEURONPARQUET_USE_MPI
             MPI_Finalize();
-#endif
             return 1;
         }
     }
@@ -303,21 +241,11 @@ int main(int argc, char* argv[]) {
             fs::create_directories(parent);
         }
     }
-#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
-#endif
 
-#ifdef NEURONPARQUET_USE_MPI
-    if (mpi_size > 1) {
-        convert_circuit_mpi(input_files, metadata_file, output_filename, output_population, create_index);
-        MPI_Barrier(comm);
-    } else {
-#endif
-    convert_circuit(input_files, metadata_file, output_filename, output_population, create_index);
-#ifdef NEURONPARQUET_USE_MPI
-    }
+    convert_circuit_mpi(input_files, metadata_file, output_filename, output_population, create_index);
+
     MPI_Finalize();
-#endif
 
     return 0;
 }

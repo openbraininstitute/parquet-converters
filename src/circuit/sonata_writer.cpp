@@ -39,7 +39,6 @@ SonataWriter::SonataWriter(const string & filepath,
     output_file_offset_(0)
 { }
 
-#ifdef NEURONPARQUET_USE_MPI
 SonataWriter::SonataWriter(const string & filepath,
                                      uint64_t n_records,
                                      const MPI_Params& mpi_params,
@@ -50,7 +49,6 @@ SonataWriter::SonataWriter(const string & filepath,
     population_name_(population_name),
     output_file_offset_(output_offset)
 { }
-#endif
 
 
 void throw_invalid_column(const std::string& col_name,

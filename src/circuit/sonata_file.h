@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <hdf5.h>
 #include <highfive/H5File.hpp>
-#ifdef NEURONPARQUET_USE_MPI
 #include <mpi.h>
-#endif
 
 namespace neuron_parquet {
 namespace circuit {
@@ -26,10 +24,8 @@ public:
     class Dataset;
 
     SonataFile(const std::string& filepath, const std::string& population_name, uint64_t n_records=0);
-#ifdef NEURONPARQUET_USE_MPI
     SonataFile(const std::string& filepath, const std::string& population_name,
                     const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records=0);
-#endif
 
     SonataFile(SonataFile&&) = default;
     ~SonataFile() = default;

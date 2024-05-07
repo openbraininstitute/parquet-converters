@@ -6,7 +6,7 @@
  *
  */
 #include <unordered_set>
-#include <syn2/indexing.hpp>
+#include "index/index.h"
 #include "sonata_file.h"
 
 namespace neuron_parquet {
@@ -22,7 +22,6 @@ SonataFile::SonataFile(const std::string& filepath, const std::string &populatio
 {
 }
 
-#ifdef NEURONPARQUET_USE_MPI
 SonataFile::SonataFile(const std::string& filepath, const std::string &population_name,
                                  const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records)
   : parallel_mode_(true),
@@ -32,7 +31,6 @@ SonataFile::SonataFile(const std::string& filepath, const std::string &populatio
     n_records_(n_records)
 {
 }
-#endif
 
 void SonataFile::create_dataset(const std::string& name,
                                      hid_t h5type,
@@ -71,47 +69,7 @@ void SonataFile::create_library(const std::string& name, const std::vector<std::
 }
 
 void SonataFile::write_indices(size_t source_size, size_t target_size, bool parallel) {
-    auto indices_group = population_group_.createGroup("indices");
-    auto source_index = indices_group.createGroup("source_to_target");
-    auto target_index = indices_group.createGroup("target_to_source");
-#ifdef NEURONPARQUET_USE_MPI
-    if (parallel) {
-        edge::create_index_mpi(
-            population_group_.getDataSet("source_node_id"),
-            source_index,
-            "node_id_to_ranges",
-            "range_to_edge_id",
-            true,
-            source_size
-        );
-        edge::create_index_mpi(
-            population_group_.getDataSet("target_node_id"),
-            target_index,
-            "node_id_to_ranges",
-            "range_to_edge_id",
-            true,
-            target_size
-        );
-    } else
-#endif
-    {
-        edge::create_index(
-            population_group_.getDataSet("source_node_id"),
-            source_index,
-            "node_id_to_ranges",
-            "range_to_edge_id",
-            true,
-            source_size
-        );
-        edge::create_index(
-            population_group_.getDataSet("target_node_id"),
-            target_index,
-            "node_id_to_ranges",
-            "range_to_edge_id",
-            true,
-            target_size
-        );
-    }
+    indexing::write(population_group_, source_size, target_size);
 }
 
 SonataFile::Dataset::Dataset(hid_t h5_loc,
@@ -127,15 +85,10 @@ SonataFile::Dataset::Dataset(hid_t h5_loc,
     dspace = H5Screate_simple(dims.size(), dims.data(), NULL);
     ds = H5Dcreate2(h5_loc, name.c_str(), h5type, dspace,
                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-#ifdef NEURONPARQUET_USE_MPI
     if(parallel) {
         plist = H5Pcreate(H5P_DATASET_XFER);
         H5Pset_dxpl_mpio(plist, H5FD_MPIO_INDEPENDENT);
-    }
-    else
-#endif
-    {
-        (void) parallel;
+    } else {
         plist = H5P_DEFAULT;
     }
     dtype = h5type;

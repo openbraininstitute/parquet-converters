@@ -29,21 +29,13 @@ typedef Converter<IndexedTouch> TouchConverter;
 
 
 int mpi_size, mpi_rank;
-#ifdef NEURONPARQUET_USE_MPI
 MPI_Comm comm = MPI_COMM_WORLD;
-#endif
 
 int main( int argc, char* argv[] ) {
-
-#ifdef NEURONPARQUET_USE_MPI
     //Initialize MPI
     MPI_Init(&argc, &argv);
     MPI_Comm_size(comm, &mpi_size);
     MPI_Comm_rank(comm, &mpi_rank);
-#else
-    mpi_size=1;
-    mpi_rank=0;
-#endif
 
     //Parsing command line
     std::vector<std::string> all_input_names;
@@ -63,9 +55,7 @@ int main( int argc, char* argv[] ) {
       if (mpi_rank == 0) {
         app.exit(e);
       }
-#ifdef NEURONPARQUET_USE_MPI
       MPI_Finalize();
-#endif
       return 1;
     }
 
@@ -99,9 +89,7 @@ int main( int argc, char* argv[] ) {
             fs::create_directories(parent);
         }
     }
-#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
-#endif
 
     try {
         const auto trv = TouchReader(first_file.c_str());
@@ -112,9 +100,7 @@ int main( int argc, char* argv[] ) {
         TouchWriterParquet tw(outfn, version, version_string);
 
         for (int i = 0; i < number_of_files; i++) {
-#ifdef NEURONPARQUET_USE_MPI
             MPI_Barrier(comm);
-#endif
             const char* in_filename = all_input_names[i].c_str();
 
             if (mpi_rank == 0)
@@ -138,20 +124,13 @@ int main( int argc, char* argv[] ) {
         }
     }
     catch (const std::exception& e){
-#ifdef NEURONPARQUET_USE_MPI
         printf("\n[ERROR] Could not create output file for rank %d.\n -> %s\n", mpi_rank, e.what());
         MPI_Finalize();
         return 1;
-#else
-        printf("\n[ERROR] Could not create output file \n -> %s\n", mpi_rank, e.what());
-        return 1;
-#endif
     }
 
-#ifdef NEURONPARQUET_USE_MPI
     MPI_Barrier(comm);
     MPI_Finalize();
-#endif
 
     if (mpi_rank == 0)
         printf("\nDone exporting\n");

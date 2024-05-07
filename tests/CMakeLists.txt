@@ -1,70 +1,43 @@
-add_executable(test_touch_convert test_touch_convert.cpp)
-target_link_libraries(test_touch_convert TouchParquet)
+find_program(mpi_launcher
+    NAMES srun mpirun ${MPIEXEC_EXECUTABLE}
+    HINTS ${MPI_HOME} $ENV{MPI_HOME}
+    PATHS ${_MPI_PREFIX_PATH}
+    PATH_SUFFIXES bin
+    DOC "Executable for running MPI programs.")
 
-if(NEURONPARQUET_USE_MPI)
-    find_program(mpi_launcher
-        NAMES srun mpirun ${MPIEXEC_EXECUTABLE}
-        HINTS ${MPI_HOME} $ENV{MPI_HOME}
-        PATHS ${_MPI_PREFIX_PATH}
-        PATH_SUFFIXES bin
-        DOC "Executable for running MPI programs.")
+add_test(
+    NAME parquet2hdf5_mpi
+    COMMAND ${mpi_launcher} -n 4 $<TARGET_FILE:parquet2hdf5>
+        ${CMAKE_CURRENT_SOURCE_DIR}/parquets
+        edges_n4.h5
+        All
+)
 
-    add_test(
-        NAME parquet2hdf5_mpi
-        COMMAND ${mpi_launcher} -n 4 $<TARGET_FILE:parquet2hdf5>
-            ${CMAKE_CURRENT_SOURCE_DIR}/parquets
-            edges_n4.h5
-            All
-    )
+add_test(
+    NAME touches_conversion_v1
+    COMMAND $<TARGET_FILE:touch2parquet>
+        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
+)
 
-    add_test(
-        NAME touches_conversion_v1
-        COMMAND test_touch_convert
-            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
-    )
+add_test(
+    NAME parquet_conversion_v1
+    COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v1.h5 All
+)
 
-    add_test(
-        NAME parquet_conversion_v1
-        COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v1.h5 All
-    )
+add_test(
+    NAME touches_conversion_v2
+    COMMAND $<TARGET_FILE:touch2parquet>
+        ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
+)
 
-    add_test(
-        NAME touches_conversion_v2
-        COMMAND test_touch_convert
-            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
-    )
-
-    add_test(
-        NAME parquet_conversion_v2
-        COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v2.h5 All
-    )
-else()
-    add_test(
-        NAME touches_conversion_v1
-        COMMAND test_touch_convert
-            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v1/touchesData.0
-    )
-
-    add_test(
-        NAME parquet_conversion_v1
-        COMMAND $<TARGET_FILE:parquet2hdf5> . edges_v1.h5 All
-    )
-
-    add_test(
-        NAME touches_conversion_v2
-        COMMAND test_touch_convert
-            ${CMAKE_CURRENT_SOURCE_DIR}/touches_v2/touchesData.0
-    )
-
-    add_test(
-        NAME parquet_conversion_v2
-        COMMAND $<TARGET_FILE:parquet2hdf5> . edges_v2 All
-    )
-endif()
+add_test(
+    NAME parquet_conversion_v2
+    COMMAND ${mpi_launcher} -n 1 $<TARGET_FILE:parquet2hdf5> . edges_v2.h5 All
+)
 
 add_test(
     NAME touches_conversion_v3
-    COMMAND test_touch_convert
+    COMMAND $<TARGET_FILE:touch2parquet>
         ${CMAKE_CURRENT_SOURCE_DIR}/touches_v3/touchesData.0
 )
 

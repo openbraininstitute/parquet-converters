@@ -10,9 +10,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#ifdef NEURONPARQUET_USE_MPI
 #include <mpi.h>
-#endif
 #include <hdf5.h>
 
 #include <arrow/api.h>
@@ -37,24 +35,20 @@ class SonataWriter : public Writer<CircuitData>
 {
 public:
 
-#ifdef NEURONPARQUET_USE_MPI
     struct MPI_Params {
         MPI_Comm comm;
         MPI_Info info;
     };
-#endif
 
     SonataWriter(const std::string& filepath,
                       uint64_t n_records,
                       const std::string& population_name);
 
-#ifdef NEURONPARQUET_USE_MPI
     SonataWriter(const std::string& filepath,
                       uint64_t n_records,
                       const MPI_Params& mpi_params,
                       uint64_t output_offset,
                       const std::string& population_name);
-#endif
 
     ~SonataWriter() = default;
 

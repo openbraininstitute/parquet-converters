@@ -6,7 +6,8 @@ set(TOUCH_SRCS
 set(CIRCUIT_SRCS
     "circuit/parquet_reader.cpp"
     "circuit/sonata_writer.cpp"
-    "circuit/sonata_file.cpp")
+    "circuit/sonata_file.cpp"
+    "index/index.cpp")
 
 add_library(TouchParquet STATIC ${TOUCH_SRCS})
 target_include_directories(TouchParquet PUBLIC
@@ -25,7 +26,6 @@ target_link_libraries(CircuitParquet
                       ${HDF5_LIBRARIES}
                       arrow_shared
                       parquet_shared
-                      SynapseTool::syn2
                       nlohmann_json::nlohmann_json
                       HighFive
                       range-v3)
@@ -38,7 +38,6 @@ target_link_libraries(touch2parquet
 add_executable(parquet2hdf5 parquet2hdf5.cpp)
 target_link_libraries(parquet2hdf5
                       CircuitParquet
-                      CLI11::CLI11
-                      SynapseTool::syn2)
+                      CLI11::CLI11)
 
 install(TARGETS parquet2hdf5 touch2parquet DESTINATION bin)
