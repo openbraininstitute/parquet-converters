@@ -13,7 +13,7 @@
 #include <unordered_set>
 
 #include <nlohmann/json.hpp>
-#include <range/v3/view/join.hpp>
+#include <range/v3/view.hpp>
 
 #include "version.h"
 
@@ -23,7 +23,6 @@ namespace neuron_parquet {
 namespace circuit {
 
 using namespace arrow;
-using namespace ranges;
 using namespace std;
 
 
@@ -58,13 +57,13 @@ void throw_invalid_column(const std::string& col_name,
     msg += ": ";
     if (names.size() > 0) {
         msg += "unrecognized subcolumn(s) ";
-        msg += view::join(names, ", ");
+        msg += ranges::join_with_view(names, ", ") | ranges::to<std::string>();
     }
     if (names.size() > 0 and notfound.size() > 0)
         msg += " and ";
     if (notfound.size() > 0) {
         msg += "missing subcolumn(s) ";
-        msg += view::join(notfound, ", ");
+        msg += ranges::join_with_view(notfound, ", ") | ranges::to<std::string>();
     }
     throw std::runtime_error(msg);
 }

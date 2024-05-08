@@ -33,5 +33,11 @@ find_package(Range-v3 REQUIRED)
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cli11)
 add_subdirectory(src)
 
+find_package(Catch2)
+if(NOT ${Catch2_FOUND})
+    add_subdirectory(deps/catch2 EXCLUDE_FROM_ALL)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/deps/catch2/extras)
+endif()
+
 enable_testing()
 add_subdirectory(tests)

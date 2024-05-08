@@ -9,6 +9,16 @@
 #include "index/index.h"
 #include "sonata_file.h"
 
+namespace {
+
+auto create_fapl() {
+    HighFive::FileAccessProps fapl;
+    fapl.add(HighFive::MPIOFileAccess{MPI_COMM_WORLD, MPI_INFO_NULL});
+    return fapl;
+}
+
+}
+
 namespace neuron_parquet {
 namespace circuit {
 
@@ -25,7 +35,7 @@ SonataFile::SonataFile(const std::string& filepath, const std::string &populatio
 SonataFile::SonataFile(const std::string& filepath, const std::string &population_name,
                                  const MPI_Comm& mpicomm, const MPI_Info& mpiinfo, uint64_t n_records)
   : parallel_mode_(true),
-    file_(HighFive::File(filepath, HighFive::File::Create|HighFive::File::Truncate, HighFive::MPIOFileDriver(mpicomm, mpiinfo))),
+    file_(HighFive::File(filepath, HighFive::File::Create|HighFive::File::Truncate, create_fapl())),
     population_group_(file_.createGroup("edges").createGroup(population_name)),
     properties_group_(population_group_.createGroup("0")),
     n_records_(n_records)

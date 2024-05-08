@@ -13,8 +13,6 @@
 
 #define ARCHITECTURE_IDENTIFIER 1.001
 
-using namespace ranges;
-
 /// Some GCCs fail to detect the byte swap
 template<typename T, size_t n>
 struct bswapI;
@@ -98,8 +96,12 @@ TouchReader::_readHeader(const char* filename) {
     record_size_ = sizeof(v1::Touch);
     version_string_ = header.version;
     try {
-        std::vector<int> vs = version_string_ | view::split('.')
-                                              | view::transform([](const std::string& s) { return std::stoi(s); });
+        const auto components = version_string_
+            | ranges::views::split('.')
+            | ranges::to<std::vector<std::string>>();
+        const auto vs = components
+            | ranges::views::transform([](auto& s) { return std::stoi(s); })
+            | ranges::to<std::vector<int>>();
         if ((vs.size() >= 1 and vs[0] >= 6) or
             (vs.size() >= 2 and vs[0] >= 5 and vs[1] >= 4)) {
             version_ = V3;
@@ -155,9 +157,9 @@ IndexedTouch & TouchReader::begin() {
 IndexedTouch & TouchReader::getNext() {
     uint32_t next_position = it_buf_index_ + 1;
 
-    // Throw NULL if we are at the end
+    // Throw nullptr if we are at the end
     if( offset_ + next_position >= record_count_ ) {
-        throw NULL;
+        throw nullptr;
     }
 
     if (!buffered_) {
