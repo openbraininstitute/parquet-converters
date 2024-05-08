@@ -1,6 +1,9 @@
-[submodule "deps/cli11"]
-	path = deps/cli11
-	url = https://github.com/CLIUtils/CLI11.git
 [submodule "deps/catch2"]
 	path = deps/catch2
 	url = https://github.com/catchorg/Catch2
+[submodule "deps/cli11"]
+	path = deps/cli11
+	url = https://github.com/CLIUtils/CLI11.git
+[submodule "deps/highfive"]
+	path = deps/highfive
+	url = https://github.com/BlueBrain/HighFive
