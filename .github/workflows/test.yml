@@ -1,0 +1,47 @@
+name: Run tests
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+jobs:
+  build_w_submodules:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up Apache Arrow repositories
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates lsb-release wget
+        wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+        sudo apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+        sudo apt-get update
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get install -y cmake g++ libhdf5-openmpi-dev librange-v3-dev ninja-build nlohmann-json3-dev
+        sudo apt-get install -y libarrow-dev libparquet-dev
+
+    - name: Configure
+      run: |
+        cmake -B build -S . -GNinja \
+          -DCMAKE_CXX_COMPILER=$(which mpicxx)
+        cmake --build build
+        ctest --test-dir build --output-on-failure
+
+  build_docker_no_submodules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v5
