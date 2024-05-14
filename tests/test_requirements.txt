@@ -1,0 +1,4 @@
+libsonata
+pandas
+pyarrow
+pytest
