@@ -48,3 +48,45 @@ endif()
 
 enable_testing()
 add_subdirectory(tests)
+cmake_minimum_required(VERSION 3.15)
+project(index_writer)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find MPI package
+find_package(MPI REQUIRED)
+
+# Find HDF5 package
+find_package(HDF5 REQUIRED)
+
+# Find HighFive package (assuming it's installed in a standard location)
+find_package(HighFive REQUIRED)
+
+# Find nanobind package
+find_package(nanobind CONFIG REQUIRED)
+
+# Add the index writer library
+add_library(index_writer STATIC
+    src/index/index.cpp
+)
+
+target_include_directories(index_writer PUBLIC
+    ${MPI_INCLUDE_PATH}
+    ${HDF5_INCLUDE_DIRS}
+    ${HighFive_INCLUDE_DIRS}
+)
+
+target_link_libraries(index_writer PUBLIC
+    ${MPI_LIBRARIES}
+    ${HDF5_LIBRARIES}
+    HighFive
+)
+
+# Add the Python module
+nanobind_add_module(index_writer_py src/index/index_bindings.cpp)
+
+target_link_libraries(index_writer_py PRIVATE index_writer)
+
+# Install the Python module
+install(TARGETS index_writer_py DESTINATION .)
