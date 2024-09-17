@@ -86,6 +86,8 @@ add_library(index_writer STATIC
     src/index/index.cpp
 )
 
+set_target_properties(index_writer PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(index_writer PUBLIC
     ${MPI_INCLUDE_PATH}
     ${HDF5_INCLUDE_DIRS}
