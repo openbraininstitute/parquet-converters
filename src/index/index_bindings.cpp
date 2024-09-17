@@ -5,7 +5,7 @@
 
 namespace nb = nanobind;
 
-NB_MODULE(index_writer, m) {
+NB_MODULE(index_writer_py, m) {
     m.def("write", [](const std::string& filename, uint64_t sourceNodeCount, uint64_t targetNodeCount) {
         HighFive::File file(filename, HighFive::File::ReadWrite);
         HighFive::Group root = file.getGroup("/");
