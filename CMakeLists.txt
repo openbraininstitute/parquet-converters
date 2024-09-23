@@ -88,18 +88,6 @@ add_library(index_writer STATIC
 
 set_target_properties(index_writer PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories(index_writer PUBLIC
-    ${MPI_INCLUDE_PATH}
-    ${HDF5_INCLUDE_DIRS}
-    ${HighFive_INCLUDE_DIRS}
-)
-
-target_link_libraries(index_writer PUBLIC
-    ${MPI_LIBRARIES}
-    ${HDF5_LIBRARIES}
-    HighFive
-)
-
 # Add the Python module
 nanobind_add_module(index_writer_py src/index/index_bindings.cpp)
 
