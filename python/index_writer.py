@@ -3,8 +3,8 @@ import h5py
 import numpy as np
 from mpi4py import MPI
 
-def create_sample_hdf5_file(filename, source_node_count, target_node_count, comm):
-    rank = comm.Get_rank()
+def create_sample_hdf5_file(filename, source_node_count, target_node_count):
+    rank = MPI.COMM_WORLD.Get_rank()
 
     if rank == 0:
         # Generate data
@@ -16,27 +16,23 @@ def create_sample_hdf5_file(filename, source_node_count, target_node_count, comm
             f.create_dataset('source_node_id', data=source)
             f.create_dataset('target_node_id', data=target)
 
-    comm.Barrier()  # Ensure file is created before other ranks proceed
+    MPI.COMM_WORLD.Barrier()  # Ensure file is created before other ranks proceed
 
 def main():
-    # Initialize MPI
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-
     # Initialize MPI in the C++ module
     index_writer_py.init_mpi()
 
+    rank = MPI.COMM_WORLD.Get_rank()
     filename = "sample_data.h5"
     source_node_count = 100
     target_node_count = 200
 
     # Create a sample HDF5 file with source and target node IDs
-    create_sample_hdf5_file(filename, source_node_count, target_node_count, comm)
+    create_sample_hdf5_file(filename, source_node_count, target_node_count)
 
     # Use the index_writer_py module to write the index
     try:
-        index_writer_py.write(filename, source_node_count, target_node_count, comm)
+        index_writer_py.write(filename, source_node_count, target_node_count)
         print(f"Rank {rank} participated in writing index to {filename}")
     except Exception as e:
         print(f"Error writing index on rank {rank}: {e}")
