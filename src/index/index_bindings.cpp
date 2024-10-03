@@ -1,6 +1,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <highfive/H5File.hpp>
+#include <highfive/H5FileDriver.hpp>
 #include <mpi.h>
 #include "index.h"
 
@@ -26,7 +27,9 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
     MPI_Comm comm = *comm_ptr;
     
     // Use PHDF5 for parallel I/O
-    HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, HighFive::MPIOFileDriver(comm));
+    HighFive::FileAccessProps fapl;
+    fapl.add(HighFive::MPIOFileAccess(comm));
+    HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, fapl);
     HighFive::Group root = file.getGroup("/");
     
     indexing::write(root, sourceNodeCount, targetNodeCount);
