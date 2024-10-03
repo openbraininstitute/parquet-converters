@@ -40,6 +40,7 @@ def main():
         print(f"Rank {rank} participated in writing index to {filename}")
     except Exception as e:
         print(f"Error writing index on rank {rank}: {e}")
+        raise  # Re-raise the exception to see the full traceback
 
     # Verify the index was written (only on rank 0)
     if rank == 0:
