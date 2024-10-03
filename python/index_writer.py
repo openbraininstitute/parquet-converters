@@ -18,15 +18,18 @@ def create_sample_hdf5_file(filename, source_node_count, target_node_count, comm
 
     # Create file with parallel I/O
     with h5py.File(filename, 'w', driver='mpio', comm=comm) as f:
-        # Create datasets with parallel access
-        source_dset = f.create_dataset('source_node_id', (1000,), dtype='uint64')
-        target_dset = f.create_dataset('target_node_id', (1000,), dtype='uint64')
+        # Create datasets without parallel access
+        if rank == 0:
+            f.create_dataset('source_node_id', (1000,), dtype='uint64')
+            f.create_dataset('target_node_id', (1000,), dtype='uint64')
+        
+        comm.Barrier()  # Ensure datasets are created before writing
 
         # Write local data
         start = rank * chunk_size + min(rank, remainder)
         end = start + local_size
-        source_dset[start:end] = local_source
-        target_dset[start:end] = local_target
+        f['source_node_id'][start:end] = local_source
+        f['target_node_id'][start:end] = local_target
 
 def main():
     # Initialize MPI
