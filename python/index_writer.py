@@ -5,31 +5,18 @@ from mpi4py import MPI
 
 def create_sample_hdf5_file(filename, source_node_count, target_node_count, comm):
     rank = comm.Get_rank()
-    size = comm.Get_size()
 
-    # Calculate local chunk size
-    chunk_size = 1000 // size
-    remainder = 1000 % size
-    local_size = chunk_size + (1 if rank < remainder else 0)
+    if rank == 0:
+        # Generate data
+        source = np.random.randint(0, source_node_count, size=1000, dtype=np.uint64)
+        target = np.random.randint(0, target_node_count, size=1000, dtype=np.uint64)
 
-    # Generate local data
-    local_source = np.random.randint(0, source_node_count, size=local_size, dtype=np.uint64)
-    local_target = np.random.randint(0, target_node_count, size=local_size, dtype=np.uint64)
+        # Create file and datasets
+        with h5py.File(filename, 'w') as f:
+            f.create_dataset('source_node_id', data=source)
+            f.create_dataset('target_node_id', data=target)
 
-    # Create file with parallel I/O
-    with h5py.File(filename, 'w', driver='mpio', comm=comm) as f:
-        # Create datasets without parallel access
-        if rank == 0:
-            f.create_dataset('source_node_id', (1000,), dtype='uint64')
-            f.create_dataset('target_node_id', (1000,), dtype='uint64')
-        
-        comm.Barrier()  # Ensure datasets are created before writing
-
-        # Write local data
-        start = rank * chunk_size + min(rank, remainder)
-        end = start + local_size
-        f['source_node_id'][start:end] = local_source
-        f['target_node_id'][start:end] = local_target
+    comm.Barrier()  # Ensure file is created before other ranks proceed
 
 def main():
     # Initialize MPI
