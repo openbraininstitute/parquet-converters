@@ -25,8 +25,10 @@ endif()
 find_package(MPI REQUIRED)
 find_package(Arrow REQUIRED)
 
-# Add MPI include directories
+# Add MPI include directories and definitions
 include_directories(${MPI_INCLUDE_PATH})
+add_definitions(${MPI_CXX_COMPILE_FLAGS})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 get_filename_component(MY_SEARCH_DIR ${Arrow_CONFIG} DIRECTORY)
 find_package(Parquet REQUIRED HINTS ${MY_SEARCH_DIR})
 find_package(HDF5 REQUIRED)
