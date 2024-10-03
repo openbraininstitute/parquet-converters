@@ -2,7 +2,6 @@
 #include <nanobind/stl/string.h>
 #include <highfive/H5File.hpp>
 #include <mpi.h>
-#include <mpi4py/mpi4py.h>
 #include "index.h"
 
 namespace nb = nanobind;
@@ -13,7 +12,6 @@ void init_mpi() {
     if (!initialized) {
         MPI_Init(nullptr, nullptr);
     }
-    import_mpi4py();
 }
 
 nb::object get_comm_world() {
@@ -21,10 +19,11 @@ nb::object get_comm_world() {
 }
 
 void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t targetNodeCount, nb::object py_comm) {
-    if (!PyObject_TypeCheck(py_comm.ptr(), &PyMPIComm_Type)) {
-        throw std::runtime_error("Expected an mpi4py.MPI.Comm object");
+    MPI_Comm* comm_ptr = static_cast<MPI_Comm*>(PyCapsule_GetPointer(py_comm.ptr(), "mpi4py.MPI.Comm"));
+    if (!comm_ptr) {
+        throw std::runtime_error("Failed to extract MPI_Comm from Python object");
     }
-    MPI_Comm comm = *PyMPIComm_Get(py_comm.ptr());
+    MPI_Comm comm = *comm_ptr;
     
     // Use PHDF5 for parallel I/O
     HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, HighFive::MPIOFileDriver(comm));
