@@ -19,7 +19,7 @@ nb::object get_comm_world() {
 }
 
 void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t targetNodeCount, nb::object py_comm) {
-    MPI_Comm* comm_ptr = static_cast<MPI_Comm*>(py_comm.capsule());
+    MPI_Comm* comm_ptr = static_cast<MPI_Comm*>(py_comm.ptr());
     
     // Use PHDF5 for parallel I/O
     HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, HighFive::MPIOFileDriver(*comm_ptr));
