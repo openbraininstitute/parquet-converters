@@ -82,7 +82,8 @@ target_link_libraries(index_writer PRIVATE HighFive HDF5::HDF5)
 # Add the Python module
 nanobind_add_module(index_writer_py src/index/index_bindings.cpp)
 
-target_link_libraries(index_writer_py PRIVATE index_writer)
+target_include_directories(index_writer_py PRIVATE ${HighFive_INCLUDE_DIRS})
+target_link_libraries(index_writer_py PRIVATE index_writer HighFive)
 
 # Install the Python module
 #install(TARGETS index_writer_py DESTINATION .)
