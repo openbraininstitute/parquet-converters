@@ -76,6 +76,9 @@ add_library(index_writer STATIC
 
 set_target_properties(index_writer PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Link index_writer against HighFive and its dependencies
+target_link_libraries(index_writer PRIVATE HighFive HDF5::HDF5)
+
 # Add the Python module
 nanobind_add_module(index_writer_py src/index/index_bindings.cpp)
 
