@@ -34,8 +34,6 @@ def main():
     # Create a sample HDF5 file with source and target node IDs
     create_sample_hdf5_file(filename, source_node_count, target_node_count, comm)
 
-    print(f"Rank {rank} of {size} participated in creating file: {filename}")
-
     # Use the index_writer_py module to write the index
     try:
         index_writer_py.write(filename, source_node_count, target_node_count, comm)
