@@ -36,7 +36,7 @@ def main():
 
     # Use the index_writer_py module to write the index
     try:
-        index_writer_py.write(filename, source_node_count, target_node_count, comm.py2f())
+        index_writer_py.write(filename, source_node_count, target_node_count, comm)
         print(f"Rank {rank} participated in writing index to {filename}")
     except Exception as e:
         print(f"Error writing index on rank {rank}: {e}")
