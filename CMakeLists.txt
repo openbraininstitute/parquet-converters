@@ -85,4 +85,4 @@ nanobind_add_module(index_writer_py src/index/index_bindings.cpp)
 target_link_libraries(index_writer_py PRIVATE index_writer)
 
 # Install the Python module
-install(TARGETS index_writer_py DESTINATION .)
+#install(TARGETS index_writer_py DESTINATION .)
