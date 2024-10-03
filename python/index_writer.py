@@ -1,6 +1,7 @@
 import index_writer_py
 import h5py
 import numpy as np
+from mpi4py import MPI
 
 def create_sample_hdf5_file(filename, source_node_count, target_node_count):
     with h5py.File(filename, 'w') as f:
@@ -13,12 +14,19 @@ def create_sample_hdf5_file(filename, source_node_count, target_node_count):
         f.create_dataset('target_node_id', data=target_node_ids)
 
 def main():
-    filename = "sample_data.h5"
+    # Initialize MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    filename = f"sample_data_rank_{rank}.h5"
     source_node_count = 100
     target_node_count = 200
 
     # Create a sample HDF5 file with source and target node IDs
     create_sample_hdf5_file(filename, source_node_count, target_node_count)
+
+    print(f"Rank {rank} of {size} created file: {filename}")
 
     # Use the index_writer_py module to write the index
     try:
