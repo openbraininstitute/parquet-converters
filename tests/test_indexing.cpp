@@ -15,23 +15,28 @@ const char * GROUP = "data";
 class MPIFixture {
   public:
     MPIFixture() {
-      int init;
-      MPI_Initialized(&init);
-      if (!init) {
-          MPI_Init(nullptr, nullptr);
-      }
-          int size;
-          MPI_Comm_size(MPI_COMM_WORLD, &size);
+        int init;
+        MPI_Initialized(&init);
+        if (!init) {
+            MPI_Init(nullptr, nullptr);
+        }
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     }
 
     ~MPIFixture() {
-      int init;
-      MPI_Initialized(&init);
-      if (!init) {
-          MPI_Finalize();
-      }
+        int finalized;
+        MPI_Finalized(&finalized);
+        if (!finalized) {
+            MPI_Finalize();
+        }
     }
+
+    int size;
+    int rank;
 };
+
+#define CATCH_CONFIG_RUNNER
 
 void generate_data(const fs::path& base) {
     std::vector<uint64_t> source_ids;
@@ -53,8 +58,13 @@ void generate_data(const fs::path& base) {
     indexing::write(g, SOURCE_OFFSET + NNODES, NNODES);
 }
 
+int main(int argc, char* argv[]) {
+    MPIFixture mpi;
+    int result = Catch::Session().run(argc, argv);
+    return result;
+}
+
 TEST_CASE("Indexing") {
-    MPIFixture fixed;
 
     SECTION("Generate data") {
         generate_data("index_test.h5");
