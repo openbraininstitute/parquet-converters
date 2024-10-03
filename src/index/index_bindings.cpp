@@ -28,7 +28,7 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
     
     // Use PHDF5 for parallel I/O
     HighFive::FileAccessProps fapl;
-    fapl.add(HighFive::MPIOFileAccess(comm));
+    fapl.add(HighFive::MPIOFileAccess(comm, MPI_INFO_NULL));
     HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, fapl);
     HighFive::Group root = file.getGroup("/");
     
