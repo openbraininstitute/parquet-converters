@@ -24,7 +24,7 @@ RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | 
         libarrow-dev \
         libparquet-dev
 
-RUN pip3 install nanobind
+RUN pip3 install nanobind --break-system-packages
 
 VOLUME /highfive
 RUN git clone https://github.com/BlueBrain/HighFive /highfive/src \
