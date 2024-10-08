@@ -1,7 +1,6 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <highfive/H5File.hpp>
-#include <highfive/H5FileDriver.hpp>
 #include <mpi.h>
 #include "index.h"
 
