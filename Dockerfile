@@ -14,6 +14,8 @@ RUN apt-get update \
         ninja-build \
         nlohmann-json3-dev \
         python3 \
+        python3-dev \
+        python3-pip \
         wget
 RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb \
  && apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb \
