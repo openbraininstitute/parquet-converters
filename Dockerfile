@@ -22,6 +22,8 @@ RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | 
         libarrow-dev \
         libparquet-dev
 
+RUN pip3 install nanobind
+
 VOLUME /highfive
 RUN git clone https://github.com/BlueBrain/HighFive /highfive/src \
  && cmake -B /highfive/build -S /highfive/src -DCMAKE_INSTALL_PREFIX=/highfive/install -DHIGHFIVE_UNIT_TESTS=OFF -DHIGHFIVE_EXAMPLES=OFF -DHIGHFIVE_BUILD_DOCS=OFF \

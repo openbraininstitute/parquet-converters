@@ -27,6 +27,7 @@ jobs:
         sudo apt-get install -y cmake g++ libhdf5-openmpi-dev librange-v3-dev ninja-build nlohmann-json3-dev
         sudo apt-get install -y libarrow-dev libparquet-dev
         sudo apt-get install -y python3
+        pip3 install nanobind
 
     - name: Configure and build
       run: |
