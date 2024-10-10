@@ -7,7 +7,6 @@ import index_writer_py
 import logging
 import sys
 import traceback
-import time
 
 NNODES = 10
 SOURCE_OFFSET = 90
@@ -33,53 +32,25 @@ def generate_data(base, comm):
     size = comm.Get_size()
     logger.info(f"Rank {rank}/{size}: Starting generate_data")
     
-    if rank == 0:
-        try:
-            logger.info(f"Rank {rank}/{size}: Generating source and target IDs")
-            source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
-            target_ids = np.tile(np.arange(NNODES), NNODES)
+    source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
+    target_ids = np.tile(np.arange(NNODES), NNODES)
 
-            logger.info(f"Rank {rank}/{size}: Writing data to file: {base}")
-            with h5py.File(base, 'w') as file:
-                g = file.create_group(GROUP)
-                g.create_dataset("source_node_id", data=source_ids)
-                g.create_dataset("target_node_id", data=target_ids)
-            logger.info(f"Rank {rank}/{size}: Finished writing data to file")
-            
-            logger.info(f"Rank {rank}/{size}: Verifying written data")
-            with h5py.File(base, 'r') as file:
-                g = file[GROUP]
-                assert "source_node_id" in g, "source_node_id dataset not found"
-                assert "target_node_id" in g, "target_node_id dataset not found"
-                logger.info(f"Rank {rank}/{size}: Verified data in file")
-        except Exception as e:
-            logger.error(f"Rank {rank}/{size}: Error in generate_data: {e}")
-            logger.error(traceback.format_exc())
-            raise
-
-    logger.info(f"Rank {rank}/{size}: Waiting at barrier after generate_data")
+    logger.info(f"Rank {rank}/{size}: Writing data to file: {base}")
+    with h5py.File(base, 'w', driver='mpio', comm=comm) as file:
+        g = file.create_group(GROUP)
+        g.create_dataset("source_node_id", data=source_ids)
+        g.create_dataset("target_node_id", data=target_ids)
+    logger.info(f"Rank {rank}/{size}: Finished writing data to file")
+    
     comm.Barrier()
     logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
-    # Ensure all ranks can see the file
-    max_attempts = 10
-    attempt = 0
-    while attempt < max_attempts:
-        file_exists = os.path.exists(base)
-        file_exists_all = comm.allgather(file_exists)
-        
-        if all(file_exists_all):
-            logger.info(f"Rank {rank}/{size}: File {base} is visible on all ranks")
-            break
-        
-        attempt += 1
-        logger.warning(f"Rank {rank}/{size}: File {base} not visible on all ranks. Attempt {attempt}/{max_attempts}")
-        comm.Barrier()
-        time.sleep(1)  # Wait for 1 second before retrying
-    
-    if not all(file_exists_all):
-        logger.error(f"Rank {rank}/{size}: File {base} not visible on all ranks after {max_attempts} attempts")
-        raise RuntimeError(f"File {base} not visible on all ranks after {max_attempts} attempts")
+    # Verify the file exists and contains the expected datasets
+    with h5py.File(base, 'r', driver='mpio', comm=comm) as file:
+        g = file[GROUP]
+        assert "source_node_id" in g, "source_node_id dataset not found"
+        assert "target_node_id" in g, "target_node_id dataset not found"
+    logger.info(f"Rank {rank}/{size}: Verified data in file")
 
 def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
