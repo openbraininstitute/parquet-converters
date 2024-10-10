@@ -25,19 +25,22 @@ def generate_data(base, comm):
             g.create_dataset("target_node_id", data=target_ids)
 
     comm.Barrier()
-    index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
-    comm.Barrier()
 
-@pytest.fixture(scope="module")
-def test_file(tmp_path_factory, mpi_comm):
-    base = str(tmp_path_factory.mktemp("data") / "index_test.h5")
-    generate_data(base, mpi_comm)
-    return base
-
-def test_indexing(test_file, mpi_comm):
+def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
+    base = str(tmp_path_factory.mktemp("data") / "index_test.h5")
+
+    # Step 1: Create and write to file using only rank 0
+    generate_data(base, mpi_comm)
+    mpi_comm.Barrier()
+
+    # Step 2: Call index writer from all nodes
+    index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
+    mpi_comm.Barrier()
+
+    # Step 3: Verify from rank 0 only
     if rank == 0:
-        with h5py.File(test_file, 'r') as f:
+        with h5py.File(base, 'r') as f:
             g = f[GROUP]
             gidx = g['indices']
             sidx = gidx['source_to_target']
