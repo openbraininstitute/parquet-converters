@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include "index.h"
 #include <iostream>
+#include <filesystem>
 
 namespace nb = nanobind;
 
@@ -40,12 +41,9 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         std::cout.flush();
 
         // Open the file in the appropriate mode
-        HighFive::File file;
-        if (file_exists) {
-            file = HighFive::File(filename, HighFive::File::ReadWrite, fapl);
-        } else {
-            file = HighFive::File(filename, HighFive::File::Create | HighFive::File::Truncate, fapl);
-        }
+        HighFive::File file = file_exists
+            ? HighFive::File(filename, HighFive::File::ReadWrite, fapl)
+            : HighFive::File(filename, HighFive::File::Create | HighFive::File::Truncate, fapl);
         
         std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
         std::cout.flush();
