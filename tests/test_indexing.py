@@ -27,27 +27,31 @@ logger = get_logger()
 def mpi_comm():
     return MPI.COMM_WORLD
 
-def generate_data(base):
-    logger.info(f"Starting generate_data")
+def generate_data(base, rank, comm):
+    logger.info(f"Rank {rank}: Starting generate_data")
     
-    source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
-    target_ids = np.tile(np.arange(NNODES), NNODES)
+    if rank == 0:
+        source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
+        target_ids = np.tile(np.arange(NNODES), NNODES)
 
-    logger.info(f"Writing data to file: {base}")
-    with h5py.File(base, 'w') as file:
-        g = file.create_group(GROUP)
-        g.create_dataset("source_node_id", data=source_ids)
-        g.create_dataset("target_node_id", data=target_ids)
-    logger.info(f"Finished writing data to file")
+        logger.info(f"Rank {rank}: Writing data to file: {base}")
+        with h5py.File(base, 'w', driver='mpio', comm=comm) as file:
+            g = file.create_group(GROUP)
+            g.create_dataset("source_node_id", data=source_ids)
+            g.create_dataset("target_node_id", data=target_ids)
+        logger.info(f"Rank {rank}: Finished writing data to file")
 
-    # Verify the file exists and contains the expected datasets
-    with h5py.File(base, 'r') as file:
-        g = file[GROUP]
-        assert "source_node_id" in g, "source_node_id dataset not found"
-        assert "target_node_id" in g, "target_node_id dataset not found"
-    logger.info(f"Verified data in file")
+        # Verify the file exists and contains the expected datasets
+        with h5py.File(base, 'r') as file:
+            g = file[GROUP]
+            assert "source_node_id" in g, "source_node_id dataset not found"
+            assert "target_node_id" in g, "target_node_id dataset not found"
+        logger.info(f"Rank {rank}: Verified data in file")
+    
+    comm.Barrier()
+    logger.info(f"Rank {rank}: Finished generate_data")
 
-def test_indexing(tmp_path_factory, mpi_comm):
+def test_indexing(mpi_comm):
     rank = mpi_comm.Get_rank()
     size = mpi_comm.Get_size()
     logger.info(f"Rank {rank}/{size}: Starting test_indexing")
@@ -55,25 +59,19 @@ def test_indexing(tmp_path_factory, mpi_comm):
     logger.info(f"Rank {rank}/{size}: Test file path: {base}")
 
     try:
-        # Step 1: Create and write to file using only rank 0, then verify on all ranks
-        if rank == 0:
-            logger.info(f"Rank {rank}: Before calling generate_data")
-            generate_data(base)
-            logger.info(f"Rank {rank}: After generate_data")
-        
-        # Ensure all ranks wait for file creation
-        mpi_comm.Barrier()
-        logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
+        # Step 1: Create and write to file using all ranks
+        logger.info(f"Rank {rank}/{size}: Before calling generate_data")
+        generate_data(base, rank, mpi_comm)
+        logger.info(f"Rank {rank}/{size}: After generate_data")
 
         # Step 2: Call index writer from all nodes
         logger.info(f"Rank {rank}/{size}: Before calling index_writer_py.write")
         index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
-        logger.info(f"Rank {rank}/{size}: After index_writer_py.write, before second barrier")
-        mpi_comm.Barrier()
-        logger.info(f"Rank {rank}/{size}: Passed second barrier")
+        logger.info(f"Rank {rank}/{size}: After index_writer_py.write")
 
         # Ensure all processes have completed writing before verification
         mpi_comm.Barrier()
+        logger.info(f"Rank {rank}/{size}: Passed barrier after index_writer_py.write")
 
         # Step 3: Verify from rank 0 only
         if rank == 0:
