@@ -21,24 +21,21 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         // Use PHDF5 for parallel I/O
         HighFive::FileAccessProps fapl;
         fapl.add(HighFive::MPIOFileAccess(MPI_COMM_WORLD, MPI_INFO_NULL));
-        HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::Create, fapl);
-        HighFive::Group root = file.getGroup("/");
+        HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
         
-        if (!root.exist(GROUP)) {
+        if (!file.exist(GROUP)) {
             throw std::runtime_error("Group '" + std::string(GROUP) + "' not found in file");
         }
         
-        HighFive::Group dataGroup = root.getGroup(GROUP);
+        HighFive::Group dataGroup = file.getGroup(GROUP);
         
-        if (!dataGroup.exist("source_node_id")) {
-            throw std::runtime_error("Dataset 'source_node_id' not found in group '" + std::string(GROUP) + "'");
-        }
-        
-        if (!dataGroup.exist("target_node_id")) {
-            throw std::runtime_error("Dataset 'target_node_id' not found in group '" + std::string(GROUP) + "'");
+        if (!dataGroup.exist("source_node_id") || !dataGroup.exist("target_node_id")) {
+            throw std::runtime_error("Required datasets 'source_node_id' or 'target_node_id' not found in group '" + std::string(GROUP) + "'");
         }
         
         indexing::write(dataGroup, sourceNodeCount, targetNodeCount);
+    } catch (const HighFive::Exception& e) {
+        throw std::runtime_error(std::string("HighFive error in write_index: ") + e.what());
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Error in write_index: ") + e.what());
     }
