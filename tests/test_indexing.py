@@ -31,6 +31,7 @@ def generate_data(base, comm):
     rank = comm.Get_rank()
     size = comm.Get_size()
     logger.info(f"Rank {rank}/{size}: Starting generate_data")
+    
     if rank == 0:
         try:
             logger.info(f"Rank {rank}/{size}: Generating source and target IDs")
@@ -59,6 +60,16 @@ def generate_data(base, comm):
     comm.Barrier()
     logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
+    # Ensure all ranks can see the file
+    file_exists = os.path.exists(base)
+    file_exists_all = comm.allgather(file_exists)
+    
+    if not all(file_exists_all):
+        logger.error(f"Rank {rank}/{size}: File {base} not visible on all ranks")
+        raise RuntimeError(f"File {base} not visible on all ranks")
+    
+    logger.info(f"Rank {rank}/{size}: File {base} is visible on all ranks")
+
 def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
     size = mpi_comm.Get_size()
@@ -67,16 +78,14 @@ def test_indexing(tmp_path_factory, mpi_comm):
     logger.info(f"Rank {rank}/{size}: Test file path: {base}")
 
     try:
-        # Step 1: Create and write to file using only rank 0
+        # Step 1: Create and write to file using only rank 0, then verify on all ranks
         logger.info(f"Rank {rank}/{size}: Before calling generate_data")
-        if rank == 0:
-            generate_data(base, mpi_comm)
-        logger.info(f"Rank {rank}/{size}: After generate_data, before first barrier")
+        generate_data(base, mpi_comm)
+        logger.info(f"Rank {rank}/{size}: After generate_data")
+        
+        # At this point, all ranks should be able to see the file
         mpi_comm.Barrier()
-        logger.info(f"Rank {rank}/{size}: Passed first barrier")
-
-        # Ensure all processes can see the file
-        assert os.path.exists(base), f"File {base} does not exist on rank {rank}"
+        logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
         # Step 2: Call index writer from all nodes
         logger.info(f"Rank {rank}/{size}: Before calling index_writer_py.write")
