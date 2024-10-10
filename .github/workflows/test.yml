@@ -50,10 +50,7 @@ jobs:
         python -mpytest tests -k "not test_indexing"
 
     - name: Run MPI test
-      run: |
-        export PATH=$PATH:$PWD/install/bin
-        export PYTHONPATH=$PYTHONPATH:$PWD/build
-        mpirun -np 4 python -mpytest tests/test_indexing.py
+      run: PYTHONPATH=$PYTHONPATH:$PWD/build PATH=$PATH:$PWD/install/bin mpirun -n 4 python -mpytest tests/test_indexing.py
 
   build_docker_no_submodules:
     runs-on: ubuntu-latest
