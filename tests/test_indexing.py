@@ -76,7 +76,23 @@ def test_indexing(tmp_path_factory, mpi_comm):
 
         # Step 2: Call index writer from all nodes
         logger.info(f"Rank {rank}/{size}: Before calling index_writer_py.write")
-        index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
+        
+        import threading
+        import time
+
+        def write_with_timeout():
+            index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
+
+        thread = threading.Thread(target=write_with_timeout)
+        thread.start()
+
+        timeout = 60  # 60 seconds timeout
+        thread.join(timeout)
+
+        if thread.is_alive():
+            logger.error(f"Rank {rank}/{size}: index_writer_py.write timed out after {timeout} seconds")
+            raise TimeoutError(f"index_writer_py.write timed out after {timeout} seconds")
+        
         logger.info(f"Rank {rank}/{size}: After index_writer_py.write, before second barrier")
         mpi_comm.Barrier()
         logger.info(f"Rank {rank}/{size}: Passed second barrier")
