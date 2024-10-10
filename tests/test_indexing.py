@@ -35,7 +35,7 @@ def generate_data(base, rank, comm):
         target_ids = np.tile(np.arange(NNODES), NNODES)
 
         logger.info(f"Rank {rank}: Writing data to file: {base}")
-        with h5py.File(base, 'w', driver='mpio', comm=comm) as file:
+        with h5py.File(base, 'w') as file:
             g = file.create_group(GROUP)
             g.create_dataset("source_node_id", data=source_ids)
             g.create_dataset("target_node_id", data=target_ids)
