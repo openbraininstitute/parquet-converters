@@ -6,6 +6,8 @@
 
 namespace nb = nanobind;
 
+const char* GROUP = "data";
+
 void init_mpi() {
     int initialized;
     MPI_Initialized(&initialized);
