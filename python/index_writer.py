@@ -26,17 +26,23 @@ def init_mpi():
         raise
 
 def write_index(filename, source_node_count, target_node_count):
-    rank = MPI.COMM_WORLD.Get_rank()
-    size = MPI.COMM_WORLD.Get_size()
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
     logger.info(f"Rank {rank}/{size}: Starting write_index")
     try:
-        logger.info(f"Rank {rank}/{size}: Calling index_writer_py.write")
+        logger.info(f"Rank {rank}/{size}: Before barrier")
+        comm.Barrier()
+        logger.info(f"Rank {rank}/{size}: After barrier, before calling index_writer_py.write")
         logger.info(f"Rank {rank}/{size}: Filename: {filename}, Source node count: {source_node_count}, Target node count: {target_node_count}")
         index_writer_py.write(filename, source_node_count, target_node_count)
-        logger.info(f"Rank {rank}/{size}: Finished index_writer_py.write")
+        logger.info(f"Rank {rank}/{size}: After index_writer_py.write")
+        comm.Barrier()
+        logger.info(f"Rank {rank}/{size}: After final barrier")
     except Exception as e:
         logger.error(f"Rank {rank}/{size}: Error writing index: {e}")
         logger.error(traceback.format_exc())
         raise
     finally:
         logger.info(f"Rank {rank}/{size}: Completed write_index")
+        sys.stdout.flush()
