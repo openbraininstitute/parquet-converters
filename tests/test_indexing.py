@@ -29,53 +29,57 @@ def mpi_comm():
 
 def generate_data(base, comm):
     rank = comm.Get_rank()
-    logger.info(f"Rank {rank}: Starting generate_data")
+    size = comm.Get_size()
+    logger.info(f"Rank {rank}/{size}: Starting generate_data")
     if rank == 0:
         try:
+            logger.info(f"Rank {rank}/{size}: Generating source and target IDs")
             source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
             target_ids = np.tile(np.arange(NNODES), NNODES)
 
+            logger.info(f"Rank {rank}/{size}: Writing data to file: {base}")
             with h5py.File(base, 'w') as file:
                 g = file.create_group(GROUP)
                 g.create_dataset("source_node_id", data=source_ids)
                 g.create_dataset("target_node_id", data=target_ids)
-            logger.info(f"Rank {rank}: Finished writing data to file")
+            logger.info(f"Rank {rank}/{size}: Finished writing data to file")
             
-            # Verify that the data was written correctly
+            logger.info(f"Rank {rank}/{size}: Verifying written data")
             with h5py.File(base, 'r') as file:
                 g = file[GROUP]
                 assert "source_node_id" in g, "source_node_id dataset not found"
                 assert "target_node_id" in g, "target_node_id dataset not found"
-                logger.info(f"Rank {rank}: Verified data in file")
+                logger.info(f"Rank {rank}/{size}: Verified data in file")
         except Exception as e:
-            logger.error(f"Rank {rank}: Error in generate_data: {e}")
+            logger.error(f"Rank {rank}/{size}: Error in generate_data: {e}")
             logger.error(traceback.format_exc())
             raise
 
-    logger.info(f"Rank {rank}: Waiting at barrier after generate_data")
+    logger.info(f"Rank {rank}/{size}: Waiting at barrier after generate_data")
     comm.Barrier()
-    logger.info(f"Rank {rank}: Passed barrier after generate_data")
+    logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
 def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
-    logger.info(f"Rank {rank}: Starting test_indexing")
+    size = mpi_comm.Get_size()
+    logger.info(f"Rank {rank}/{size}: Starting test_indexing")
     base = str(tmp_path_factory.mktemp("data") / "index_test.h5")
+    logger.info(f"Rank {rank}/{size}: Test file path: {base}")
 
     try:
         # Step 1: Create and write to file using only rank 0
-        logger.info(f"Rank {rank}: Calling generate_data")
+        logger.info(f"Rank {rank}/{size}: Before calling generate_data")
         generate_data(base, mpi_comm)
-        logger.info(f"Rank {rank}: Waiting at barrier after generate_data")
+        logger.info(f"Rank {rank}/{size}: After generate_data, before first barrier")
         mpi_comm.Barrier()
-        logger.info(f"Rank {rank}: Passed barrier after generate_data")
+        logger.info(f"Rank {rank}/{size}: Passed first barrier")
 
         # Step 2: Call index writer from all nodes
-        logger.info(f"Rank {rank}: Calling index_writer_py.write")
+        logger.info(f"Rank {rank}/{size}: Before calling index_writer_py.write")
         index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
-        logger.info(f"Rank {rank}: Finished index_writer_py.write")
-        logger.info(f"Rank {rank}: Waiting at barrier after index writing")
+        logger.info(f"Rank {rank}/{size}: After index_writer_py.write, before second barrier")
         mpi_comm.Barrier()
-        logger.info(f"Rank {rank}: Passed barrier after index writing")
+        logger.info(f"Rank {rank}/{size}: Passed second barrier")
 
         # Step 3: Verify from rank 0 only
         if rank == 0:
