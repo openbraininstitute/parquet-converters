@@ -35,8 +35,12 @@ def write_index(filename, source_node_count, target_node_count):
         comm.Barrier()
         logger.info(f"Rank {rank}/{size}: After barrier, before calling index_writer_py.write")
         logger.info(f"Rank {rank}/{size}: Filename: {filename}, Source node count: {source_node_count}, Target node count: {target_node_count}")
+        
+        start_time = time.time()
         index_writer_py.write(filename, source_node_count, target_node_count)
-        logger.info(f"Rank {rank}/{size}: After index_writer_py.write")
+        end_time = time.time()
+        
+        logger.info(f"Rank {rank}/{size}: After index_writer_py.write, execution time: {end_time - start_time:.2f} seconds")
         comm.Barrier()
         logger.info(f"Rank {rank}/{size}: After final barrier")
     except Exception as e:

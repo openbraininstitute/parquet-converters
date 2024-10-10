@@ -23,36 +23,53 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
     std::cout << "Rank " << rank << "/" << size << ": Entering write_index" << std::endl;
+    std::cout.flush();
     
     try {
         std::cout << "Rank " << rank << "/" << size << ": Setting up PHDF5" << std::endl;
+        std::cout.flush();
         HighFive::FileAccessProps fapl;
         fapl.add(HighFive::MPIOFileAccess(MPI_COMM_WORLD, MPI_INFO_NULL));
         
         std::cout << "Rank " << rank << "/" << size << ": Opening file: " << filename << std::endl;
+        std::cout.flush();
         HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
         
+        std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
+        std::cout.flush();
+        
         std::cout << "Rank " << rank << "/" << size << ": Checking for group: " << GROUP << std::endl;
+        std::cout.flush();
         if (!file.exist(GROUP)) {
+            std::cerr << "Rank " << rank << "/" << size << ": Group '" << GROUP << "' not found in file" << std::endl;
+            std::cerr.flush();
             throw std::runtime_error("Group '" + std::string(GROUP) + "' not found in file");
         }
         
         std::cout << "Rank " << rank << "/" << size << ": Getting group" << std::endl;
+        std::cout.flush();
         HighFive::Group dataGroup = file.getGroup(GROUP);
         
         std::cout << "Rank " << rank << "/" << size << ": Checking for datasets" << std::endl;
+        std::cout.flush();
         if (!dataGroup.exist("source_node_id") || !dataGroup.exist("target_node_id")) {
+            std::cerr << "Rank " << rank << "/" << size << ": Required datasets 'source_node_id' or 'target_node_id' not found in group '" << GROUP << "'" << std::endl;
+            std::cerr.flush();
             throw std::runtime_error("Required datasets 'source_node_id' or 'target_node_id' not found in group '" + std::string(GROUP) + "'");
         }
         
         std::cout << "Rank " << rank << "/" << size << ": Calling indexing::write" << std::endl;
+        std::cout.flush();
         indexing::write(dataGroup, sourceNodeCount, targetNodeCount);
         std::cout << "Rank " << rank << "/" << size << ": Finished indexing::write" << std::endl;
+        std::cout.flush();
     } catch (const HighFive::Exception& e) {
         std::cerr << "Rank " << rank << "/" << size << ": HighFive error in write_index: " << e.what() << std::endl;
+        std::cerr.flush();
         throw std::runtime_error(std::string("HighFive error in write_index: ") + e.what());
     } catch (const std::exception& e) {
         std::cerr << "Rank " << rank << "/" << size << ": Error in write_index: " << e.what() << std::endl;
+        std::cerr.flush();
         throw std::runtime_error(std::string("Error in write_index: ") + e.what());
     }
     
