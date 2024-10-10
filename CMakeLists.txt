@@ -42,6 +42,7 @@ find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
 
 # Add HighFive if not found
 if(NOT HighFive_FOUND)
+  set(HDF5_IS_PARALLEL ON CACHE BOOL "Enable parallel HDF5" FORCE)
   add_subdirectory(${CMAKE_SOURCE_DIR}/deps/highfive)
 endif()
 

@@ -42,7 +42,9 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         std::cout.flush();
 
         // Open the file in read-write mode with MPI-IO
-        HighFive::File file(filename, HighFive::File::ReadWrite | HighFive::File::MPIOFileDriver(MPI_COMM_WORLD, MPI_INFO_NULL));
+        HighFive::FileAccessProps fapl;
+        fapl.use_mpi_comm(MPI_COMM_WORLD);
+        HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
         
         std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
         std::cout.flush();
