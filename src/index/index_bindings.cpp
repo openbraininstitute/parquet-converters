@@ -36,14 +36,16 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         std::cout.flush();
         
         // Check if the file exists
-        bool file_exists = std::filesystem::exists(filename);
-        std::cout << "Rank " << rank << "/" << size << ": File exists: " << (file_exists ? "true" : "false") << std::endl;
+        if (!std::filesystem::exists(filename)) {
+            std::cerr << "Rank " << rank << "/" << size << ": File " << filename << " does not exist" << std::endl;
+            std::cerr.flush();
+            throw std::runtime_error("File does not exist: " + filename);
+        }
+        std::cout << "Rank " << rank << "/" << size << ": File exists: true" << std::endl;
         std::cout.flush();
 
-        // Open the file in the appropriate mode
-        HighFive::File file = file_exists
-            ? HighFive::File(filename, HighFive::File::ReadWrite, fapl)
-            : HighFive::File(filename, HighFive::File::Create | HighFive::File::Truncate, fapl);
+        // Open the file in read-write mode
+        HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
         
         std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
         std::cout.flush();

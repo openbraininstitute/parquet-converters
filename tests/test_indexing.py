@@ -69,10 +69,14 @@ def test_indexing(tmp_path_factory, mpi_comm):
     try:
         # Step 1: Create and write to file using only rank 0
         logger.info(f"Rank {rank}/{size}: Before calling generate_data")
-        generate_data(base, mpi_comm)
+        if rank == 0:
+            generate_data(base, mpi_comm)
         logger.info(f"Rank {rank}/{size}: After generate_data, before first barrier")
         mpi_comm.Barrier()
         logger.info(f"Rank {rank}/{size}: Passed first barrier")
+
+        # Ensure all processes can see the file
+        assert os.path.exists(base), f"File {base} does not exist on rank {rank}"
 
         # Step 2: Call index writer from all nodes
         logger.info(f"Rank {rank}/{size}: Before calling index_writer_py.write")
