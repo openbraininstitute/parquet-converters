@@ -10,13 +10,11 @@ SOURCE_OFFSET = 90
 GROUP = "data"
 
 @pytest.fixture(scope="module")
-def mpi_fixture():
-    MPI.COMM_WORLD.Barrier()
-    yield
-    MPI.COMM_WORLD.Barrier()
+def mpi_comm():
+    return MPI.COMM_WORLD
 
-def generate_data(base):
-    rank = MPI.COMM_WORLD.Get_rank()
+def generate_data(base, comm):
+    rank = comm.Get_rank()
     if rank == 0:
         source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
         target_ids = np.tile(np.arange(NNODES), NNODES)
@@ -26,17 +24,18 @@ def generate_data(base):
             g.create_dataset("source_node_id", data=source_ids)
             g.create_dataset("target_node_id", data=target_ids)
 
-    MPI.COMM_WORLD.Barrier()
+    comm.Barrier()
     index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
+    comm.Barrier()
 
 @pytest.fixture(scope="module")
-def test_file(tmp_path_factory, mpi_fixture):
+def test_file(tmp_path_factory, mpi_comm):
     base = str(tmp_path_factory.mktemp("data") / "index_test.h5")
-    generate_data(base)
+    generate_data(base, mpi_comm)
     return base
 
-def test_indexing(test_file):
-    rank = MPI.COMM_WORLD.Get_rank()
+def test_indexing(test_file, mpi_comm):
+    rank = mpi_comm.Get_rank()
     if rank == 0:
         with h5py.File(test_file, 'r') as f:
             g = f[GROUP]
@@ -75,4 +74,4 @@ def test_indexing(test_file):
                     assert target_edges[NNODES * i + j][0] == NNODES * j + i
                     assert target_edges[NNODES * i + j][1] == NNODES * j + i + 1
 
-    MPI.COMM_WORLD.Barrier()
+    mpi_comm.Barrier()
