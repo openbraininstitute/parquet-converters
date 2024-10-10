@@ -51,16 +51,17 @@ def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
     size = mpi_comm.Get_size()
     logger.info(f"Rank {rank}/{size}: Starting test_indexing")
-    base = str(tmp_path_factory.mktemp("data") / "index_test.h5")
+    base = "index_test.h5"
     logger.info(f"Rank {rank}/{size}: Test file path: {base}")
 
     try:
         # Step 1: Create and write to file using only rank 0, then verify on all ranks
-        logger.info(f"Rank {rank}/{size}: Before calling generate_data")
-        generate_data(base, mpi_comm)
-        logger.info(f"Rank {rank}/{size}: After generate_data")
+        if rank == 0:
+            logger.info(f"Rank {rank}: Before calling generate_data")
+            generate_data(base)
+            logger.info(f"Rank {rank}: After generate_data")
         
-        # At this point, all ranks should be able to see the file
+        # Ensure all ranks wait for file creation
         mpi_comm.Barrier()
         logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
