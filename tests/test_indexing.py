@@ -27,30 +27,25 @@ logger = get_logger()
 def mpi_comm():
     return MPI.COMM_WORLD
 
-def generate_data(base, comm):
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-    logger.info(f"Rank {rank}/{size}: Starting generate_data")
+def generate_data(base):
+    logger.info(f"Starting generate_data")
     
     source_ids = np.repeat(np.arange(SOURCE_OFFSET, SOURCE_OFFSET + NNODES), NNODES)
     target_ids = np.tile(np.arange(NNODES), NNODES)
 
-    logger.info(f"Rank {rank}/{size}: Writing data to file: {base}")
-    with h5py.File(base, 'w', driver='mpio', comm=comm) as file:
+    logger.info(f"Writing data to file: {base}")
+    with h5py.File(base, 'w') as file:
         g = file.create_group(GROUP)
         g.create_dataset("source_node_id", data=source_ids)
         g.create_dataset("target_node_id", data=target_ids)
-    logger.info(f"Rank {rank}/{size}: Finished writing data to file")
-    
-    comm.Barrier()
-    logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
+    logger.info(f"Finished writing data to file")
 
     # Verify the file exists and contains the expected datasets
-    with h5py.File(base, 'r', driver='mpio', comm=comm) as file:
+    with h5py.File(base, 'r') as file:
         g = file[GROUP]
         assert "source_node_id" in g, "source_node_id dataset not found"
         assert "target_node_id" in g, "target_node_id dataset not found"
-    logger.info(f"Rank {rank}/{size}: Verified data in file")
+    logger.info(f"Verified data in file")
 
 def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()

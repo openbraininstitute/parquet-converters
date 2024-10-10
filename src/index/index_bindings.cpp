@@ -29,9 +29,6 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
     try {
         std::cout << "Rank " << rank << "/" << size << ": Setting up PHDF5" << std::endl;
         std::cout.flush();
-        HighFive::FileAccessProps fapl;
-        fapl.add(HighFive::MPIOFileAccess(MPI_COMM_WORLD, MPI_INFO_NULL));
-        
         std::cout << "Rank " << rank << "/" << size << ": Opening file: " << filename << std::endl;
         std::cout.flush();
         
@@ -44,8 +41,8 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         std::cout << "Rank " << rank << "/" << size << ": File exists: true" << std::endl;
         std::cout.flush();
 
-        // Open the file in read-write mode
-        HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
+        // Open the file in read-write mode without MPI-IO
+        HighFive::File file(filename, HighFive::File::ReadWrite);
         
         std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
         std::cout.flush();
