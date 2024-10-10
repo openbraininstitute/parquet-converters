@@ -33,7 +33,19 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         
         std::cout << "Rank " << rank << "/" << size << ": Opening file: " << filename << std::endl;
         std::cout.flush();
-        HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
+        
+        // Check if the file exists
+        bool file_exists = std::filesystem::exists(filename);
+        std::cout << "Rank " << rank << "/" << size << ": File exists: " << (file_exists ? "true" : "false") << std::endl;
+        std::cout.flush();
+
+        // Open the file in the appropriate mode
+        HighFive::File file;
+        if (file_exists) {
+            file = HighFive::File(filename, HighFive::File::ReadWrite, fapl);
+        } else {
+            file = HighFive::File(filename, HighFive::File::Create | HighFive::File::Truncate, fapl);
+        }
         
         std::cout << "Rank " << rank << "/" << size << ": File opened successfully" << std::endl;
         std::cout.flush();
@@ -65,12 +77,18 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         std::cout.flush();
     } catch (const HighFive::Exception& e) {
         std::cerr << "Rank " << rank << "/" << size << ": HighFive error in write_index: " << e.what() << std::endl;
+        std::cerr << "Error details: " << e.what() << std::endl;
         std::cerr.flush();
-        throw std::runtime_error(std::string("HighFive error in write_index: ") + e.what());
+        throw;
     } catch (const std::exception& e) {
         std::cerr << "Rank " << rank << "/" << size << ": Error in write_index: " << e.what() << std::endl;
+        std::cerr << "Error details: " << e.what() << std::endl;
         std::cerr.flush();
-        throw std::runtime_error(std::string("Error in write_index: ") + e.what());
+        throw;
+    } catch (...) {
+        std::cerr << "Rank " << rank << "/" << size << ": Unknown error in write_index" << std::endl;
+        std::cerr.flush();
+        throw;
     }
     
     std::cout << "Rank " << rank << "/" << size << ": Exiting write_index" << std::endl;
