@@ -7,6 +7,7 @@ import index_writer_py
 import logging
 import sys
 import traceback
+import time
 
 NNODES = 10
 SOURCE_OFFSET = 90
@@ -61,14 +62,24 @@ def generate_data(base, comm):
     logger.info(f"Rank {rank}/{size}: Passed barrier after generate_data")
 
     # Ensure all ranks can see the file
-    file_exists = os.path.exists(base)
-    file_exists_all = comm.allgather(file_exists)
+    max_attempts = 10
+    attempt = 0
+    while attempt < max_attempts:
+        file_exists = os.path.exists(base)
+        file_exists_all = comm.allgather(file_exists)
+        
+        if all(file_exists_all):
+            logger.info(f"Rank {rank}/{size}: File {base} is visible on all ranks")
+            break
+        
+        attempt += 1
+        logger.warning(f"Rank {rank}/{size}: File {base} not visible on all ranks. Attempt {attempt}/{max_attempts}")
+        comm.Barrier()
+        time.sleep(1)  # Wait for 1 second before retrying
     
     if not all(file_exists_all):
-        logger.error(f"Rank {rank}/{size}: File {base} not visible on all ranks")
-        raise RuntimeError(f"File {base} not visible on all ranks")
-    
-    logger.info(f"Rank {rank}/{size}: File {base} is visible on all ranks")
+        logger.error(f"Rank {rank}/{size}: File {base} not visible on all ranks after {max_attempts} attempts")
+        raise RuntimeError(f"File {base} not visible on all ranks after {max_attempts} attempts")
 
 def test_indexing(tmp_path_factory, mpi_comm):
     rank = mpi_comm.Get_rank()
