@@ -40,6 +40,13 @@ def generate_data(base, comm):
                 g.create_dataset("source_node_id", data=source_ids)
                 g.create_dataset("target_node_id", data=target_ids)
             logger.info(f"Rank {rank}: Finished writing data to file")
+            
+            # Verify that the data was written correctly
+            with h5py.File(base, 'r') as file:
+                g = file[GROUP]
+                assert "source_node_id" in g, "source_node_id dataset not found"
+                assert "target_node_id" in g, "target_node_id dataset not found"
+                logger.info(f"Rank {rank}: Verified data in file")
         except Exception as e:
             logger.error(f"Rank {rank}: Error in generate_data: {e}")
             logger.error(traceback.format_exc())

@@ -31,6 +31,7 @@ def write_index(filename, source_node_count, target_node_count):
     logger.info(f"Rank {rank}/{size}: Starting write_index")
     try:
         logger.info(f"Rank {rank}/{size}: Calling index_writer_py.write")
+        logger.info(f"Rank {rank}/{size}: Filename: {filename}, Source node count: {source_node_count}, Target node count: {target_node_count}")
         index_writer_py.write(filename, source_node_count, target_node_count)
         logger.info(f"Rank {rank}/{size}: Finished index_writer_py.write")
     except Exception as e:
