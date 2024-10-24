@@ -38,7 +38,7 @@ def test_indexing(mpi_comm):
     generate_data(base, rank, mpi_comm)
 
     # Step 2: Call index writer from all nodes
-    index_writer_py.write(base, SOURCE_OFFSET + NNODES, NNODES)
+    index_writer_py.write(base, GROUP, SOURCE_OFFSET + NNODES, NNODES)
 
     # Ensure all processes have completed writing before verification
     mpi_comm.Barrier()

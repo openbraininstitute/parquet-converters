@@ -7,8 +7,6 @@
 
 namespace nb = nanobind;
 
-const char* GROUP = "data";
-
 void init_mpi() {
     int initialized;
     MPI_Initialized(&initialized);
@@ -17,7 +15,7 @@ void init_mpi() {
     }
 }
 
-void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t targetNodeCount) {
+void write_index(const std::string& filename, const std::string& group_path, uint64_t sourceNodeCount, uint64_t targetNodeCount) {
     try {
         // Check if the file exists
         if (!std::filesystem::exists(filename)) {
@@ -29,17 +27,17 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
         fapl.add(HighFive::MPIOFileAccess(MPI_COMM_WORLD, MPI_INFO_NULL));
         HighFive::File file(filename, HighFive::File::ReadWrite, fapl);
         
-        if (!file.exist(GROUP)) {
-            throw std::runtime_error("Group '" + std::string(GROUP) + "' not found in file");
+        if (!file.exist(group_path)) {
+            throw std::runtime_error("Group '" + std::string(group_path) + "' not found in file");
+        }
+
+        HighFive::Group group = file.getGroup(group_path);
+        
+        if (!group.exist("source_node_id") || !group.exist("target_node_id")) {
+            throw std::runtime_error("Required datasets 'source_node_id' or 'target_node_id' not found in group '" + std::string(group_path) + "'");
         }
         
-        HighFive::Group dataGroup = file.getGroup(GROUP);
-        
-        if (!dataGroup.exist("source_node_id") || !dataGroup.exist("target_node_id")) {
-            throw std::runtime_error("Required datasets 'source_node_id' or 'target_node_id' not found in group '" + std::string(GROUP) + "'");
-        }
-        
-        indexing::write(dataGroup, sourceNodeCount, targetNodeCount);
+        indexing::write(group, sourceNodeCount, targetNodeCount);
     } catch (const HighFive::Exception& e) {
         throw std::runtime_error("HighFive error in write_index: " + std::string(e.what()));
     } catch (const std::exception& e) {
@@ -52,5 +50,5 @@ void write_index(const std::string& filename, uint64_t sourceNodeCount, uint64_t
 NB_MODULE(index_writer_py, m) {
     m.def("init_mpi", &init_mpi, "Initialize MPI if not already initialized");
     m.def("write", &write_index, "Write index to HDF5 file using parallel I/O",
-          nb::arg("filename"), nb::arg("sourceNodeCount"), nb::arg("targetNodeCount"));
+          nb::arg("filename"), nb::arg("groupPath"), nb::arg("sourceNodeCount"), nb::arg("targetNodeCount"));
 }
