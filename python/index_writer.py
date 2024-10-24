@@ -6,17 +6,6 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
-
-def init_mpi():
-    logger.info("Initializing MPI")
-    try:
-        index_writer_py.init_mpi()
-        logger.info("MPI initialized")
-    except Exception as e:
-        logger.exception("Error initializing MPI", traceback.format_exc())
-        raise
-
-
 def write_index(filename, group_path, source_node_count, target_node_count):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()

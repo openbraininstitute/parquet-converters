@@ -7,14 +7,6 @@
 
 namespace nb = nanobind;
 
-void init_mpi() {
-    int initialized;
-    MPI_Initialized(&initialized);
-    if (!initialized) {
-        MPI_Init(nullptr, nullptr);
-    }
-}
-
 void write_index(const std::string& filename, const std::string& group_path, uint64_t sourceNodeCount, uint64_t targetNodeCount) {
     try {
         // Check if the file exists
@@ -48,7 +40,6 @@ void write_index(const std::string& filename, const std::string& group_path, uin
 }
 
 NB_MODULE(index_writer_py, m) {
-    m.def("init_mpi", &init_mpi, "Initialize MPI if not already initialized");
     m.def("write", &write_index, "Write index to HDF5 file using parallel I/O",
           nb::arg("filename"), nb::arg("groupPath"), nb::arg("sourceNodeCount"), nb::arg("targetNodeCount"));
 }
