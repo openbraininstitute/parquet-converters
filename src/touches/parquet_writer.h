@@ -8,9 +8,11 @@
 #pragma once
 
 #include <parquet/api/writer.h>
+#include <parquet/types.h>
 #include <arrow/io/file.h>
 #include "../generic_writer.h"
 #include "touch_defs.h"
+
 
 namespace neuron_parquet {
 namespace touches {
@@ -72,7 +74,7 @@ private:
 
     template <int buf_len>
     struct BUF_T{
-        long long synapse_id[buf_len];
+        int64_t synapse_id[buf_len];
         int pre_neuron_id[buf_len];
         int post_neuron_id[buf_len];
         int pre_section[buf_len];
