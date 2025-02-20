@@ -8,7 +8,6 @@
 #pragma once
 
 #include <parquet/api/writer.h>
-#include <parquet/types.h>
 #include <arrow/io/file.h>
 #include "../generic_writer.h"
 #include "touch_defs.h"
