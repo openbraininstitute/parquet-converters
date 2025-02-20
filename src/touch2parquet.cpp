@@ -112,7 +112,7 @@ int main( int argc, char* argv[] ) {
                 work_unit = static_cast<size_t>(std::ceil(convert_limit/double(mpi_size)));
             }
             auto offset = work_unit * mpi_rank;
-            work_unit = std::min(tr.record_count() - offset, work_unit);
+            work_unit = std::min(static_cast<size_t>(tr.record_count() - offset), work_unit);
 
             TouchConverter converter(tr, tw);
             if (mpi_rank == 0) {

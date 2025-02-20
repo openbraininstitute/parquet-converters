@@ -10,10 +10,16 @@
 #include <functional>
 #include <thread>
 #include <iostream>
+#include <sstream>
 #include <unordered_set>
 
 #include <nlohmann/json.hpp>
-#include <range/v3/view.hpp>
+
+// #include <range/v3/view.hpp>
+// #include <iostream>
+// #include <ranges>
+// #include <string_view>
+// #include <vector>
 
 #include "version.h"
 
@@ -53,19 +59,27 @@ SonataWriter::SonataWriter(const string & filepath,
 void throw_invalid_column(const std::string& col_name,
                           const std::unordered_set<std::string>& names,
                           const std::vector<std::string>& notfound) {
-    std::string msg = "wrong nesting for column " + col_name;
-    msg += ": ";
-    if (names.size() > 0) {
-        msg += "unrecognized subcolumn(s) ";
-        msg += ranges::join_with_view(names, ", ") | ranges::to<std::string>();
+    std::ostringstream oss;
+    oss << "wrong nesting for column " << col_name << ": ";
+    if (!names.empty()) {
+        oss << "unrecognized subcolumn(s) ";
+        auto it = names.begin();
+        oss << *it++;
+        while (it != names.end()) {
+            oss << ", " << *it++;
+        }
     }
     if (names.size() > 0 and notfound.size() > 0)
-        msg += " and ";
+        oss << " and ";
     if (notfound.size() > 0) {
-        msg += "missing subcolumn(s) ";
-        msg += ranges::join_with_view(notfound, ", ") | ranges::to<std::string>();
+        oss << "missing subcolumn(s) ";
+        auto it = notfound.begin();
+        oss << *it++;
+        while (it != notfound.end()) {
+            oss << ", " << *it++;
+        }
     }
-    throw std::runtime_error(msg);
+    throw std::runtime_error(oss.str());
 }
 
 

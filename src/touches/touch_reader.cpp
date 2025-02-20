@@ -5,6 +5,7 @@
  * @author Fernando Pereira <fernando.pereira@epfl.ch>
  *
  */
+#include <sstream>
 #include <time.h>
 
 #include <range/v3/all.hpp>

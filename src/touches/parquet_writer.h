@@ -72,7 +72,7 @@ private:
 
     template <int buf_len>
     struct BUF_T{
-        long synapse_id[buf_len];
+        long long synapse_id[buf_len];
         int pre_neuron_id[buf_len];
         int post_neuron_id[buf_len];
         int pre_section[buf_len];

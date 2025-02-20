@@ -17,7 +17,7 @@ Easiest with the package contained in the BlueBrain fork of [Spack](https://gith
 Clone the project:
 
 ```console
-$ gh repo clone BlueBrain/parquet-converters -- --recursive --shallow-submodules
+$ git clone --recursive --shallow-submodules git@github.com:openbraininstitute/parquet-converters.git
 ```
 
 The following dependencies should be provided:
