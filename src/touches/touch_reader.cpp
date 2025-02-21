@@ -6,7 +6,7 @@
  *
  */
 #include <time.h>
-
+#include <sstream>
 #include <range/v3/all.hpp>
 
 #include "touch_reader.h"
