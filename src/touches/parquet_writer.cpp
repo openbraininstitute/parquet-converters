@@ -303,6 +303,7 @@ void TouchWriterParquet::_writeBuffer(uint length) {
     RowGroupWriter* rg_writer = file_writer->AppendRowGroup();
 
     //pre_neuron / post_neuron [ids, section, segment]
+
     int64_writer = static_cast<Int64Writer*>(rg_writer->NextColumn());
     int64_writer->WriteBatch(length, nullptr, nullptr, _buffer->synapse_id);
     int32_writer = static_cast<Int32Writer*>(rg_writer->NextColumn());

@@ -92,7 +92,7 @@ public:
 
 
 protected:
-    SonataFile() = default;
+    SonataFile() = delete;
 
     bool parallel_mode_;
     HighFive::File file_;
